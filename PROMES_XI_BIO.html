@@ -167,10 +167,40 @@
     padding:9px; cursor:pointer; border-radius:3px; text-transform:uppercase; transition:.2s;
   }
   .cp-toggle:hover, .cp-toggle:focus-visible{background:rgba(79,230,255,.1); box-shadow:0 0 14px rgba(79,230,255,.25);}
-  #cp-text{
-    max-height:0; overflow:hidden; transition:max-height .4s ease; font-size:12.5px; line-height:1.6; color:var(--text-dim);
+
+  /* ===== CAPAIAN PEMBELAJARAN — POPUP MODAL ===== */
+  .modal-overlay{
+    position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center;
+    background:rgba(2,6,12,.72); backdrop-filter: blur(4px);
+    opacity:0; pointer-events:none; transition:opacity .25s ease;
+    padding:24px;
   }
-  #cp-text.open{max-height:600px; margin-top:12px;}
+  .modal-overlay.open{opacity:1; pointer-events:auto;}
+  .modal-box{
+    position:relative; width:100%; max-width:560px; max-height:80vh; overflow-y:auto;
+    background:var(--panel-solid); border:1px solid var(--border-strong); border-radius:6px;
+    box-shadow:0 0 40px rgba(79,230,255,.18), 0 20px 60px rgba(0,0,0,.6);
+    transform:scale(.94) translateY(8px); transition:transform .25s ease;
+  }
+  .modal-overlay.open .modal-box{transform:scale(1) translateY(0);}
+  .modal-box::before{content:"";position:absolute; top:-1px; left:-1px; width:16px; height:16px; border-top:2px solid var(--cyan); border-left:2px solid var(--cyan);}
+  .modal-box::after{content:"";position:absolute; bottom:-1px; right:-1px; width:16px; height:16px; border-bottom:2px solid var(--cyan); border-right:2px solid var(--cyan);}
+  .modal-head{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:14px 18px; border-bottom:1px solid var(--border);
+  }
+  .modal-head h3{
+    margin:0; font-family:'Orbitron'; font-size:13px; letter-spacing:2.5px; color:var(--cyan-soft);
+    text-transform:uppercase; text-shadow:0 0 12px rgba(79,230,255,.4);
+  }
+  .modal-close{
+    background:transparent; border:1px solid var(--border); color:var(--text-dim);
+    width:28px; height:28px; border-radius:50%; cursor:pointer; font-size:15px; line-height:1;
+    display:flex; align-items:center; justify-content:center; transition:.2s; flex-shrink:0;
+  }
+  .modal-close:hover, .modal-close:focus-visible{color:var(--cyan-soft); border-color:var(--cyan); box-shadow:0 0 10px rgba(79,230,255,.35);}
+  .modal-body{padding:18px; font-size:13.5px; line-height:1.75; color:var(--text);}
+  .modal-body b{color:var(--cyan-soft);}
 
   /* coverage bar */
   .coverage{margin-top:18px;}
@@ -362,8 +392,7 @@
             <div><dt>Tahun</dt><dd>2026 / 2027</dd></div>
           </dl>
 
-          <button class="cp-toggle" id="cpBtn" aria-expanded="false">▸ Tampilkan Capaian Pembelajaran</button>
-          <div id="cp-text"></div>
+          <button class="cp-toggle" id="cpBtn">▸ Tampilkan Capaian Pembelajaran</button>
 
           <div class="coverage">
             <div class="bar" id="covBar"></div>
@@ -413,6 +442,16 @@
   </div>
 
   <footer>PROMES INTERFACE — DIBANGUN DARI PROGRAM SEMESTER GANJIL BIOLOGI KELAS XI · DATA SUMBER: PROMES_XI.XLSX</footer>
+</div>
+
+<div class="modal-overlay" id="cpModal" aria-hidden="true">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="cpModalTitle">
+    <div class="modal-head">
+      <h3 id="cpModalTitle">Capaian Pembelajaran</h3>
+      <button class="modal-close" id="cpClose" aria-label="Tutup">✕</button>
+    </div>
+    <div class="modal-body" id="cpModalBody"></div>
+  </div>
 </div>
 
 <script>
@@ -694,15 +733,29 @@ function activateMonth(m){
   }
 }
 
-/* Capaian toggle */
+/* Capaian Pembelajaran — popup modal */
 const cpBtn = document.getElementById('cpBtn');
-const cpText = document.getElementById('cp-text');
-cpText.textContent = capaian;
-cpBtn.addEventListener('click', ()=>{
-  const open = cpText.classList.toggle('open');
-  cpBtn.setAttribute('aria-expanded', open);
-  cpBtn.textContent = (open?'▾ Sembunyikan':'▸ Tampilkan') + ' Capaian Pembelajaran';
-});
+const cpModal = document.getElementById('cpModal');
+const cpModalBody = document.getElementById('cpModalBody');
+const cpClose = document.getElementById('cpClose');
+cpModalBody.textContent = capaian;
+
+function openCpModal(){
+  cpModal.classList.add('open');
+  cpModal.setAttribute('aria-hidden','false');
+  cpClose.focus();
+  document.body.style.overflow = 'hidden';
+}
+function closeCpModal(){
+  cpModal.classList.remove('open');
+  cpModal.setAttribute('aria-hidden','true');
+  cpBtn.focus();
+  document.body.style.overflow = '';
+}
+cpBtn.addEventListener('click', openCpModal);
+cpClose.addEventListener('click', closeCpModal);
+cpModal.addEventListener('click', e=>{ if(e.target === cpModal) closeCpModal(); });
+document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && cpModal.classList.contains('open')) closeCpModal(); });
 
 /* Coverage bar */
 (function(){
