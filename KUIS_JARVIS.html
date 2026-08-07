@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>J.A.R.V.I.S. // REKAP KUIS BIOLOGI XI &amp; XII</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#03070f; --bg2:#050d1a;
+    --panel: rgba(8,22,40,.55); --panel-solid:#08182b;
+    --border: rgba(70,190,255,.28); --border-strong: rgba(90,220,255,.55);
+    --cyan:#4fe6ff; --cyan-soft:#8fefff; --cyan-dim:#1f7fa3;
+    --amber:#ffb020; --orange:#ff7a3d; --red:#ff4d6a; --green:#34ff9e;
+    --text:#d3edff; --text-dim:#5f84a8; --text-faint:#3a5470;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse at 20% -10%, rgba(30,100,150,.18), transparent 55%),
+      radial-gradient(ellipse at 100% 10%, rgba(255,120,60,.06), transparent 45%),
+      var(--bg);
+    color:var(--text); font-family:'Rajdhani',sans-serif; min-height:100vh; overflow-x:hidden; position:relative;
+  }
+  body::before{
+    content:""; position:fixed; inset:0;
+    background-image:
+      linear-gradient(rgba(79,230,255,.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(79,230,255,.035) 1px, transparent 1px);
+    background-size: 42px 42px; pointer-events:none; z-index:0;
+    mask-image: radial-gradient(ellipse at 50% 0%, black 0%, transparent 75%);
+  }
+  body::after{
+    content:""; position:fixed; inset:0;
+    background: repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0, rgba(0,0,0,0) 3px, rgba(0,0,0,.14) 4px);
+    pointer-events:none; z-index:5; opacity:.35;
+  }
+  .wrap{position:relative; z-index:1; max-width:1400px; margin:0 auto; padding:22px 22px 60px;}
+
+  #boot{
+    position:fixed; inset:0; z-index:100; background:#02050a;
+    display:flex; align-items:center; justify-content:center; flex-direction:column;
+    font-family:'Share Tech Mono', monospace; color:var(--cyan); transition:opacity .6s ease;
+  }
+  #boot .ring{
+    width:120px;height:120px;border-radius:50%; border:2px solid var(--border-strong); border-top-color:var(--cyan);
+    animation:spin 1.1s linear infinite; margin-bottom:22px; box-shadow:0 0 30px rgba(79,230,255,.35);
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+  #boot .lines{font-size:13px; letter-spacing:1px; text-align:left; min-height:110px; opacity:.9;}
+  #boot .lines div{opacity:0; animation:fadein .25s ease forwards;}
+  #boot .lines div:nth-child(1){animation-delay:.1s;}
+  #boot .lines div:nth-child(2){animation-delay:.5s;}
+  #boot .lines div:nth-child(3){animation-delay:.95s;}
+  #boot .lines div:nth-child(4){animation-delay:1.35s; color:var(--cyan-soft); font-weight:bold;}
+  @keyframes fadein{to{opacity:1;}}
+  @media (prefers-reduced-motion: reduce){ #boot{display:none !important;} }
+
+  header.top{
+    display:flex; align-items:flex-start; justify-content:space-between; gap:20px;
+    padding-bottom:18px; border-bottom:1px solid var(--border); margin-bottom:26px; flex-wrap:wrap;
+  }
+  .brand{display:flex; align-items:center; gap:14px;}
+  .brand .mark{
+    width:46px;height:46px;border-radius:50%; border:2px solid var(--cyan); position:relative;
+    box-shadow:0 0 18px rgba(79,230,255,.45), inset 0 0 10px rgba(79,230,255,.35); flex-shrink:0;
+  }
+  .brand .mark::before{content:"";position:absolute; inset:8px; border-radius:50%; border:1px dashed var(--cyan-dim); animation:spin 8s linear infinite;}
+  .brand h1{font-family:'Orbitron',sans-serif; font-size:20px; letter-spacing:2.5px; margin:0; color:var(--cyan-soft); font-weight:700; text-shadow:0 0 16px rgba(79,230,255,.4);}
+  .brand p{margin:2px 0 0; font-size:12px; letter-spacing:2px; color:var(--text-dim); text-transform:uppercase;}
+  .statusbar{display:flex; gap:18px; align-items:center; font-family:'Share Tech Mono', monospace; font-size:12px; color:var(--text-dim); flex-wrap:wrap;}
+  .statusbar .dot{width:7px;height:7px;border-radius:50%; background:var(--cyan); display:inline-block; margin-right:6px; box-shadow:0 0 8px var(--cyan); animation:pulse 1.8s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+  #clock{color:var(--cyan-soft); font-size:14px;}
+
+  .panel{background:var(--panel); border:1px solid var(--border); border-radius:6px; backdrop-filter: blur(6px); position:relative;}
+  .panel::before{content:""; position:absolute; top:-1px; left:-1px; width:14px; height:14px; border-top:2px solid var(--cyan); border-left:2px solid var(--cyan);}
+  .panel::after{content:""; position:absolute; bottom:-1px; right:-1px; width:14px; height:14px; border-bottom:2px solid var(--cyan); border-right:2px solid var(--cyan);}
+  .panel-title{
+    font-family:'Orbitron',sans-serif; font-size:11px; letter-spacing:2.5px; color:var(--cyan);
+    padding:12px 16px; border-bottom:1px solid var(--border); text-transform:uppercase;
+    display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;
+  }
+  .panel-title small{font-family:'Share Tech Mono'; font-weight:400; letter-spacing:0; color:var(--text-faint); text-transform:none;}
+  .panel-body{padding:16px;}
+
+  /* ===== KPI ROW ===== */
+  .kpi-row{display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:20px;}
+  @media (max-width:900px){ .kpi-row{grid-template-columns:repeat(2,1fr);} }
+  .kpi-card{padding:16px 18px;}
+  .kpi-card .kpi-label{font-family:'Orbitron'; font-size:9.5px; letter-spacing:2px; color:var(--text-dim); text-transform:uppercase;}
+  .kpi-card .kpi-value{font-family:'Share Tech Mono'; font-size:26px; color:var(--cyan-soft); margin-top:6px; text-shadow:0 0 14px rgba(79,230,255,.35);}
+  .kpi-card .kpi-sub{font-size:11.5px; color:var(--text-dim); margin-top:4px;}
+  .kpi-card.warn .kpi-value{color:var(--red); text-shadow:0 0 14px rgba(255,77,106,.35);}
+  .kpi-card.good .kpi-value{color:var(--green); text-shadow:0 0 14px rgba(52,255,158,.35);}
+
+  /* ===== TWO COLUMN CHARTS ===== */
+  .chart-row{display:grid; grid-template-columns:1.1fr .9fr; gap:20px; margin-bottom:20px; align-items:stretch;}
+  @media (max-width:900px){ .chart-row{grid-template-columns:1fr;} }
+
+  .bar-chart{display:flex; flex-direction:column; gap:12px;}
+  .bar-item{cursor:pointer;}
+  .bar-item .bar-label{display:flex; justify-content:space-between; font-family:'Share Tech Mono'; font-size:11.5px; color:var(--text-dim); margin-bottom:4px;}
+  .bar-item .bar-label b{color:var(--cyan-soft); font-weight:600;}
+  .bar-track{height:16px; border-radius:3px; background:rgba(79,230,255,.06); border:1px solid var(--border); overflow:hidden;}
+  .bar-fill{height:100%; background:linear-gradient(90deg, var(--cyan-dim), var(--cyan)); transition:filter .2s, box-shadow .2s; box-shadow:0 0 0 rgba(79,230,255,0);}
+  .bar-item:hover .bar-fill, .bar-item:focus-visible .bar-fill{filter:brightness(1.3); box-shadow:0 0 12px rgba(79,230,255,.5);}
+  .bar-item.selected .bar-track{border-color:var(--cyan-soft);}
+  .bar-item.selected .bar-fill{filter:brightness(1.4); box-shadow:0 0 16px rgba(79,230,255,.6);}
+  @keyframes barflash{0%{filter:brightness(2); box-shadow:0 0 26px rgba(79,230,255,1);}100%{filter:brightness(1);}}
+  .bar-fill.flash{animation:barflash .6s ease-out;}
+
+  .dist-seg{display:flex; height:34px; border-radius:4px; overflow:hidden; border:1px solid var(--border); cursor:pointer;}
+  .dist-seg > div{display:flex; align-items:center; justify-content:center; font-family:'Share Tech Mono'; font-size:11px; color:#03070f; font-weight:700; transition:filter .2s, flex-grow .3s; min-width:0; overflow:hidden; white-space:nowrap;}
+  .dist-seg > div:hover, .dist-seg > div.selected{filter:brightness(1.25);}
+  .dist-seg > div.dimmed{opacity:.35;}
+  .dist-legend{display:flex; flex-wrap:wrap; gap:10px 16px; margin-top:14px; font-size:11.5px; color:var(--text-dim);}
+  .dist-legend span{cursor:pointer; display:flex; align-items:center; gap:6px;}
+  .dist-legend span:hover{color:var(--text);}
+  .dist-legend i{width:9px;height:9px;border-radius:2px;display:inline-block;}
+  .dist-legend span.selected{color:var(--cyan-soft);}
+
+  /* ===== LEADERBOARD ===== */
+  .leaderboard{display:grid; grid-template-columns:repeat(5,1fr); gap:12px;}
+  @media (max-width:900px){ .leaderboard{grid-template-columns:repeat(2,1fr);} }
+  .lb-card{
+    padding:14px 12px; text-align:center; cursor:pointer; border-radius:5px;
+    border:1px solid var(--border); background:rgba(79,230,255,.04); transition:.18s; position:relative;
+  }
+  .lb-card:hover, .lb-card:focus-visible{border-color:var(--border-strong); background:rgba(79,230,255,.1); transform:translateY(-2px);}
+  .lb-card .lb-rank{font-family:'Orbitron'; font-size:10px; color:var(--amber); letter-spacing:1px;}
+  .lb-card.rank1 .lb-rank{color:var(--green);}
+  .lb-card .lb-name{font-size:12.5px; font-weight:600; margin:6px 0 2px; line-height:1.25; min-height:32px; display:flex; align-items:center; justify-content:center;}
+  .lb-card .lb-class{font-size:10px; color:var(--text-dim); font-family:'Share Tech Mono';}
+  .lb-card .lb-score{font-family:'Share Tech Mono'; font-size:19px; color:var(--cyan-soft); margin-top:6px;}
+
+  /* ===== FILTER BAR ===== */
+  .filter-bar{display:flex; flex-wrap:wrap; gap:14px 24px; padding:14px 16px; border-bottom:1px solid var(--border); align-items:center;}
+  .filter-group{display:flex; align-items:center; gap:7px; flex-wrap:wrap;}
+  .filter-label{font-family:'Orbitron'; font-size:9.5px; letter-spacing:2px; color:var(--text-faint); text-transform:uppercase; margin-right:2px;}
+  .chip-filter{
+    font-family:'Share Tech Mono'; font-size:10.5px; letter-spacing:.5px; background:transparent; border:1px solid var(--border);
+    color:var(--text-dim); padding:5px 11px; border-radius:20px; cursor:pointer; transition:.18s;
+  }
+  .chip-filter:hover, .chip-filter:focus-visible{border-color:var(--border-strong); color:var(--text);}
+  .chip-filter.active{background:rgba(79,230,255,.16); border-color:var(--cyan); color:var(--cyan-soft); box-shadow:0 0 10px rgba(79,230,255,.3);}
+  .search-box{
+    margin-left:auto; display:flex; align-items:center; gap:8px; background:rgba(79,230,255,.05);
+    border:1px solid var(--border); border-radius:20px; padding:6px 14px;
+  }
+  .search-box input{
+    background:transparent; border:none; outline:none; color:var(--text); font-family:'Share Tech Mono'; font-size:12px; width:160px;
+  }
+  .search-box input::placeholder{color:var(--text-faint);}
+  .search-box svg{width:13px;height:13px; opacity:.5;}
+
+  /* ===== TABLE ===== */
+  .table-scroll{max-height:520px; overflow-y:auto; overflow-x:auto;}
+  table.data-tbl{width:100%; border-collapse:collapse; font-size:13px;}
+  table.data-tbl thead th{
+    position:sticky; top:0; background:#08182b; z-index:2; text-align:left; padding:10px 14px;
+    font-family:'Orbitron'; font-size:10px; letter-spacing:1.5px; color:var(--cyan); text-transform:uppercase;
+    border-bottom:1px solid var(--border); cursor:pointer; white-space:nowrap; user-select:none;
+  }
+  table.data-tbl thead th:hover{color:var(--cyan-soft);}
+  table.data-tbl thead th .arrow{opacity:.4; font-size:9px; margin-left:3px;}
+  table.data-tbl thead th.sorted .arrow{opacity:1; color:var(--cyan-soft);}
+  table.data-tbl tbody td{padding:8px 14px; border-bottom:1px solid rgba(79,230,255,.06); color:var(--text);}
+  table.data-tbl tbody tr{cursor:pointer; transition:background .12s;}
+  table.data-tbl tbody tr:hover{background:rgba(79,230,255,.06);}
+  table.data-tbl tbody tr.hidden-row{display:none;}
+  .tbl-score{font-family:'Share Tech Mono'; font-weight:700;}
+  .cat-dot{width:8px;height:8px;border-radius:50%; display:inline-block; margin-right:7px;}
+  .rank-badge{font-family:'Share Tech Mono'; font-size:10.5px; color:var(--text-dim);}
+
+  /* ===== MODAL (student detail) ===== */
+  .modal-overlay{
+    position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center;
+    background:rgba(2,6,12,.72); backdrop-filter: blur(4px); opacity:0; pointer-events:none; transition:opacity .25s ease; padding:24px;
+  }
+  .modal-overlay.open{opacity:1; pointer-events:auto;}
+  .modal-box{
+    position:relative; width:100%; max-width:420px; background:var(--panel-solid); border:1px solid var(--border-strong);
+    border-radius:6px; box-shadow:0 0 40px rgba(79,230,255,.18), 0 20px 60px rgba(0,0,0,.6);
+    transform:scale(.94) translateY(8px); transition:transform .25s ease;
+  }
+  .modal-overlay.open .modal-box{transform:scale(1) translateY(0);}
+  .modal-box::before{content:"";position:absolute; top:-1px; left:-1px; width:16px; height:16px; border-top:2px solid var(--cyan); border-left:2px solid var(--cyan);}
+  .modal-box::after{content:"";position:absolute; bottom:-1px; right:-1px; width:16px; height:16px; border-bottom:2px solid var(--cyan); border-right:2px solid var(--cyan);}
+  .modal-head{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 18px; border-bottom:1px solid var(--border);}
+  .modal-head h3{margin:0; font-family:'Orbitron'; font-size:12px; letter-spacing:2px; color:var(--cyan-soft); text-transform:uppercase;}
+  .modal-close{
+    background:transparent; border:1px solid var(--border); color:var(--text-dim); width:28px; height:28px; border-radius:50%;
+    cursor:pointer; font-size:15px; line-height:1; display:flex; align-items:center; justify-content:center; transition:.2s; flex-shrink:0;
+  }
+  .modal-close:hover, .modal-close:focus-visible{color:var(--cyan-soft); border-color:var(--cyan); box-shadow:0 0 10px rgba(79,230,255,.35);}
+  .modal-body{padding:20px;}
+  .modal-body .m-name{font-family:'Orbitron'; font-size:16px; color:var(--cyan-soft); margin-bottom:4px; text-shadow:0 0 12px rgba(79,230,255,.35);}
+  .modal-body .m-class{font-family:'Share Tech Mono'; font-size:12px; color:var(--text-dim); margin-bottom:16px;}
+  .modal-body .m-score-row{display:flex; align-items:baseline; gap:10px; margin-bottom:16px;}
+  .modal-body .m-score{font-family:'Share Tech Mono'; font-size:34px; color:var(--cyan-soft); text-shadow:0 0 16px rgba(79,230,255,.4);}
+  .modal-body .m-score-label{font-size:11px; color:var(--text-faint); text-transform:uppercase; letter-spacing:1px;}
+  .modal-meta{display:flex; flex-wrap:wrap; gap:8px;}
+  .chip{font-family:'Share Tech Mono'; font-size:10.5px; border:1px solid var(--border-strong); color:var(--cyan-soft); padding:5px 10px; border-radius:20px; background:rgba(79,230,255,.06);}
+
+  footer{margin-top:30px; text-align:center; font-size:10.5px; color:var(--text-faint); font-family:'Share Tech Mono'; letter-spacing:1px;}
+  ::-webkit-scrollbar{height:8px; width:8px;}
+  ::-webkit-scrollbar-track{background:rgba(255,255,255,.03);}
+  ::-webkit-scrollbar-thumb{background:var(--cyan-dim); border-radius:4px;}
+  button:focus-visible, .bar-item:focus-visible, .lb-card:focus-visible, .chip-filter:focus-visible{outline:2px solid var(--cyan-soft); outline-offset:1px;}
+  .section-gap{margin-bottom:20px;}
+</style>
+</head>
+<body>
+
+<div id="boot">
+  <div class="ring"></div>
+  <div class="lines">
+    <div>&gt; INITIALIZING INTERFACE...</div>
+    <div>&gt; MEMUAT DATA KUIS — 134 SISWA / 6 KELAS...</div>
+    <div>&gt; MENGHITUNG STATISTIK &amp; PERINGKAT...</div>
+    <div>&gt; SISTEM SIAP.</div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <div class="mark"></div>
+      <div>
+        <h1>KUIS BIOLOGI // J.A.R.V.I.S</h1>
+        <p>Rekap Kuis Interaktif — Kelas XI &amp; XII</p>
+      </div>
+    </div>
+    <div class="statusbar">
+      <span><span class="dot"></span>ONLINE</span>
+      <span>6 KELAS</span>
+      <span>134 SISWA</span>
+      <span id="clock">--:--:--</span>
+    </div>
+  </header>
+
+  <!-- KPI -->
+  <div class="kpi-row" id="kpiRow"></div>
+
+  <!-- Charts -->
+  <div class="chart-row">
+    <section class="panel">
+      <div class="panel-title">Rata-rata Skor per Kelas <small>klik batang untuk fokus</small></div>
+      <div class="panel-body">
+        <div class="bar-chart" id="barChart"></div>
+      </div>
+    </section>
+    <section class="panel">
+      <div class="panel-title">Distribusi Capaian <small>klik segmen untuk filter</small></div>
+      <div class="panel-body">
+        <div class="dist-seg" id="distSeg"></div>
+        <div class="dist-legend" id="distLegend"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Leaderboard -->
+  <section class="panel section-gap">
+    <div class="panel-title">Papan Peringkat Teratas</div>
+    <div class="panel-body">
+      <div class="leaderboard" id="leaderboard"></div>
+    </div>
+  </section>
+
+  <!-- Table -->
+  <section class="panel">
+    <div class="panel-title">Data Lengkap Siswa <small id="tblCount"></small></div>
+    <div class="filter-bar">
+      <div class="filter-group" id="classChips">
+        <span class="filter-label">Kelas</span>
+      </div>
+      <div class="filter-group" id="catChips">
+        <span class="filter-label">Kategori</span>
+      </div>
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="searchInput" placeholder="Cari nama...">
+      </div>
+    </div>
+    <div class="panel-body" style="padding-top:0;">
+      <div class="table-scroll">
+        <table class="data-tbl">
+          <thead>
+            <tr>
+              <th data-sort="no">No <span class="arrow">▲▼</span></th>
+              <th data-sort="nama">Nama <span class="arrow">▲▼</span></th>
+              <th data-sort="kelas">Kelas <span class="arrow">▲▼</span></th>
+              <th data-sort="kuis">Kuis <span class="arrow">▲▼</span></th>
+              <th data-sort="rank_class">Peringkat Kelas <span class="arrow">▲▼</span></th>
+            </tr>
+          </thead>
+          <tbody id="tblBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <footer>KUIS INTERFACE — REKAP KUIS INTERAKTIF BIOLOGI KELAS XI &amp; XII &middot; 134 SISWA / 6 KELAS</footer>
+</div>
+
+<div class="modal-overlay" id="stuModal" aria-hidden="true">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="stuModalTitle">
+    <div class="modal-head">
+      <h3 id="stuModalTitle">Detail Siswa</h3>
+      <button class="modal-close" id="stuClose" aria-label="Tutup">✕</button>
+    </div>
+    <div class="modal-body" id="stuModalBody"></div>
+  </div>
+</div>
+
+<script>
+/* ================= DATA ================= */
+const students = [{"no":1,"nama":"ABDALMIGHTY AHMAD SYAFFATHINO","kelas":"XI A","kuis":6.0,"cat":"tinggi","rank_overall":5,"rank_class":1},{"no":2,"nama":"AMARA NURKHAULANI","kelas":"XI A","kuis":1.2,"cat":"rendah","rank_overall":48,"rank_class":14},{"no":3,"nama":"ASHILA SHOFIA NASYWA","kelas":"XI A","kuis":2.2,"cat":"sedang","rank_overall":30,"rank_class":7},{"no":4,"nama":"AURELLIA ADANI","kelas":"XI A","kuis":1.7,"cat":"rendah","rank_overall":45,"rank_class":12},{"no":5,"nama":"AZKA FAEYZA ALFARID","kelas":"XI A","kuis":5.5,"cat":"tinggi","rank_overall":7,"rank_class":2},{"no":6,"nama":"AZKA NAWWAFA AMANI","kelas":"XI A","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":18},{"no":7,"nama":"ECHA NAVALIN DEXA","kelas":"XI A","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":18},{"no":8,"nama":"FAEYZA NASYWA ASHARI","kelas":"XI A","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":18},{"no":9,"nama":"FATIMATUZZAHRA PUTRI PRAYA","kelas":"XI A","kuis":5.0,"cat":"sedang","rank_overall":8,"rank_class":3},{"no":10,"nama":"LAILATUL FITROH","kelas":"XI A","kuis":1.0,"cat":"rendah","rank_overall":49,"rank_class":15},{"no":11,"nama":"MECHA MAR'ATUS SOLEHA","kelas":"XI A","kuis":2.0,"cat":"rendah","rank_overall":31,"rank_class":8},{"no":12,"nama":"NADINE THAWARA AL SYAQNI","kelas":"XI A","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":18},{"no":13,"nama":"NAURA SAKINAH JIVA","kelas":"XI A","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":18},{"no":14,"nama":"FALIH FADHLURROHMAN","kelas":"XI A","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":18},{"no":15,"nama":"MUHAMMAD ALDEN ARRAFI","kelas":"XI A","kuis":1.5,"cat":"rendah","rank_overall":46,"rank_class":13},{"no":16,"nama":"MUHAMMAD FAKHRI KAMAL","kelas":"XI A","kuis":2.0,"cat":"rendah","rank_overall":31,"rank_class":8},{"no":17,"nama":"MUHAMMAD YUSUF FARRAS YULIANSYAH","kelas":"XI A","kuis":1.0,"cat":"rendah","rank_overall":49,"rank_class":15},{"no":18,"nama":"DAFFA HAZIM RAFEYFA","kelas":"XI A","kuis":2.0,"cat":"rendah","rank_overall":31,"rank_class":8},{"no":19,"nama":"FAKHRI AKBAR LESMANA","kelas":"XI A","kuis":3.5,"cat":"sedang","rank_overall":19,"rank_class":5},{"no":20,"nama":"FATHIR RIZKY ADITYA","kelas":"XI A","kuis":1.0,"cat":"rendah","rank_overall":49,"rank_class":15},{"no":21,"nama":"GHIFARI FAJAR EFENDI","kelas":"XI A","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":18},{"no":22,"nama":"KHANSA TSABITA","kelas":"XI A","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":18},{"no":23,"nama":"MUTIA AHSANA AMALA","kelas":"XI A","kuis":2.0,"cat":"rendah","rank_overall":31,"rank_class":8},{"no":24,"nama":"SYAHDAN ALVARO JUAN","kelas":"XI A","kuis":5.0,"cat":"sedang","rank_overall":8,"rank_class":3},{"no":25,"nama":"WAHIB KAAMIL","kelas":"XI A","kuis":3.0,"cat":"sedang","rank_overall":21,"rank_class":6},{"no":1,"nama":"AISYAH AZ ZAHRA","kelas":"XI B","kuis":1.0,"cat":"rendah","rank_overall":49,"rank_class":11},{"no":2,"nama":"AJENG TRIADIANTI","kelas":"XI B","kuis":2.0,"cat":"rendah","rank_overall":31,"rank_class":6},{"no":3,"nama":"ALIFA DZATIL IZZAH","kelas":"XI B","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":17},{"no":4,"nama":"ANEDZA WALI DIPAJUGA","kelas":"XI B","kuis":1.5,"cat":"rendah","rank_overall":46,"rank_class":10},{"no":5,"nama":"ARIFAH FITRI HANIFAYANTI SUSILO","kelas":"XI B","kuis":1.0,"cat":"rendah","rank_overall":49,"rank_class":11},{"no":6,"nama":"ASSYIFA ZAHRA KHAIRUNNISA","kelas":"XI B","kuis":2.0,"cat":"rendah","rank_overall":31,"rank_class":6},{"no":7,"nama":"CHALISTA CHALWA MU'NISA","kelas":"XI B","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":17},{"no":8,"nama":"EMIRA GIZA HUMAIRA","kelas":"XI B","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":17},{"no":9,"nama":"HAFIZA KHAIRA LUBNA","kelas":"XI B","kuis":4.0,"cat":"sedang","rank_overall":13,"rank_class":3},{"no":10,"nama":"JAVIER ZHAFRAN HABIBIE","kelas":"XI B","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":17},{"no":11,"nama":"KEYSHA AMIRASYIFA SOPWAN","kelas":"XI B","kuis":1.0,"cat":"rendah","rank_overall":49,"rank_class":11},{"no":12,"nama":"LUTFHIA AL ZAFIRAA","kelas":"XI B","kuis":1.0,"cat":"rendah","rank_overall":49,"rank_class":11},{"no":13,"nama":"MUHAMMAD ALFIAN SAPUTRA","kelas":"XI B","kuis":1.0,"cat":"rendah","rank_overall":49,"rank_class":11},{"no":14,"nama":"NADIHAN BIMA SAKTIA NUGRAHA","kelas":"XI B","kuis":2.0,"cat":"rendah","rank_overall":31,"rank_class":6},{"no":15,"nama":"NEDA KALIA ALFAQI","kelas":"XI B","kuis":11.5,"cat":"tinggi","rank_overall":2,"rank_class":1},{"no":16,"nama":"OKSEHA ROJIZA WALAFIA","kelas":"XI B","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":17},{"no":17,"nama":"RASYA HERIAN CANDRA","kelas":"XI B","kuis":10.5,"cat":"tinggi","rank_overall":3,"rank_class":2},{"no":18,"nama":"RIZKIA ASLY SYIFADINI","kelas":"XI B","kuis":1.0,"cat":"rendah","rank_overall":49,"rank_class":11},{"no":19,"nama":"RUBY 'AQILA BADRIDDUJA","kelas":"XI B","kuis":2.5,"cat":"sedang","rank_overall":27,"rank_class":4},{"no":20,"nama":"SABRINA RAHMA SYARIFAH","kelas":"XI B","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":17},{"no":21,"nama":"SUCI WULANDARI","kelas":"XI B","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":17},{"no":22,"nama":"SYAHROZA FARRAS SHOFA","kelas":"XI B","kuis":2.0,"cat":"rendah","rank_overall":31,"rank_class":6},{"no":23,"nama":"TAQY AZZAM ALGHANI ERLANGGA","kelas":"XI B","kuis":2.5,"cat":"sedang","rank_overall":27,"rank_class":4},{"no":1,"nama":"ADYAN ARKAAN ATALLAH","kelas":"XI C","kuis":3.0,"cat":"sedang","rank_overall":21,"rank_class":3},{"no":2,"nama":"AFHAM ARIYA WICAKSANA","kelas":"XI C","kuis":1.0,"cat":"rendah","rank_overall":49,"rank_class":8},{"no":3,"nama":"ALINE IKHTIARI PURNOMO","kelas":"XI C","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":12},{"no":4,"nama":"ARHASAN ADITYA RAYA GANI PUTRA","kelas":"XI C","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":12},{"no":5,"nama":"AZKA ABIMANYU IBADURRAHMAN","kelas":"XI C","kuis":0.5,"cat":"rendah","rank_overall":76,"rank_class":10},{"no":6,"nama":"HAFIDH FAKHRI ARFADHIA","kelas":"XI C","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":12},{"no":7,"nama":"HAYU ARTHANEISYA","kelas":"XI C","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":12},{"no":8,"nama":"ILHAM FALAH MAULANA","kelas":"XI C","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":12},{"no":9,"nama":"JELY ANANTA KARENA","kelas":"XI C","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":12},{"no":10,"nama":"KEISYA FAIHA ANDZALNA","kelas":"XI C","kuis":0.5,"cat":"rendah","rank_overall":76,"rank_class":10},{"no":11,"nama":"KHANSA KHAIRINA UZMA","kelas":"XI C","kuis":2.5,"cat":"sedang","rank_overall":27,"rank_class":6},{"no":12,"nama":"LABIBAH MUFIDA HAMID","kelas":"XI C","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":12},{"no":13,"nama":"M. PIJAR RAKHA FARANT","kelas":"XI C","kuis":2.0,"cat":"rendah","rank_overall":31,"rank_class":7},{"no":14,"nama":"MUHAMMAD ATHIR RIZQULLAH ARRAZY","kelas":"XI C","kuis":3.5,"cat":"sedang","rank_overall":19,"rank_class":2},{"no":15,"nama":"MUHAMMAD SAHRIL ADILLA","kelas":"XI C","kuis":3.0,"cat":"sedang","rank_overall":21,"rank_class":3},{"no":16,"nama":"NASHWA ALIKHA KRISANTI","kelas":"XI C","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":12},{"no":17,"nama":"NAYLA SYARIFA HERLISTYO","kelas":"XI C","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":12},{"no":18,"nama":"ROID NAWWAR KHALISH","kelas":"XI C","kuis":1.0,"cat":"rendah","rank_overall":49,"rank_class":8},{"no":19,"nama":"TSABITHAH NURUL ATHIFAH","kelas":"XI C","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":12},{"no":20,"nama":"YUSUF RAFIF ZAMZAMI","kelas":"XI C","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":12},{"no":21,"nama":"ZHAFIRA ADELIA PUTRI","kelas":"XI C","kuis":4.0,"cat":"sedang","rank_overall":13,"rank_class":1},{"no":22,"nama":"ZULVA AULIA","kelas":"XI C","kuis":3.0,"cat":"sedang","rank_overall":21,"rank_class":3},{"no":1,"nama":"Alfajar Dwi Surya","kelas":"XII B","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":15},{"no":2,"nama":"ALIFYA FIKA KARIMAH","kelas":"XII B","kuis":0.2,"cat":"rendah","rank_overall":81,"rank_class":12},{"no":3,"nama":"aqela zaphia marlan","kelas":"XII B","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":15},{"no":4,"nama":"Aqila mumtaza izdihar","kelas":"XII B","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":15},{"no":5,"nama":"ATIKA AURELIA IRAWAN","kelas":"XII B","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":15},{"no":6,"nama":"Keisya Balqish Aurellia","kelas":"XII B","kuis":0.2,"cat":"rendah","rank_overall":81,"rank_class":12},{"no":7,"nama":"Kuni Luzaima Niami","kelas":"XII B","kuis":2.0,"cat":"rendah","rank_overall":31,"rank_class":4},{"no":8,"nama":"Kuni Rahma Shabira","kelas":"XII B","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":15},{"no":9,"nama":"Malika Noor Fatima","kelas":"XII B","kuis":4.2,"cat":"sedang","rank_overall":12,"rank_class":3},{"no":10,"nama":"Muhammad Aidil Adha","kelas":"XII B","kuis":1.0,"cat":"rendah","rank_overall":49,"rank_class":8},{"no":11,"nama":"Muhammad Hamizan Ardhi","kelas":"XII B","kuis":2.0,"cat":"rendah","rank_overall":31,"rank_class":4},{"no":12,"nama":"NADYA AQELA SAFWA","kelas":"XII B","kuis":0.2,"cat":"rendah","rank_overall":81,"rank_class":12},{"no":13,"nama":"Tsamara Isyq Daifa Verseyteh","kelas":"XII B","kuis":0.7,"cat":"rendah","rank_overall":75,"rank_class":9},{"no":14,"nama":"Raditya irsyad","kelas":"XII B","kuis":0.5,"cat":"rendah","rank_overall":76,"rank_class":10},{"no":15,"nama":"Muhammad Faiz Azzahir","kelas":"XII B","kuis":0.5,"cat":"rendah","rank_overall":76,"rank_class":10},{"no":16,"nama":"Hanif Watsaqif Risant","kelas":"XII B","kuis":4.5,"cat":"sedang","rank_overall":11,"rank_class":2},{"no":17,"nama":"Khansa Anindita Suharyo","kelas":"XII B","kuis":2.0,"cat":"rendah","rank_overall":31,"rank_class":4},{"no":18,"nama":"Muhammad nur yusuf","kelas":"XII B","kuis":2.0,"cat":"rendah","rank_overall":31,"rank_class":4},{"no":19,"nama":"Muhammad Dary Fatih","kelas":"XII B","kuis":12.5,"cat":"tinggi","rank_overall":1,"rank_class":1},{"no":20,"nama":"Muhammad Husen","kelas":"XII B","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":15},{"no":1,"nama":"Alief Adila Faizin","kelas":"XII C","kuis":1.0,"cat":"rendah","rank_overall":49,"rank_class":6},{"no":2,"nama":"Althaf Zikri","kelas":"XII C","kuis":1.0,"cat":"rendah","rank_overall":49,"rank_class":6},{"no":3,"nama":"Eliza Reshma Safaish","kelas":"XII C","kuis":2.0,"cat":"rendah","rank_overall":31,"rank_class":5},{"no":4,"nama":"Fahri Alfian Hannan Aqilah","kelas":"XII C","kuis":1.0,"cat":"rendah","rank_overall":49,"rank_class":6},{"no":5,"nama":"Firzana Audrey","kelas":"XII C","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":14},{"no":6,"nama":"Hanifah Nasywa Putri Jayanata","kelas":"XII C","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":14},{"no":7,"nama":"M. Naufal Dharmawan","kelas":"XII C","kuis":1.0,"cat":"rendah","rank_overall":49,"rank_class":6},{"no":8,"nama":"Muhammad Melvin","kelas":"XII C","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":14},{"no":9,"nama":"Mumtazah Rati Maulana Putri","kelas":"XII C","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":14},{"no":10,"nama":"Nisrina Rizky Maulida","kelas":"XII C","kuis":1.0,"cat":"rendah","rank_overall":49,"rank_class":6},{"no":11,"nama":"Raihan Rizal Haris","kelas":"XII C","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":14},{"no":12,"nama":"Rizqi Abnil Batutah","kelas":"XII C","kuis":6.0,"cat":"tinggi","rank_overall":5,"rank_class":1},{"no":13,"nama":"Ulinnuha Nadia Shulha","kelas":"XII C","kuis":1.0,"cat":"rendah","rank_overall":49,"rank_class":6},{"no":14,"nama":"vania diyanti ayu wirastuti","kelas":"XII C","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":14},{"no":15,"nama":"Zakira Fakhrani Qatrunnada","kelas":"XII C","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":14},{"no":16,"nama":"FATIH EHUD BARACK ALKATIRI","kelas":"XII C","kuis":1.0,"cat":"rendah","rank_overall":49,"rank_class":6},{"no":17,"nama":"M AZZAM ALFAHRONI HARYANTO","kelas":"XII C","kuis":1.0,"cat":"rendah","rank_overall":49,"rank_class":6},{"no":18,"nama":"Muhammad Al Dzafarel Azka","kelas":"XII C","kuis":3.0,"cat":"sedang","rank_overall":21,"rank_class":3},{"no":19,"nama":"Muhammad Rasya Rachmansyah","kelas":"XII C","kuis":4.0,"cat":"sedang","rank_overall":13,"rank_class":2},{"no":20,"nama":"Muhammad yusuf","kelas":"XII C","kuis":3.0,"cat":"sedang","rank_overall":21,"rank_class":3},{"no":21,"nama":"Muzaakki Hafizh Ramadhan","kelas":"XII C","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":14},{"no":22,"nama":"Sayyid Adzka Alfikri","kelas":"XII C","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":14},{"no":1,"nama":"Aghniny Aqila Ahsana Rahma","kelas":"XII D","kuis":4.0,"cat":"sedang","rank_overall":13,"rank_class":3},{"no":2,"nama":"Aliyah Adiria Marennu","kelas":"XII D","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":13},{"no":3,"nama":"Alya Fahma","kelas":"XII D","kuis":5.0,"cat":"sedang","rank_overall":8,"rank_class":2},{"no":4,"nama":"Amsyar Affendi","kelas":"XII D","kuis":7.0,"cat":"tinggi","rank_overall":4,"rank_class":1},{"no":5,"nama":"Anisa May Prastika","kelas":"XII D","kuis":1.0,"cat":"rendah","rank_overall":49,"rank_class":6},{"no":6,"nama":"Azzahra Mazaya Putri Kurniawan","kelas":"XII D","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":13},{"no":7,"nama":"Bagas Koswara","kelas":"XII D","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":13},{"no":8,"nama":"Esya Fitriyani","kelas":"XII D","kuis":4.0,"cat":"sedang","rank_overall":13,"rank_class":3},{"no":9,"nama":"Gita Amilia Lestari","kelas":"XII D","kuis":1.0,"cat":"rendah","rank_overall":49,"rank_class":6},{"no":10,"nama":"Hafidz Rasyid Albana","kelas":"XII D","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":13},{"no":11,"nama":"HAFIZA RAHMAHARDI","kelas":"XII D","kuis":1.0,"cat":"rendah","rank_overall":49,"rank_class":6},{"no":12,"nama":"Hurun Dzakiyatul Azizah","kelas":"XII D","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":13},{"no":13,"nama":"Kaila Khansa Amira","kelas":"XII D","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":13},{"no":14,"nama":"Lina wandari","kelas":"XII D","kuis":1.0,"cat":"rendah","rank_overall":49,"rank_class":6},{"no":15,"nama":"Lintang Fatih Al Suparlan","kelas":"XII D","kuis":0.5,"cat":"rendah","rank_overall":76,"rank_class":12},{"no":16,"nama":"Muhammad Hasan","kelas":"XII D","kuis":4.0,"cat":"sedang","rank_overall":13,"rank_class":3},{"no":17,"nama":"Muthia Valda Sahira","kelas":"XII D","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":13},{"no":18,"nama":"Putra Dinnejad Hudaifa","kelas":"XII D","kuis":1.0,"cat":"rendah","rank_overall":49,"rank_class":6},{"no":19,"nama":"Queena Farabilqis","kelas":"XII D","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":13},{"no":20,"nama":"RAIHANISA AZ ZAHRA","kelas":"XII D","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":13},{"no":21,"nama":"Serin Salsabila Maharani","kelas":"XII D","kuis":1.0,"cat":"rendah","rank_overall":49,"rank_class":6},{"no":22,"nama":"Syifa Handayani","kelas":"XII D","kuis":0.0,"cat":"nihil","rank_overall":84,"rank_class":13}];
+const classOrder = ['XI A','XI B','XI C','XII B','XII C','XII D'];
+const catMeta = {
+  nihil:  {label:'Nihil (0)',      color:'var(--red)',    hex:'#ff4d6a'},
+  rendah: {label:'Rendah (0–2)',   color:'var(--amber)',  hex:'#ffb020'},
+  sedang: {label:'Sedang (2–5)',   color:'var(--cyan)',   hex:'#4fe6ff'},
+  tinggi: {label:'Tinggi (>5)',    color:'var(--green)',  hex:'#34ff9e'},
+};
+
+/* ================= DERIVED STATS ================= */
+const total = students.length;
+const overallAvg = (students.reduce((s,r)=>s+r.kuis,0)/total);
+const topStudent = students.reduce((a,b)=> b.kuis>a.kuis?b:a, students[0]);
+const zeroCount = students.filter(r=>r.kuis===0).length;
+
+const byClass = {};
+classOrder.forEach(k=>{ byClass[k] = students.filter(r=>r.kelas===k); });
+const classAvg = {};
+classOrder.forEach(k=>{ const arr=byClass[k]; classAvg[k] = arr.reduce((s,r)=>s+r.kuis,0)/arr.length; });
+const maxClassAvg = Math.max(...Object.values(classAvg));
+
+const catCounts = {nihil:0,rendah:0,sedang:0,tinggi:0};
+students.forEach(r=>catCounts[r.cat]++);
+
+/* ================= KPI CARDS ================= */
+const kpiRow = document.getElementById('kpiRow');
+kpiRow.innerHTML = `
+  <div class="panel kpi-card">
+    <div class="kpi-label">Total Siswa</div>
+    <div class="kpi-value">${total}</div>
+    <div class="kpi-sub">6 kelas &middot; XI &amp; XII</div>
+  </div>
+  <div class="panel kpi-card">
+    <div class="kpi-label">Rata-rata Skor</div>
+    <div class="kpi-value">${overallAvg.toFixed(2)}</div>
+    <div class="kpi-sub">dari seluruh peserta</div>
+  </div>
+  <div class="panel kpi-card good">
+    <div class="kpi-label">Skor Tertinggi</div>
+    <div class="kpi-value">${topStudent.kuis}</div>
+    <div class="kpi-sub">${topStudent.nama} &middot; ${topStudent.kelas}</div>
+  </div>
+  <div class="panel kpi-card warn">
+    <div class="kpi-label">Skor Nihil</div>
+    <div class="kpi-value">${zeroCount}</div>
+    <div class="kpi-sub">${(zeroCount/total*100).toFixed(1)}% dari total siswa</div>
+  </div>`;
+
+/* ================= BAR CHART (per class avg) ================= */
+const barChart = document.getElementById('barChart');
+classOrder.forEach(k=>{
+  const pct = (classAvg[k]/maxClassAvg*100).toFixed(1);
+  const item = document.createElement('div');
+  item.className = 'bar-item';
+  item.tabIndex = 0;
+  item.dataset.kelas = k;
+  item.innerHTML = `
+    <div class="bar-label"><span>${k} <span style="color:var(--text-faint)">(${byClass[k].length} siswa)</span></span><b>${classAvg[k].toFixed(2)}</b></div>
+    <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>`;
+  item.addEventListener('click', ()=> toggleClassFilter(k));
+  item.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleClassFilter(k);} });
+  barChart.appendChild(item);
+});
+
+/* ================= DISTRIBUTION SEGMENT ================= */
+const distSeg = document.getElementById('distSeg');
+const distLegend = document.getElementById('distLegend');
+Object.keys(catMeta).forEach(cat=>{
+  const pct = (catCounts[cat]/total*100);
+  const seg = document.createElement('div');
+  seg.style.background = catMeta[cat].hex;
+  seg.style.flex = pct;
+  seg.dataset.cat = cat;
+  seg.textContent = pct>=8 ? pct.toFixed(0)+'%' : '';
+  seg.title = `${catMeta[cat].label}: ${catCounts[cat]} siswa (${pct.toFixed(1)}%)`;
+  seg.addEventListener('click', ()=> toggleCatFilter(cat));
+  distSeg.appendChild(seg);
+
+  const leg = document.createElement('span');
+  leg.dataset.cat = cat;
+  leg.innerHTML = `<i style="background:${catMeta[cat].hex}"></i>${catMeta[cat].label} — ${catCounts[cat]} siswa`;
+  leg.addEventListener('click', ()=> toggleCatFilter(cat));
+  distLegend.appendChild(leg);
+});
+
+/* ================= LEADERBOARD ================= */
+const leaderboard = document.getElementById('leaderboard');
+const top5 = [...students].sort((a,b)=>b.kuis-a.kuis).slice(0,5);
+top5.forEach((s,i)=>{
+  const card = document.createElement('div');
+  card.className = 'lb-card' + (i===0?' rank1':'');
+  card.tabIndex = 0;
+  card.innerHTML = `
+    <div class="lb-rank">RANK #${i+1}</div>
+    <div class="lb-name">${s.nama}</div>
+    <div class="lb-class">${s.kelas}</div>
+    <div class="lb-score">${s.kuis}</div>`;
+  card.addEventListener('click', ()=> openStudentModal(s));
+  card.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); openStudentModal(s);} });
+  leaderboard.appendChild(card);
+});
+
+/* ================= FILTER CHIPS ================= */
+const classChips = document.getElementById('classChips');
+const allClassBtn = document.createElement('button');
+allClassBtn.className = 'chip-filter active';
+allClassBtn.textContent = 'Semua';
+allClassBtn.dataset.kelas = 'semua';
+classChips.appendChild(allClassBtn);
+classOrder.forEach(k=>{
+  const b = document.createElement('button');
+  b.className = 'chip-filter';
+  b.textContent = k;
+  b.dataset.kelas = k;
+  classChips.appendChild(b);
+});
+
+const catChips = document.getElementById('catChips');
+const allCatBtn = document.createElement('button');
+allCatBtn.className = 'chip-filter active';
+allCatBtn.textContent = 'Semua';
+allCatBtn.dataset.cat = 'semua';
+catChips.appendChild(allCatBtn);
+Object.keys(catMeta).forEach(cat=>{
+  const b = document.createElement('button');
+  b.className = 'chip-filter';
+  b.textContent = catMeta[cat].label.split(' ')[0];
+  b.dataset.cat = cat;
+  catChips.appendChild(b);
+});
+
+classChips.addEventListener('click', e=>{
+  const btn = e.target.closest('[data-kelas]');
+  if(!btn) return;
+  setClassFilter(btn.dataset.kelas);
+});
+catChips.addEventListener('click', e=>{
+  const btn = e.target.closest('[data-cat]');
+  if(!btn) return;
+  setCatFilter(btn.dataset.cat);
+});
+
+let currentClass = 'semua';
+let currentCat = 'semua';
+let searchQuery = '';
+let sortKey = 'no';
+let sortDir = 1;
+
+function setClassFilter(k){
+  currentClass = k;
+  document.querySelectorAll('#classChips [data-kelas]').forEach(b=>b.classList.toggle('active', b.dataset.kelas===k));
+  document.querySelectorAll('.bar-item').forEach(b=>b.classList.toggle('selected', k!=='semua' && b.dataset.kelas===k));
+  renderTable();
+}
+function toggleClassFilter(k){
+  setClassFilter(currentClass===k ? 'semua' : k);
+  if(currentClass===k){
+    const fill = document.querySelector(`.bar-item[data-kelas="${k}"] .bar-fill`);
+    if(fill){ fill.classList.remove('flash'); void fill.offsetWidth; fill.classList.add('flash'); }
+  }
+}
+function setCatFilter(c){
+  currentCat = c;
+  document.querySelectorAll('#catChips [data-cat]').forEach(b=>b.classList.toggle('active', b.dataset.cat===c));
+  document.querySelectorAll('#distSeg > div').forEach(seg=>{
+    seg.classList.toggle('selected', c!=='semua' && seg.dataset.cat===c);
+    seg.classList.toggle('dimmed', c!=='semua' && seg.dataset.cat!==c);
+  });
+  document.querySelectorAll('#distLegend span').forEach(leg=>leg.classList.toggle('selected', c!=='semua' && leg.dataset.cat===c));
+  renderTable();
+}
+function toggleCatFilter(c){ setCatFilter(currentCat===c ? 'semua' : c); }
+
+document.getElementById('searchInput').addEventListener('input', e=>{
+  searchQuery = e.target.value.trim().toLowerCase();
+  renderTable();
+});
+
+/* ================= TABLE ================= */
+const tblBody = document.getElementById('tblBody');
+const tblCount = document.getElementById('tblCount');
+
+function buildRows(){
+  let rows = students.filter(s=>{
+    if(currentClass!=='semua' && s.kelas!==currentClass) return false;
+    if(currentCat!=='semua' && s.cat!==currentCat) return false;
+    if(searchQuery && !s.nama.toLowerCase().includes(searchQuery)) return false;
+    return true;
+  });
+  rows.sort((a,b)=>{
+    let va=a[sortKey], vb=b[sortKey];
+    if(typeof va==='string'){ va=va.toLowerCase(); vb=vb.toLowerCase(); }
+    if(va<vb) return -1*sortDir;
+    if(va>vb) return 1*sortDir;
+    return 0;
+  });
+  return rows;
+}
+
+function renderTable(){
+  const rows = buildRows();
+  tblCount.textContent = `— menampilkan ${rows.length} dari ${total} siswa`;
+  tblBody.innerHTML = rows.map(s=>`
+    <tr data-no="${s.no}" data-kelas="${s.kelas}">
+      <td>${s.no}</td>
+      <td><span class="cat-dot" style="background:${catMeta[s.cat].hex}"></span>${s.nama}</td>
+      <td>${s.kelas}</td>
+      <td class="tbl-score" style="color:${catMeta[s.cat].hex}">${s.kuis}</td>
+      <td class="rank-badge">#${s.rank_class} di kelas</td>
+    </tr>`).join('');
+  Array.from(tblBody.children).forEach((tr,i)=>{
+    tr.addEventListener('click', ()=>{
+      const s = rows[i];
+      openStudentModal(s);
+    });
+  });
+}
+
+document.querySelectorAll('th[data-sort]').forEach(th=>{
+  th.addEventListener('click', ()=>{
+    const key = th.dataset.sort;
+    if(sortKey===key){ sortDir *= -1; } else { sortKey = key; sortDir = 1; }
+    document.querySelectorAll('th[data-sort]').forEach(t=>t.classList.remove('sorted'));
+    th.classList.add('sorted');
+    th.querySelector('.arrow').textContent = sortDir===1 ? '▲' : '▼';
+    renderTable();
+  });
+});
+
+renderTable();
+
+/* ================= STUDENT MODAL ================= */
+const stuModal = document.getElementById('stuModal');
+const stuModalBody = document.getElementById('stuModalBody');
+const stuClose = document.getElementById('stuClose');
+
+function openStudentModal(s){
+  const cm = catMeta[s.cat];
+  stuModalBody.innerHTML = `
+    <div class="m-name">${s.nama}</div>
+    <div class="m-class">Kelas ${s.kelas} &middot; No. Absen ${s.no}</div>
+    <div class="m-score-row">
+      <div class="m-score" style="color:${cm.hex}">${s.kuis}</div>
+      <div class="m-score-label">skor kuis</div>
+    </div>
+    <div class="modal-meta">
+      <span class="chip" style="color:${cm.hex}; border-color:${cm.hex}">${cm.label}</span>
+      <span class="chip">🏫 Peringkat #${s.rank_class} di kelas</span>
+      <span class="chip">🌐 Peringkat #${s.rank_overall} dari ${total} siswa</span>
+    </div>`;
+  stuModal.classList.add('open');
+  stuModal.setAttribute('aria-hidden','false');
+  document.body.style.overflow = 'hidden';
+}
+function closeStuModal(){
+  stuModal.classList.remove('open');
+  stuModal.setAttribute('aria-hidden','true');
+  document.body.style.overflow = '';
+}
+stuClose.addEventListener('click', closeStuModal);
+stuModal.addEventListener('click', e=>{ if(e.target===stuModal) closeStuModal(); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape' && stuModal.classList.contains('open')) closeStuModal(); });
+
+/* ================= CLOCK ================= */
+function tick(){ document.getElementById('clock').textContent = new Date().toLocaleTimeString('id-ID',{hour12:false}); }
+tick(); setInterval(tick,1000);
+
+/* ================= BOOT OVERLAY ================= */
+window.addEventListener('load', ()=>{
+  const boot = document.getElementById('boot');
+  const delay = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 1700;
+  setTimeout(()=>{ boot.style.opacity = '0'; setTimeout(()=>boot.remove(), 650); }, delay);
+});
+</script>
+</body>
+</html>
