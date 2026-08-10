@@ -681,7 +681,8 @@
     cocok.forEach((m, i) => {
       const label = document.createElement('label');
       label.className = 'checkbox-item';
-      label.innerHTML = `<input type="checkbox" name="materi" value="${m.teks}" id="materi-${i}"> ${m.teks}`;
+      label.title = m.teks;
+      label.innerHTML = `<input type="checkbox" name="materi" value="${m.teks}" id="materi-${i}"> ${potongTeks(m.teks, 60)}`;
       materiGroup.appendChild(label);
     });
   }
@@ -712,9 +713,15 @@
     cocok.forEach(tp => {
       const opt = document.createElement('option');
       opt.value = tp.teks;
-      opt.textContent = tp.teks;
+      opt.textContent = potongTeks(tp.teks, 90);
+      opt.title = tp.teks;
       tujuanSelect.appendChild(opt);
     });
+  }
+
+  function potongTeks(teks, batas) {
+    if (!teks || teks.length <= batas) return teks;
+    return teks.slice(0, batas).trim() + '…';
   }
 
   function renderRoster(kelasTerpilih) {
