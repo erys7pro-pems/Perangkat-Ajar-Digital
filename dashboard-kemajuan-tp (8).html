@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>J.A.R.V.I.S. // DASHBOARD KEMAJUAN TP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#03070f; --bg2:#050d1a;
+    --panel: rgba(8,22,40,.55); --panel-solid:#08182b;
+    --border: rgba(70,190,255,.28); --border-strong: rgba(90,220,255,.55);
+    --cyan:#4fe6ff; --cyan-soft:#8fefff; --cyan-dim:#1f7fa3;
+    --amber:#ffb020; --red:#ff4d6a; --green:#34ff9e; --blue:#5aa7ff;
+    --text:#d3edff; --text-dim:#5f84a8; --text-faint:#3a5470;
+    --radius: 6px;
+  }
+
+  *{ box-sizing: border-box; }
+  html, body{ margin: 0; padding: 0; }
+
+  body{
+    background:
+      radial-gradient(ellipse at 20% -10%, rgba(30,100,150,.18), transparent 55%),
+      radial-gradient(ellipse at 100% 10%, rgba(255,120,60,.06), transparent 45%),
+      var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    min-height: 100vh;
+    position: relative;
+    padding: 32px 16px 60px;
+  }
+  body::before{
+    content: ""; position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(79,230,255,.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(79,230,255,.035) 1px, transparent 1px);
+    background-size: 42px 42px; pointer-events: none; z-index: 0;
+    mask-image: radial-gradient(ellipse at 50% 0%, black 0%, transparent 75%);
+  }
+  body::after{
+    content: ""; position: fixed; inset: 0;
+    background: repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0, rgba(0,0,0,0) 3px, rgba(0,0,0,.14) 4px);
+    pointer-events: none; z-index: 5; opacity: .3;
+  }
+
+  .page{
+    position: relative; z-index: 1;
+    max-width: 920px;
+    margin: 0 auto;
+  }
+
+  .tag{
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid var(--border);
+    color: var(--cyan-soft);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    padding: 7px 16px;
+    border-radius: 999px;
+    margin-bottom: 20px;
+  }
+  .tag::before{
+    content: "";
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 8px var(--cyan);
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.35;} }
+
+  header{ display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+  header h1{
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: clamp(20px, 3.4vw, 27px);
+    letter-spacing: 1.5px;
+    line-height: 1.3;
+    margin: 0 0 8px;
+    color: var(--cyan-soft);
+    text-shadow: 0 0 18px rgba(79,230,255,.35);
+    text-transform: uppercase;
+  }
+  header p{
+    margin: 0 0 24px;
+    color: var(--text-dim);
+    font-size: 14.5px;
+    max-width: 56ch;
+  }
+
+  .btn-refresh{
+    background: rgba(79,230,255,.08);
+    color: var(--cyan-soft);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 9px 16px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: 20px;
+    transition: .15s;
+  }
+  .btn-refresh:hover{ border-color: var(--cyan); box-shadow: 0 0 12px rgba(79,230,255,.3); }
+  .btn-refresh:disabled{ opacity: .5; cursor: not-allowed; }
+
+  .status-line{
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12.5px;
+    color: var(--text-dim);
+    margin-bottom: 20px;
+  }
+  .status-line.err{ color: var(--red); }
+
+  .tingkat-heading{
+    font-family: 'Orbitron', sans-serif;
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--cyan);
+    margin: 28px 0 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .tingkat-heading:first-of-type{ margin-top: 0; }
+
+  .grid-kelas{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+  }
+
+  .grid-kehadiran{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: 16px;
+  }
+
+  .kartu{
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    backdrop-filter: blur(6px);
+    position: relative;
+  }
+  .kartu::before{
+    content: ""; position: absolute; top: -1px; left: -1px;
+    width: 14px; height: 14px;
+    border-top: 2px solid var(--cyan); border-left: 2px solid var(--cyan);
+  }
+  .kartu::after{
+    content: ""; position: absolute; bottom: -1px; right: -1px;
+    width: 14px; height: 14px;
+    border-bottom: 2px solid var(--cyan); border-right: 2px solid var(--cyan);
+  }
+
+  .kartu-head{
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 12px;
+  }
+  .kartu-kelas{
+    font-family: 'Orbitron', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--cyan-soft);
+  }
+  .kartu-persen{
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--cyan);
+    text-shadow: 0 0 10px rgba(79,230,255,.4);
+  }
+
+  .bar-track{
+    width: 100%;
+    height: 8px;
+    background: rgba(79,230,255,.08);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  .bar-fill{
+    height: 100%;
+    background: linear-gradient(90deg, var(--cyan-dim), var(--cyan));
+    box-shadow: 0 0 10px rgba(79,230,255,.6);
+    border-radius: 999px;
+    transition: width .4s ease;
+  }
+
+  .kartu-sub{
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+  }
+
+  .tp-list{
+    margin-top: 4px;
+  }
+  .tp-list summary{
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--cyan-dim);
+    cursor: pointer;
+    list-style: none;
+  }
+  .tp-list summary::-webkit-details-marker{ display: none; }
+  .tp-list summary::before{ content: "▸ "; }
+  .tp-list[open] summary::before{ content: "▾ "; }
+  .tp-list summary:hover{ color: var(--cyan); }
+
+  .tp-item{
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 12.5px;
+    line-height: 1.4;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(79,230,255,.07);
+  }
+  .tp-item:last-child{ border-bottom: none; }
+  .tp-item .cek{
+    flex-shrink: 0;
+    width: 15px; height: 15px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    margin-top: 1px;
+  }
+  .tp-item.selesai .cek{
+    background: rgba(52,255,158,.2);
+    border-color: var(--green);
+    color: var(--green);
+    box-shadow: 0 0 6px rgba(52,255,158,.4);
+  }
+  .tp-item.belum .cek{ color: transparent; }
+  .tp-item.selesai span.teks{ color: var(--text); }
+  .tp-item.belum span.teks{ color: var(--text-faint); }
+
+  .kosong{
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+    padding: 30px 0;
+    text-align: center;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+  }
+
+  .stack-bar{
+    display: flex;
+    width: 100%;
+    height: 10px;
+    border-radius: 999px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    margin-bottom: 10px;
+  }
+  .stack-seg{ height: 100%; }
+  .stack-seg.hadir{ background: var(--cyan); box-shadow: 0 0 6px rgba(79,230,255,.5) inset; }
+  .stack-seg.sakit{ background: #a855f7; }
+  .stack-seg.izin{ background: #ffdd33; }
+  .stack-seg.alfa{ background: var(--red); }
+
+  .legenda-kehadiran{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+  }
+  .legenda-kehadiran span{ display: inline-flex; align-items: center; gap: 5px; }
+  .titik{ width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .titik.hadir{ background: var(--cyan); }
+  .titik.sakit{ background: #a855f7; }
+  .titik.izin{ background: #ffdd33; }
+  .titik.alfa{ background: var(--red); }
+
+  .tabel-siswa{
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    margin-top: 6px;
+    font-size: 12px;
+  }
+  .tabel-siswa col.col-nama{ width: auto; }
+  .tabel-siswa col.col-num{ width: 30px; }
+  .tabel-siswa col.col-persen{ width: 42px; }
+  .tabel-siswa col.col-jumlah{ width: 64px; }
+  .tabel-siswa col.col-rata{ width: 64px; }
+  .tabel-siswa th{
+    white-space: nowrap;
+    overflow: hidden;
+    text-align: left;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--cyan-dim);
+    padding: 6px 4px;
+    border-bottom: 1px solid var(--border);
+  }
+  .tabel-siswa th.num, .tabel-siswa td.num{ text-align: center; }
+  .tabel-siswa td{
+    padding: 6px 4px;
+    border-bottom: 1px solid rgba(79,230,255,.07);
+    color: var(--text);
+  }
+  .tabel-siswa tr:last-child td{ border-bottom: none; }
+  .tabel-siswa td.nama-siswa{
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .tabel-siswa td.persen{
+    font-family: 'Share Tech Mono', monospace;
+    font-weight: 700;
+  }
+  .tabel-siswa tr.rendah td.persen{ color: var(--red); }
+  .tabel-siswa tr.rendah td.nama-siswa{ color: var(--red); }
+  .tabel-siswa tr.rendah td.nama-siswa::before{ content: "⚠ "; }
+
+  .ringkasan-panel{
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    margin-bottom: 16px;
+    backdrop-filter: blur(6px);
+    position: relative;
+  }
+  .ringkasan-panel::before{
+    content: ""; position: absolute; top: -1px; left: -1px;
+    width: 14px; height: 14px;
+    border-top: 2px solid var(--amber); border-left: 2px solid var(--amber);
+  }
+  .ringkasan-judul{
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 12px;
+  }
+  .ringkasan-kontrol{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 14px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .ringkasan-kontrol select{
+    width: auto;
+    padding: 7px 10px;
+    font-size: 12.5px;
+    border-color: rgba(255,176,32,.3);
+  }
+  .ringkasan-kontrol select:focus{
+    border-color: var(--amber);
+    box-shadow: 0 0 0 3px rgba(255,176,32,.15);
+  }
+  .cek-tertinggal{
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    color: var(--text-dim);
+    cursor: pointer;
+  }
+  .cek-tertinggal input{
+    width: auto;
+    margin: 0;
+    accent-color: var(--red);
+    cursor: pointer;
+  }
+  .ringkasan-row{
+    display: grid;
+    grid-template-columns: 90px 1fr 190px;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+  }
+  .ringkasan-kelas{
+    font-family: 'Orbitron', sans-serif;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--cyan-soft);
+  }
+  .ringkasan-track{
+    height: 14px;
+    background: rgba(255,176,32,.06);
+    border: 1px solid rgba(255,176,32,.25);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .ringkasan-fill{
+    height: 100%;
+    background: linear-gradient(90deg, rgba(255,176,32,.5), var(--amber));
+    box-shadow: 0 0 8px rgba(255,176,32,.5);
+    transition: width .4s ease;
+  }
+  .ringkasan-fill.tertinggal{
+    background: linear-gradient(90deg, rgba(255,77,106,.4), var(--red));
+    box-shadow: 0 0 8px rgba(255,77,106,.5);
+  }
+  .ringkasan-detail{
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    text-align: right;
+    white-space: nowrap;
+  }
+  .ringkasan-detail strong{ color: var(--text); font-size: 12.5px; }
+  .ringkasan-detail .peringatan{ color: var(--red); }
+
+  @media (max-width: 620px){
+    .ringkasan-row{ grid-template-columns: 70px 1fr; }
+    .ringkasan-detail{ grid-column: 1 / -1; text-align: left; }
+  }
+
+  ::-webkit-scrollbar{ height: 8px; width: 8px; }
+  ::-webkit-scrollbar-track{ background: rgba(255,255,255,.03); }
+  ::-webkit-scrollbar-thumb{ background: var(--cyan-dim); border-radius: 4px; }
+</style>
+</head>
+<body>
+  <div class="page">
+    <span class="tag">J.A.R.V.I.S. // MODUL DASHBOARD</span>
+    <header>
+      <div>
+        <h1>Dashboard Jurnal Mengajar</h1>
+        <p>Kemajuan Tujuan Pembelajaran dan rekap kehadiran siswa, dihitung otomatis dari histori sheet Jurnal & Kehadiran.</p>
+      </div>
+    </header>
+
+    <button class="btn-refresh" id="refreshBtn">⟳ Muat Ulang Data</button>
+    <div class="status-line" id="statusLine">Memuat data...</div>
+
+    <div class="tingkat-heading" style="margin-top:0;">Kemajuan Tujuan Pembelajaran</div>
+    <div id="hasil"></div>
+
+    <div class="tingkat-heading">Kehadiran Siswa</div>
+    <div id="hasilKehadiran"></div>
+
+    <div class="tingkat-heading">Kuis Harian</div>
+    <div id="ringkasanKuis"></div>
+    <div id="hasilKuis"></div>
+  </div>
+
+<script>
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxQRNsIZtMSnqqLBNBa3V0_CaEUaC1SQjNr8kgOlW7e-k7Ss8-5RDRBOZj27dwVvBn2/exec";
+
+  let cacheKuis = [];
+  let cacheKehadiranUntukKuis = [];
+
+  const statusLine = document.getElementById('statusLine');
+  const hasil = document.getElementById('hasil');
+  const hasilKehadiran = document.getElementById('hasilKehadiran');
+  const ringkasanKuis = document.getElementById('ringkasanKuis');
+  const hasilKuis = document.getElementById('hasilKuis');
+  const refreshBtn = document.getElementById('refreshBtn');
+
+  refreshBtn.addEventListener('click', muatDashboard);
+  muatDashboard();
+
+  async function muatDashboard() {
+    refreshBtn.disabled = true;
+    statusLine.textContent = 'Memuat data...';
+    statusLine.className = 'status-line';
+    hasil.innerHTML = '';
+    hasilKehadiran.innerHTML = '';
+    hasilKuis.innerHTML = '';
+    ringkasanKuis.innerHTML = '';
+
+    try {
+      const res = await fetch(`${APPS_SCRIPT_URL}?action=dashboard`);
+      const data = await res.json();
+      const daftarKelas = data.kelas || [];
+      const daftarKehadiran = data.kehadiran || [];
+      const daftarKuis = data.kuis || [];
+
+      if (daftarKelas.length === 0) {
+        hasil.innerHTML = '<div class="kosong">Belum ada data kelas untuk ditampilkan. Pastikan sheet "Siswa" atau "Jadwal Pertemuan" sudah terisi.</div>';
+      } else {
+        const perTingkat = {};
+        daftarKelas.forEach(k => {
+          if (!perTingkat[k.tingkat]) perTingkat[k.tingkat] = [];
+          perTingkat[k.tingkat].push(k);
+        });
+
+        const urutanTingkat = Object.keys(perTingkat).sort();
+
+        let html = '';
+        urutanTingkat.forEach(tingkat => {
+          const kelasTingkat = perTingkat[tingkat].sort((a, b) => a.kelas.localeCompare(b.kelas));
+          html += `<div class="tingkat-heading">Tingkat ${tingkat}</div><div class="grid-kelas">`;
+          kelasTingkat.forEach(k => {
+            html += buatKartuKelas(k);
+          });
+          html += `</div>`;
+        });
+
+        hasil.innerHTML = html;
+      }
+
+      if (daftarKehadiran.length === 0) {
+        hasilKehadiran.innerHTML = '<div class="kosong">Belum ada data kehadiran tercatat. Isi Jurnal Mengajar dengan daftar hadir untuk mulai melihat rekap di sini.</div>';
+      } else {
+        const kehadiranTerurut = [...daftarKehadiran].sort((a, b) => a.kelas.localeCompare(b.kelas));
+        hasilKehadiran.innerHTML = `<div class="grid-kehadiran">${kehadiranTerurut.map(buatKartuKehadiran).join('')}</div>`;
+      }
+
+      if (daftarKuis.length === 0) {
+        hasilKuis.innerHTML = '<div class="kosong">Belum ada data Kuis Harian tercatat. Isi bagian Kuis Harian di form Jurnal Mengajar untuk mulai melihat rekap di sini.</div>';
+      } else {
+        cacheKuis = daftarKuis;
+        cacheKehadiranUntukKuis = daftarKehadiran;
+        ringkasanKuis.innerHTML = buatRingkasanKuisShell();
+        pasangKontrolRingkasan();
+        renderBarisRingkasanKuis();
+        const kuisTerurut = [...daftarKuis].sort((a, b) => a.kelas.localeCompare(b.kelas));
+        hasilKuis.innerHTML = `<div class="grid-kehadiran">${kuisTerurut.map(buatKartuKuis).join('')}</div>`;
+      }
+
+      statusLine.textContent = `Terakhir dimuat: ${new Date().toLocaleTimeString('id-ID')}`;
+    } catch (err) {
+      statusLine.textContent = 'Gagal memuat data. Periksa koneksi atau URL Web App.';
+      statusLine.className = 'status-line err';
+    } finally {
+      refreshBtn.disabled = false;
+    }
+  }
+
+  function buatKartuKelas(k) {
+    const daftarTP = k.daftarTP || [];
+    const itemTP = daftarTP.map(t => `
+      <div class="tp-item ${t.selesai ? 'selesai' : 'belum'}">
+        <span class="cek">${t.selesai ? '✓' : ''}</span>
+        <span class="teks">${t.teks}</span>
+      </div>
+    `).join('');
+
+    return `
+      <div class="kartu">
+        <div class="kartu-head">
+          <span class="kartu-kelas">${k.kelas}</span>
+          <span class="kartu-persen">${k.persen}%</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill" style="width:${k.persen}%"></div></div>
+        <div class="kartu-sub">${k.selesai} / ${k.total} TP selesai</div>
+        <details class="tp-list">
+          <summary>Lihat rincian TP</summary>
+          ${itemTP || '<div class="kosong" style="padding:14px 0;">Belum ada TP terdaftar untuk tingkat ini</div>'}
+        </details>
+      </div>
+    `;
+  }
+
+  function buatKartuKehadiran(k) {
+    const total = k.totalHadir + k.totalSakit + k.totalIzin + k.totalAlfa;
+    const persenSeg = (n) => total > 0 ? (n / total * 100) : 0;
+
+    const baris = (k.siswa || []).map(s => `
+      <tr class="${s.persenHadir < 75 ? 'rendah' : ''}">
+        <td class="nama-siswa" title="${s.nama}">${s.nama}</td>
+        <td class="num">${s.hadir}</td>
+        <td class="num">${s.sakit}</td>
+        <td class="num">${s.izin}</td>
+        <td class="num">${s.alfa}</td>
+        <td class="num persen">${s.persenHadir}%</td>
+      </tr>
+    `).join('');
+
+    return `
+      <div class="kartu">
+        <div class="kartu-head">
+          <span class="kartu-kelas">${k.kelas}</span>
+          <span class="kartu-persen">${k.persenHadir}%</span>
+        </div>
+        <div class="stack-bar">
+          <div class="stack-seg hadir" style="width:${persenSeg(k.totalHadir)}%"></div>
+          <div class="stack-seg sakit" style="width:${persenSeg(k.totalSakit)}%"></div>
+          <div class="stack-seg izin" style="width:${persenSeg(k.totalIzin)}%"></div>
+          <div class="stack-seg alfa" style="width:${persenSeg(k.totalAlfa)}%"></div>
+        </div>
+        <div class="legenda-kehadiran">
+          <span><i class="titik hadir"></i>Hadir ${k.totalHadir}</span>
+          <span><i class="titik sakit"></i>Sakit ${k.totalSakit}</span>
+          <span><i class="titik izin"></i>Izin ${k.totalIzin}</span>
+          <span><i class="titik alfa"></i>Alfa ${k.totalAlfa}</span>
+        </div>
+        <div class="kartu-sub">${k.totalSesi} sesi tercatat</div>
+        <details class="tp-list">
+          <summary>Lihat rincian per siswa</summary>
+          <table class="tabel-siswa">
+            <colgroup>
+              <col class="col-nama">
+              <col class="col-num"><col class="col-num"><col class="col-num"><col class="col-num">
+              <col class="col-persen">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>Nama</th><th class="num">H</th><th class="num">S</th><th class="num">I</th><th class="num">A</th><th class="num">%H</th>
+              </tr>
+            </thead>
+            <tbody>${baris}</tbody>
+          </table>
+        </details>
+      </div>
+    `;
+  }
+
+  function ekstrakTingkatClient(namaKelas) {
+    const m = String(namaKelas || '').trim().toUpperCase().match(/^[IVX]+/);
+    return m ? m[0] : String(namaKelas || '').trim().toUpperCase();
+  }
+
+  function buatRingkasanKuisShell() {
+    const tingkatUnik = [...new Set(cacheKuis.map(k => ekstrakTingkatClient(k.kelas)))].sort();
+    const opsiTingkat = tingkatUnik.map(t => `<option value="${t}">Tingkat ${t}</option>`).join('');
+
+    return `
+      <div class="ringkasan-panel">
+        <div class="ringkasan-judul">⚖ Perbandingan Jumlah Kuis Antar Kelas</div>
+        <div class="ringkasan-kontrol">
+          <select id="urutRingkasan">
+            <option value="jumlah-desc">Urutkan: Jumlah Kuis (terbanyak dulu)</option>
+            <option value="jumlah-asc">Urutkan: Jumlah Kuis (tersedikit dulu)</option>
+            <option value="rata-desc">Urutkan: Rata-rata (tertinggi dulu)</option>
+            <option value="rata-asc">Urutkan: Rata-rata (terendah dulu)</option>
+            <option value="nama">Urutkan: Nama Kelas (A-Z)</option>
+          </select>
+          <select id="filterTingkatRingkasan">
+            <option value="semua">Semua Tingkat</option>
+            ${opsiTingkat}
+          </select>
+          <label class="cek-tertinggal">
+            <input type="checkbox" id="hanyaTertinggal">
+            Hanya yang tertinggal
+          </label>
+        </div>
+        <div id="ringkasanBarisList"></div>
+      </div>
+    `;
+  }
+
+  function pasangKontrolRingkasan() {
+    document.getElementById('urutRingkasan').addEventListener('change', renderBarisRingkasanKuis);
+    document.getElementById('filterTingkatRingkasan').addEventListener('change', renderBarisRingkasanKuis);
+    document.getElementById('hanyaTertinggal').addEventListener('change', renderBarisRingkasanKuis);
+  }
+
+  function renderBarisRingkasanKuis() {
+    const rosterPerKelas = {};
+    (cacheKehadiranUntukKuis || []).forEach(k => {
+      rosterPerKelas[k.kelas] = (k.siswa || []).length;
+    });
+
+    // Ambang "tertinggal" selalu dihitung dari rata-rata SELURUH kelas (tidak ikut berubah saat difilter)
+    const rataSemua = cacheKuis.reduce((sum, k) => sum + k.totalJawaban, 0) / cacheKuis.length;
+
+    const urut = document.getElementById('urutRingkasan')?.value || 'jumlah-desc';
+    const tingkatTerpilih = document.getElementById('filterTingkatRingkasan')?.value || 'semua';
+    const hanyaTertinggal = document.getElementById('hanyaTertinggal')?.checked || false;
+
+    let daftar = cacheKuis.map(k => ({
+      ...k,
+      tingkat: ekstrakTingkatClient(k.kelas),
+      tertinggal: k.totalJawaban < rataSemua * 0.6
+    }));
+
+    if (tingkatTerpilih !== 'semua') {
+      daftar = daftar.filter(k => k.tingkat === tingkatTerpilih);
+    }
+    if (hanyaTertinggal) {
+      daftar = daftar.filter(k => k.tertinggal);
+    }
+
+    switch (urut) {
+      case 'jumlah-asc': daftar.sort((a, b) => a.totalJawaban - b.totalJawaban); break;
+      case 'rata-desc': daftar.sort((a, b) => b.rataRataKelas - a.rataRataKelas); break;
+      case 'rata-asc': daftar.sort((a, b) => a.rataRataKelas - b.rataRataKelas); break;
+      case 'nama': daftar.sort((a, b) => a.kelas.localeCompare(b.kelas)); break;
+      default: daftar.sort((a, b) => b.totalJawaban - a.totalJawaban); // jumlah-desc
+    }
+
+    const container = document.getElementById('ringkasanBarisList');
+    if (!container) return;
+
+    if (daftar.length === 0) {
+      container.innerHTML = '<div class="kosong" style="padding:16px 0;">Tidak ada kelas yang cocok dengan filter ini.</div>';
+      return;
+    }
+
+    const maxJawaban = Math.max(...daftar.map(k => k.totalJawaban), 1);
+
+    container.innerHTML = daftar.map(k => {
+      const persenBar = (k.totalJawaban / maxJawaban) * 100;
+      const rosterTotal = rosterPerKelas[k.kelas] || 0;
+      const partisipan = (k.siswa || []).length;
+
+      return `
+        <div class="ringkasan-row">
+          <span class="ringkasan-kelas">${k.kelas}</span>
+          <div class="ringkasan-track">
+            <div class="ringkasan-fill ${k.tertinggal ? 'tertinggal' : ''}" style="width:${persenBar}%"></div>
+          </div>
+          <span class="ringkasan-detail">
+            <strong>${k.totalJawaban}</strong> jawaban &nbsp;·&nbsp; rata² ${k.rataRataKelas.toFixed(2)}<br>
+            <span class="${k.tertinggal ? 'peringatan' : ''}">${partisipan}${rosterTotal ? '/' + rosterTotal : ''} siswa pernah menjawab${k.tertinggal ? ' ⚠ tertinggal' : ''}</span>
+          </span>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function buatKartuKuis(k) {
+    const daftarSiswa = [...(k.siswa || [])].sort((a, b) => b.jumlah - a.jumlah);
+
+    const baris = daftarSiswa.map((s, i) => `
+      <tr class="${s.rataRata < 0.7 ? 'rendah' : ''}">
+        <td class="nama-siswa" title="${s.nama}">${i === 0 && s.jumlah > 0 ? '🏆 ' : ''}${s.nama}</td>
+        <td class="num">${s.jumlah}</td>
+        <td class="num persen">${s.rataRata.toFixed(2)}</td>
+      </tr>
+    `).join('');
+
+    return `
+      <div class="kartu">
+        <div class="kartu-head">
+          <span class="kartu-kelas">${k.kelas}</span>
+          <span class="kartu-persen">${k.rataRataKelas.toFixed(2)}</span>
+        </div>
+        <div class="kartu-sub">${k.totalJawaban} jawaban tercatat &nbsp;·&nbsp; rata-rata skor kelas</div>
+        <details class="tp-list" open>
+          <summary>Lihat rincian per siswa (terurut: paling banyak menjawab)</summary>
+          <table class="tabel-siswa">
+            <colgroup>
+              <col class="col-nama">
+              <col class="col-jumlah">
+              <col class="col-rata">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>Nama</th><th class="num">Jumlah</th><th class="num">Rata²</th>
+              </tr>
+            </thead>
+            <tbody>${baris}</tbody>
+          </table>
+        </details>
+      </div>
+    `;
+  }
+</script>
+</body>
+</html>
