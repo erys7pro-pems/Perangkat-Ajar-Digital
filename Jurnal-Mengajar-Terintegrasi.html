@@ -293,14 +293,46 @@
     font-size: 12.5px;
     min-width: 120px;
   }
-  .roster input[type="radio"]{
-    width: auto; margin: 0;
-    accent-color: var(--cyan);
+  .status-box{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
     cursor: pointer;
+    background: rgba(79,230,255,.03);
+    transition: border-color .15s ease, background .15s ease, box-shadow .15s ease;
   }
-  .roster input[type="radio"].st-sakit{ accent-color: var(--amber); }
-  .roster input[type="radio"].st-izin{ accent-color: var(--blue); }
-  .roster input[type="radio"].st-alfa{ accent-color: var(--red); }
+  .status-box input{
+    position: absolute;
+    opacity: 0;
+    width: 0; height: 0;
+    pointer-events: none;
+  }
+  .status-box:hover{ border-color: var(--cyan); }
+
+  .status-box.st-hadir:has(input:checked){
+    background: rgba(79,230,255,.28);
+    border-color: var(--cyan);
+    box-shadow: 0 0 12px rgba(79,230,255,.55), inset 0 0 8px rgba(79,230,255,.25);
+  }
+  .status-box.st-sakit:has(input:checked){
+    background: rgba(168,85,247,.28);
+    border-color: #a855f7;
+    box-shadow: 0 0 12px rgba(168,85,247,.55), inset 0 0 8px rgba(168,85,247,.25);
+  }
+  .status-box.st-izin:has(input:checked){
+    background: rgba(255,221,51,.28);
+    border-color: #ffdd33;
+    box-shadow: 0 0 12px rgba(255,221,51,.55), inset 0 0 8px rgba(255,221,51,.25);
+  }
+  .status-box.st-alfa:has(input:checked){
+    background: rgba(255,77,106,.28);
+    border-color: var(--red);
+    box-shadow: 0 0 12px rgba(255,77,106,.55), inset 0 0 8px rgba(255,77,106,.25);
+  }
 
   .roster-summary{
     display: flex;
@@ -762,10 +794,10 @@
     const baris = siswaKelas.map((s, i) => `
       <tr>
         <td class="nama">${s.nama}</td>
-        <td class="center"><input type="radio" name="status-${i}" value="Hadir" checked></td>
-        <td class="center"><input type="radio" class="st-sakit" name="status-${i}" value="Sakit"></td>
-        <td class="center"><input type="radio" class="st-izin" name="status-${i}" value="Izin"></td>
-        <td class="center"><input type="radio" class="st-alfa" name="status-${i}" value="Alfa"></td>
+        <td class="center"><label class="status-box st-hadir"><input type="radio" name="status-${i}" value="Hadir" checked></label></td>
+        <td class="center"><label class="status-box st-sakit"><input type="radio" name="status-${i}" value="Sakit"></label></td>
+        <td class="center"><label class="status-box st-izin"><input type="radio" name="status-${i}" value="Izin"></label></td>
+        <td class="center"><label class="status-box st-alfa"><input type="radio" name="status-${i}" value="Alfa"></label></td>
         <td class="ket"><input type="text" data-nama="${s.nama}" data-idx="${i}" class="ket-input" placeholder="cth. demam"></td>
       </tr>
     `).join('');
