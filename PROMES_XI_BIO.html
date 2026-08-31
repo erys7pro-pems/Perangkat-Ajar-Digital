@@ -247,8 +247,8 @@
 
   /* ===== TIMELINE ===== */
   .timeline-scroll{overflow-x:auto; padding-bottom:6px;}
-  .grid-tl{display:grid; grid-auto-rows:min-content; min-width:1180px;}
-  .row-months, .row-weeks, .row-events{display:grid; grid-template-columns: 218px repeat(29, minmax(38px,1fr));}
+  .grid-tl{display:grid; grid-auto-rows:min-content; min-width:1180px; width:100%;}
+  .row-months, .row-weeks, .row-events{display:grid; grid-template-columns: 218px repeat(29, minmax(38px,1fr)); width:100%;}
   .row-months > div, .row-weeks > div{
     text-align:center; font-family:'Orbitron'; font-size:10px; letter-spacing:1px; color:var(--cyan-dim);
     border-bottom:1px solid var(--border); padding:6px 2px; transition:.2s;
@@ -299,7 +299,7 @@
   .ev-holiday{background:rgba(120,140,160,.12); color:var(--text-dim); border-color:rgba(120,140,160,.35);}
   .ev-intro{background:rgba(79,230,255,.13); color:var(--cyan-soft); border-color:rgba(79,230,255,.4);}
 
-  .row-module{display:grid; grid-template-columns: 218px repeat(29, minmax(38px,1fr)); border-bottom:1px solid rgba(79,230,255,.06);}
+  .row-module{display:grid; grid-template-columns: 218px repeat(29, minmax(38px,1fr)); width:100%; border-bottom:1px solid rgba(79,230,255,.06);}
   .row-module:hover{background:rgba(79,230,255,.035);}
   .mod-head{
     position:sticky; left:0; background:var(--panel-solid); z-index:2; cursor:pointer;
@@ -485,7 +485,10 @@ const events = [
   {label:'PHB 1', code:'A1', m:'SEP', w:'4', type:'exam', desc:'Penilaian Harian Bersama tahap 1 (Asesmen 1).'},
   {label:'PROJECT CO-KURIKULER', code:'P', m:'OKT', w:'3', type:'agenda', desc:'Pekan proyek co-kurikuler (P5 / kegiatan lintas mata pelajaran).'},
   {label:'PHB 2', code:'A2', m:'NOV', w:'3', type:'exam', desc:'Penilaian Harian Bersama tahap 2 (Asesmen 2).'},
-  {label:'ASAT, OLAH NILAI & PERBAIKAN HARIAN', code:'ASAT', m:'NOV', w:'4', type:'exam', desc:'Asesmen Sumatif Akhir Tahun (ganjil), pengolahan nilai, dan perbaikan harian.'},
+  {label:'TKA (Kelas XII)', code:'TKA', m:'NOV', w:'1', type:'agenda', desc:'Tes Kompetensi Akademik untuk kelas XII. Berjalan independen — tidak memengaruhi jadwal atau asesmen kelas XI.'},
+  {label:'ASAT, OLAH NILAI & PERBAIKAN HARIAN', code:'ASAT', m:'NOV', w:'3H', type:'exam', desc:'Asesmen Sumatif Akhir Tahun (ganjil), pengolahan nilai, dan perbaikan harian.'},
+  {label:'ASAT, OLAH NILAI & PERBAIKAN HARIAN', code:'ASAT', m:'DES', w:'1', type:'exam', desc:'Asesmen Sumatif Akhir Tahun (ganjil), pengolahan nilai, dan perbaikan harian.'},
+  {label:'ASAT, OLAH NILAI & PERBAIKAN HARIAN', code:'ASAT', m:'DES', w:'2', type:'exam', desc:'Asesmen Sumatif Akhir Tahun (ganjil), pengolahan nilai, dan perbaikan harian.'},
   {label:'LIBUR SEMESTER GENAP', code:'H', m:'DES', w:'4', type:'holiday', desc:'Libur akhir semester ganjil.'},
 ];
 
