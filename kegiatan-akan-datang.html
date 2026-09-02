@@ -83,12 +83,12 @@
   .btn-refresh:hover{ border-color: var(--cyan); box-shadow: 0 0 12px rgba(79,230,255,.3); }
   .btn-refresh:disabled{ opacity: .5; cursor: not-allowed; }
 
-  select#filterKelas{
+  select#filterKelas, select#filterStatus{
     background: rgba(79,230,255,.04); color: var(--text);
     border: 1px solid var(--border); border-radius: 4px;
     padding: 9px 12px; font-family: 'Rajdhani', sans-serif; font-size: 13.5px;
   }
-  select#filterKelas:focus{ outline: none; border-color: var(--cyan); }
+  select#filterKelas:focus, select#filterStatus:focus{ outline: none; border-color: var(--cyan); }
   select option{ background-color: #08182b; color: #d3edff; }
 
   .status-line{ font-family: 'Share Tech Mono', monospace; font-size: 12.5px; color: var(--text-dim); margin-bottom: 20px; }
@@ -108,8 +108,12 @@
     content: ""; position: absolute; top: -1px; left: -1px; width: 14px; height: 14px;
     border-top: 2px solid var(--cyan); border-left: 2px solid var(--cyan);
   }
-  .kartu-kegiatan.terlambat::before{ border-color: var(--red); }
-  .kartu-kegiatan.hari-ini::before{ border-color: var(--green); }
+  .kartu-kegiatan::after{
+    content: ""; position: absolute; bottom: -1px; right: -1px; width: 14px; height: 14px;
+    border-bottom: 2px solid var(--cyan); border-right: 2px solid var(--cyan);
+  }
+  .kartu-kegiatan.terlambat::before, .kartu-kegiatan.terlambat::after{ border-color: var(--red); }
+  .kartu-kegiatan.hari-ini::before, .kartu-kegiatan.hari-ini::after{ border-color: var(--green); }
 
   .kk-waktu{ display: flex; flex-direction: column; gap: 4px; }
   .kk-tanggal{
@@ -202,6 +206,12 @@
       <select id="filterKelas">
         <option value="semua">Semua Kelas</option>
       </select>
+      <select id="filterStatus">
+        <option value="semua">Semua Status</option>
+        <option value="terlambat">🔴 Terlambat</option>
+        <option value="hari-ini">🟢 Hari Ini</option>
+        <option value="akan-datang">⚪ Akan Datang</option>
+      </select>
     </div>
     <div class="status-line" id="statusLine">Memuat data...</div>
 
@@ -217,9 +227,11 @@
   const hasil = document.getElementById('hasil');
   const refreshBtn = document.getElementById('refreshBtn');
   const filterKelas = document.getElementById('filterKelas');
+  const filterStatus = document.getElementById('filterStatus');
 
   refreshBtn.addEventListener('click', muatData);
   filterKelas.addEventListener('change', renderDaftar);
+  filterStatus.addEventListener('change', renderDaftar);
   muatData();
 
   async function muatData() {
@@ -272,6 +284,7 @@
 
   function renderDaftar() {
     const kelasTerpilih = filterKelas.value;
+    const statusTerpilih = filterStatus.value;
     let daftar = kelasTerpilih === 'semua' ? cacheJadwal : cacheJadwal.filter(j => j.kelas === kelasTerpilih);
 
     if (daftar.length === 0) {
@@ -281,17 +294,32 @@
 
     // Baris dengan tanggal bermasalah (⚠️...) ditaruh paling atas; sisanya diurutkan kronologis (terlambat dulu)
     const bermasalah = [];
-    const valid = [];
+    let valid = [];
     daftar.forEach(j => {
       const info = formatTanggalIndo(j.tanggal);
       if (!info) bermasalah.push(j);
-      else valid.push({ ...j, _waktu: info.waktu, _tanggalTeks: info.teks });
+      else {
+        const status = tentukanStatus(j.tanggal);
+        valid.push({ ...j, _waktu: info.waktu, _tanggalTeks: info.teks, _statusKelas: status ? status.kelas : '' });
+      }
     });
+
+    if (statusTerpilih !== 'semua') {
+      valid = valid.filter(j => j._statusKelas === statusTerpilih);
+    }
+    // Tanggal bermasalah statusnya tidak diketahui — hanya ditampilkan saat filter "Semua Status"
+    const bermasalahTampil = statusTerpilih === 'semua' ? bermasalah : [];
+
     valid.sort((a, b) => a._waktu - b._waktu);
+
+    if (bermasalahTampil.length === 0 && valid.length === 0) {
+      hasil.innerHTML = '<div class="kosong">Tidak ada sesi yang cocok dengan filter ini.</div>';
+      return;
+    }
 
     let html = '';
 
-    bermasalah.forEach(j => {
+    bermasalahTampil.forEach(j => {
       html += `
         <div class="kartu-kegiatan">
           <div class="kk-waktu"><span class="kk-warning">⚠</span></div>
