@@ -133,6 +133,28 @@
     color: var(--text); letter-spacing: .5px; margin-bottom: 8px;
   }
 
+  .kk-terakhir{
+    background: rgba(255,176,32,.04); border: 1px solid rgba(255,176,32,.2); border-radius: 4px;
+    padding: 10px 12px; margin-bottom: 10px;
+  }
+  .kk-terakhir-label{
+    font-family: 'Orbitron', sans-serif; font-size: 9.5px; letter-spacing: 1.2px;
+    text-transform: uppercase; color: var(--amber); margin-bottom: 4px;
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  }
+  .kk-terakhir-tanggal{ font-family: 'Share Tech Mono', monospace; font-weight: 400; color: var(--text-dim); text-transform: none; letter-spacing: 0; }
+  .kk-terakhir-tp{ font-size: 13.5px; line-height: 1.4; color: var(--text); margin-bottom: 3px; }
+  .kk-terakhir-materi{ font-size: 12.5px; line-height: 1.4; color: var(--text-dim); }
+  .kk-terakhir.kosong{ color: var(--text-faint); font-family: 'Share Tech Mono', monospace; font-size: 12px; }
+
+  .kk-lanjutan{
+    display: inline-flex; align-items: center; gap: 4px;
+    font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: .3px;
+    padding: 2px 8px; border-radius: 999px; margin-top: 6px;
+  }
+  .kk-lanjutan.sama{ background: rgba(255,176,32,.15); color: var(--amber); border: 1px solid rgba(255,176,32,.4); }
+  .kk-lanjutan.baru{ background: rgba(52,255,158,.15); color: var(--green); border: 1px solid rgba(52,255,158,.4); }
+
   .kk-saran{
     background: rgba(79,230,255,.05); border: 1px solid var(--border); border-radius: 4px;
     padding: 10px 12px; margin-bottom: 10px;
@@ -286,6 +308,30 @@
       const statusKelas = status ? status.kelas : '';
       const statusLabel = status ? status.label : '';
 
+      let terakhirHtml;
+      if (j.terakhirTujuan) {
+        const infoTgl = formatTanggalIndo(j.terakhirTanggal);
+        const tglTeks = infoTgl ? infoTgl.teks : j.terakhirTanggal;
+        const samaTP = j.saranTP && j.terakhirTujuan.trim() === j.saranTP.trim();
+        const lanjutanHtml = j.saranTP
+          ? (samaTP
+              ? `<span class="kk-lanjutan sama">🔁 Lanjutan TP yang sama</span>`
+              : `<span class="kk-lanjutan baru">➡️ TP baru dimulai</span>`)
+          : '';
+        terakhirHtml = `
+          <div class="kk-terakhir">
+            <div class="kk-terakhir-label">🕐 Pertemuan Terakhir <span class="kk-terakhir-tanggal">${tglTeks}</span></div>
+            <div class="kk-terakhir-tp">${j.terakhirTujuan}</div>
+            ${j.terakhirMateri ? `<div class="kk-terakhir-materi">Materi: ${j.terakhirMateri}</div>` : ''}
+            ${lanjutanHtml}
+          </div>
+        `;
+      } else {
+        terakhirHtml = `
+          <div class="kk-terakhir kosong">🕐 Belum ada pertemuan tercatat sebelumnya untuk kelas ini.</div>
+        `;
+      }
+
       let saranHtml;
       if (j.saranTP) {
         saranHtml = `
@@ -314,6 +360,7 @@
           </div>
           <div class="kk-body">
             <div class="kk-kelas">${j.kelas}</div>
+            ${terakhirHtml}
             ${saranHtml}
             <div class="kk-progres">
               <div class="kk-progres-track"><div class="kk-progres-fill" style="width:${persen}%"></div></div>
