@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ULTRON | Kisi-Kisi PHB 1 Kelas XII</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=Barlow:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0c0f;--panel:#12161b;--line:#29313a;--steel:#9db0be;--text:#e8edf1;--red:#ff2d2d;--l1:#8ec5d6;--l2:#ffb340;--l3:#ff3b3b;
+color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 70px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--text);font:400 16px/1.55 Barlow,system-ui,sans-serif;
+background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.018) 0 1px,transparent 1px 3px)}
+h1,h2,.d{font-family:"Chakra Petch",system-ui,sans-serif;font-weight:700}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+.wrap{max-width:980px;margin:0 auto;padding:0 18px 60px}
+.hero{display:grid;grid-template-columns:240px 1fr;gap:28px;align-items:center;padding:36px 0 24px}
+.eye{width:240px;height:240px;position:relative}
+.eye svg{width:100%;height:100%;overflow:visible}
+#iris{transition:transform .08s linear}
+.glow{animation:pulse 3.2s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.55}}
+.scan{animation:spin 18s linear infinite;transform-origin:120px 120px}
+@keyframes spin{to{transform:rotate(360deg)}}
+h1{font-size:clamp(34px,7vw,60px);line-height:1;margin:0 0 10px;letter-spacing:.04em}
+h1 span{color:var(--red);text-shadow:0 0 22px rgba(255,45,45,.55)}
+.sub{color:var(--steel);margin:0 0 18px;max-width:46ch}
+.prog{max-width:420px}
+.prog .t{display:flex;justify-content:space-between;font-size:14px;color:var(--steel);margin-bottom:6px}
+.bar{height:8px;background:#1b2128;border:1px solid var(--line)}
+.bar i{display:block;height:100%;width:0;background:var(--red);box-shadow:0 0 12px var(--red);transition:width .4s}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}
+.st{background:var(--panel);border:1px solid var(--line);padding:12px 14px;text-align:left;border-top:3px solid var(--c)}
+.st[aria-pressed=true]{background:#1a1013;border-color:var(--c)}
+.st b{font:700 28px "Chakra Petch";color:var(--c)}
+.st small{display:block;color:var(--steel)}
+.st .bar{margin-top:8px;height:5px}.st .bar i{background:var(--c);box-shadow:none;width:var(--w)}
+.ctl{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:rgba(10,12,15,.94);padding:10px 0;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ctl input{flex:1 1 200px;min-width:0;background:var(--panel);border:1px solid var(--line);color:var(--text);padding:9px 12px;font:inherit}
+.chip{background:var(--panel);border:1px solid var(--line);padding:8px 12px}
+.chip[aria-pressed=true]{border-color:var(--red);color:var(--red);box-shadow:inset 0 0 10px rgba(255,45,45,.2)}
+.go{background:var(--red);border:0;color:#160404;font-weight:700;padding:9px 14px}
+.info{color:var(--steel);font-size:14px;margin:12px 0}
+ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.row{display:grid;grid-template-columns:1fr auto;background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--c)}
+.row.done{background:#101a14;border-left-color:#5ee08a}
+.row.hit{animation:hit 1.2s}
+@keyframes hit{0%,60%{box-shadow:0 0 0 2px var(--red),0 0 24px rgba(255,45,45,.6)}}
+.head{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center;text-align:left;background:none;border:0;padding:12px 10px}
+.no{font:700 20px "Chakra Petch";color:var(--c)}
+.ttl b{display:block;font-weight:500}
+.ttl i{font-style:normal;color:var(--steel);font-size:13px}
+.lv{font:700 13px "Chakra Petch";color:var(--c);border:1px solid var(--c);padding:1px 8px}
+.ck{background:none;border:0;border-left:1px solid var(--line);padding:0 16px;color:var(--steel);font-size:13px;min-width:92px}
+.done .ck{color:#5ee08a}
+.body{grid-column:1/-1;display:none;padding:2px 16px 16px 58px;border-top:1px dashed var(--line)}
+.open .body{display:grid;gap:12px}
+.body h2{font-size:14px;margin:12px 0 2px;color:var(--c)}
+.body p{margin:0;max-width:70ch}
+[hidden]{display:none!important}
+.exp{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.exp .chip{border-color:#5a2020}
+.msg{min-height:22px;margin:8px 0 0;font-size:14px;color:var(--steel)}
+.empty{padding:30px;border:1px dashed var(--line);text-align:center;color:var(--steel)}
+@media(max-width:640px){.hero{grid-template-columns:1fr;text-align:center;justify-items:center}.eye{width:180px;height:180px}
+.body{padding-left:16px}.ck{min-width:70px;padding:0 10px}.stats{gap:6px}.st{padding:10px}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="hero">
+  <div class="eye" id="eye" aria-hidden="true">
+    <svg viewBox="0 0 240 240">
+      <defs><radialGradient id="g"><stop offset="0" stop-color="#fff2e8"/><stop offset=".25" stop-color="#ff5a3a"/><stop offset=".7" stop-color="#b30f0f"/><stop offset="1" stop-color="#3a0606"/></radialGradient>
+      <radialGradient id="h"><stop offset="0" stop-color="#ff2d2d" stop-opacity=".5"/><stop offset="1" stop-color="#ff2d2d" stop-opacity="0"/></radialGradient></defs>
+      <circle class="glow" cx="120" cy="120" r="118" fill="url(#h)"/>
+      <circle cx="120" cy="120" r="104" fill="#0d1014" stroke="#3a444e" stroke-width="3"/>
+      <g class="scan" stroke="#ff2d2d" stroke-width="2" opacity=".8"><path d="M120 12v14M120 214v14M12 120h14M214 120h14" /><circle cx="120" cy="120" r="92" fill="none" stroke-dasharray="6 10" stroke-width="1.5"/></g>
+      <circle cx="120" cy="120" r="70" fill="#07090b" stroke="#29313a" stroke-width="2"/>
+      <g id="iris"><circle cx="120" cy="120" r="44" fill="url(#g)"/><circle cx="120" cy="120" r="13" fill="#fff"/><path d="M76 120h88" stroke="#1a0303" stroke-width="2" opacity=".45"/></g>
+    </svg>
+  </div>
+  <div>
+    <h1>ULT<span>R</span>ON</h1>
+    <p class="sub">Pemindai kisi-kisi PHB 1 Kelas XII. Saring 20 butir soal menurut level dan sektor, buka indikatornya, lalu tandai yang sudah kamu kuasai.</p>
+    <div class="prog"><div class="t"><span>Terasimilasi</span><span id="pt">0 / 20</span></div><div class="bar"><i id="pb"></i></div></div>
+    <div class="exp" id="exp">
+      <button class="chip" id="dlh">Unduh halaman (.html)</button>
+      <button class="chip" id="dlc">Unduh data (.csv)</button>
+    </div>
+    <p class="msg" id="msg" role="status"></p>
+  </div>
+</header>
+
+<section class="stats" id="stats" aria-label="Sebaran level"></section>
+
+<div class="ctl">
+  <input id="q" type="search" placeholder="Cari materi atau kata kunci" aria-label="Cari butir">
+  <button class="chip" data-s="all" aria-pressed="true">Semua</button>
+  <button class="chip" data-s="H" aria-pressed="false">Hereditas</button>
+  <button class="chip" data-s="E" aria-pressed="false">Evolusi</button>
+  <button class="go" id="rnd">Acak butir</button>
+</div>
+<p class="info" id="info"></p>
+<ul id="list"></ul>
+</div>
+
+<script>
+const D=[
+[1,"Konsep dasar hereditas","L1","Disajikan beberapa pasangan istilah dan pengertian, peserta didik dapat menentukan pasangan istilah hereditas (genotipe, fenotipe, homozigot, dominan, alel) dan pengertiannya yang tepat."],
+[2,"Hukum Mendel I","L1","Disajikan beberapa pernyataan, peserta didik dapat menentukan pernyataan yang sesuai dengan Hukum Mendel I (segregasi alel secara bebas)."],
+[3,"Hukum Mendel II","L2","Disajikan genotipe individu dihibrid dengan gen pada kromosom berbeda, peserta didik dapat menentukan macam gamet yang terbentuk sesuai Hukum Mendel II (pemilihan bebas)."],
+[4,"Persilangan monohibrid","L2","Disajikan persilangan dua individu monohibrid heterozigot dan jumlah keturunannya, peserta didik dapat menghitung jumlah harapan keturunan dengan fenotipe dan genotipe tertentu."],
+[5,"Persilangan dihibrid","L3","Disajikan data hasil persilangan dihibrid, peserta didik dapat menentukan genotipe kedua induk berdasarkan perbandingan fenotipe keturunan."],
+[6,"Test cross/back cross","L2","Disajikan kasus perkawinan hewan beserta fenotipe keturunannya, peserta didik dapat menentukan genotipe induk dan alasannya melalui prinsip uji silang (test cross)."],
+[7,"Pewarisan non-Mendel","L3","Disajikan data hasil persilangan dua sifat yang menyimpang dari rasio Mendel, peserta didik dapat menentukan pola pewarisan non-Mendel (epistasis) yang menjelaskan data tersebut."],
+[8,"Golongan darah","L2","Disajikan kasus perkawinan dengan golongan darah sistem ABO, peserta didik dapat menentukan kemungkinan golongan darah anak beserta peluangnya."],
+[9,"Pautan seks","L2","Disajikan kasus perkawinan yang melibatkan sifat terpaut kromosom X, peserta didik dapat menentukan genotipe dan fenotipe anak-anaknya."],
+[10,"Analisis pedigree","L3","Disajikan diagram silsilah (pedigree) suatu sifat, peserta didik dapat menentukan pola pewarisan, genotipe individu tertentu, dan peluang individu sebagai pembawa."],
+[11,"Konsep dan bukti evolusi","L1","Disajikan deskripsi struktur tubuh beberapa organisme, peserta didik dapat mengidentifikasi jenis bukti evolusi (homologi) beserta alasannya."],
+[12,"Variasi dan evolusi","L1","Disajikan beberapa contoh variasi, peserta didik dapat menentukan variasi yang bersumber dari perubahan materi genetik dan dapat diwariskan."],
+[13,"Mutasi","L2","Disajikan urutan basa nitrogen gen normal dan gen mutan, peserta didik dapat menentukan jenis mutasi gen yang terjadi."],
+[14,"Mutasi & dampaknya","L2","Disajikan kasus penyakit akibat mutasi, peserta didik dapat menganalisis jenis mutasi dan dampaknya terhadap organisme pada lingkungan tertentu."],
+[15,"Seleksi alam","L2","Disajikan kasus perubahan proporsi fenotipe dalam populasi akibat perubahan lingkungan, peserta didik dapat menjelaskan peristiwa tersebut berdasarkan konsep seleksi alam."],
+[16,"Adaptasi","L3","Disajikan data pengukuran sifat pada populasi sebelum dan sesudah perubahan lingkungan, peserta didik dapat menyimpulkan proses adaptasi yang terjadi berdasarkan data tersebut."],
+[17,"Hardy-Weinberg","L3","Disajikan data jumlah individu bersifat resesif dalam populasi yang berada dalam keseimbangan Hardy-Weinberg, peserta didik dapat menghitung jumlah individu heterozigot."],
+[18,"Mekanisme perubahan frekuensi alel","L2","Disajikan sebuah fenomena perubahan frekuensi alel dalam populasi, peserta didik dapat menentukan mekanisme perubahan frekuensi alel yang terjadi (efek pendiri/pergeseran genetik)."],
+[19,"Spesiasi","L2","Disajikan kasus terpisahnya populasi hingga terjadi isolasi reproduksi, peserta didik dapat menentukan tipe spesiasi yang terjadi beserta alasannya."],
+[20,"Analisis evolusi terpadu","L3","Disajikan kasus peningkatan resistensi bakteri terhadap antibiotik, peserta didik dapat menganalisis urutan proses evolusi yang menjelaskan peristiwa tersebut secara terpadu."]
+];
+const COL={L1:"#8ec5d6",L2:"#ffb340",L3:"#ff3b3b"};
+const $=s=>document.querySelector(s);
+let F={s:"all",lv:"all",q:""},open=new Set(),done=new Set(),hit=null;
+try{done=new Set(JSON.parse(localStorage.getItem("ultron-done")||"[]"))}catch(e){}
+const save=()=>{try{localStorage.setItem("ultron-done",JSON.stringify([...done]))}catch(e){}};
+const sek=n=>n<=10?"H":"E";
+const pad=n=>String(n).padStart(2,"0");
+
+function stats(){
+  $("#stats").innerHTML=["L1","L2","L3"].map(l=>{
+    const c=D.filter(d=>d[2]===l).length;
+    return `<button class="st" data-l="${l}" aria-pressed="${F.lv===l}" style="--c:${COL[l]};--w:${c/D.length*100}%"><b>${c}</b><small>butir level ${l.slice(1)}</small><div class="bar"><i></i></div></button>`}).join("");
+}
+function parts(t){const m=t.match(/^(.*?), (peserta didik dapat .*)$/);return m?[m[1],m[2][0].toUpperCase()+m[2].slice(1)]:[t,""]}
+function list(){
+  const q=F.q.trim().toLowerCase();
+  const items=D.filter(d=>(F.s==="all"||sek(d[0])===F.s)&&(F.lv==="all"||d[2]===F.lv)&&(!q||(d[1]+" "+d[3]).toLowerCase().includes(q)));
+  $("#info").textContent=`Menampilkan ${items.length} dari ${D.length} butir`;
+  $("#list").innerHTML=items.length?items.map(d=>{
+    const [n,m,l,t]=d,[a,b]=parts(t),o=open.has(n);
+    return `<li class="row ${o?"open":""} ${done.has(n)?"done":""} ${hit===n?"hit":""}" id="r${n}" style="--c:${COL[l]}">
+<button class="head" data-o="${n}" aria-expanded="${o}"><span class="no">${pad(n)}</span><span class="ttl"><b>${m}</b><i>${sek(n)==="H"?"Hereditas":"Evolusi dan populasi"}</i></span><span class="lv">${l}</span></button>
+<button class="ck" data-d="${n}" aria-pressed="${done.has(n)}">${done.has(n)?"Dikuasai":"Tandai"}</button>
+<div class="body"><div><h2>Stimulus soal</h2><p>${a}</p></div><div><h2>Kemampuan yang diukur</h2><p>${b}</p></div></div></li>`}).join("")
+  :`<li class="empty">Tidak ada butir yang cocok. Ubah kata kunci atau <button class="chip" id="rs">reset filter</button></li>`;
+  const k=done.size;$("#pt").textContent=`${k} / ${D.length}`;$("#pb").style.width=k/D.length*100+"%";
+}
+function draw(){stats();list()}
+
+$("#stats").onclick=e=>{const b=e.target.closest("[data-l]");if(!b)return;F.lv=F.lv===b.dataset.l?"all":b.dataset.l;draw()};
+$("#q").oninput=e=>{F.q=e.target.value;list()};
+document.querySelectorAll(".chip[data-s]").forEach(b=>b.onclick=()=>{F.s=b.dataset.s;document.querySelectorAll(".chip[data-s]").forEach(x=>x.setAttribute("aria-pressed",x===b));list()});
+$("#list").onclick=e=>{
+  const o=e.target.closest("[data-o]"),c=e.target.closest("[data-d]");
+  if(o){const n=+o.dataset.o;open.has(n)?open.delete(n):open.add(n);list()}
+  else if(c){const n=+c.dataset.d;done.has(n)?done.delete(n):done.add(n);save();list()}
+  else if(e.target.id==="rs"){F={s:"all",lv:"all",q:""};$("#q").value="";document.querySelectorAll(".chip[data-s]").forEach(x=>x.setAttribute("aria-pressed",x.dataset.s==="all"));draw()}
+};
+$("#rnd").onclick=()=>{
+  const pool=D.filter(d=>!done.has(d[0]));const src=pool.length?pool:D;
+  const n=src[Math.floor(Math.random()*src.length)][0];
+  F={s:"all",lv:"all",q:""};$("#q").value="";document.querySelectorAll(".chip[data-s]").forEach(x=>x.setAttribute("aria-pressed",x.dataset.s==="all"));
+  open.add(n);hit=n;draw();
+  $("#r"+n).scrollIntoView({behavior:"smooth",block:"center"});setTimeout(()=>{hit=null},1300);
+};
+
+// Mata Ultron mengikuti penunjuk
+const eye=$("#eye"),iris=$("#iris");
+function look(x,y){const r=eye.getBoundingClientRect(),dx=x-(r.left+r.width/2),dy=y-(r.top+r.height/2),d=Math.hypot(dx,dy)||1,k=Math.min(22,d/8);
+  iris.style.transform=`translate(${dx/d*k}px,${dy/d*k}px)`}
+addEventListener("pointermove",e=>look(e.clientX,e.clientY));
+// Unduh: di halaman terpublikasi memakai kapabilitas downloads; di salinan lokal memakai tautan biasa
+let dl=null;const hosted=!!window.claude;
+if(hosted){$("#exp").hidden=true;claude.use("downloads").then(m=>{dl=m;$("#exp").hidden=!m}).catch(()=>{})}
+function say(t){$("#msg").textContent=t}
+async function saveFile(name,data,type){
+  if(dl){
+    try{await dl.save({filename:name,data});say("Berkas "+name+" tersimpan.")}
+    catch(e){say(e&&e.code==="declined"?"Unduhan dibatalkan.":"Unduhan gagal. Coba lagi sebentar.")}
+    return;
+  }
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([data],{type}));a.download=name;
+  document.body.appendChild(a);a.click();a.remove();say("Berkas "+name+" diunduh.");
+}
+function pageHtml(){
+  const c=document.documentElement.cloneNode(true);
+  c.querySelectorAll("script[src]").forEach(s=>s.remove());
+  ["#list","#stats"].forEach(s=>c.querySelector(s).innerHTML="");
+  c.querySelector("#info").textContent="";c.querySelector("#msg").textContent="";
+  return "<!DOCTYPE html>\n"+c.outerHTML;
+}
+function csv(){
+  const q=v=>'"'+String(v).replace(/"/g,'""')+'"';
+  const rows=[["No","Sektor","Materi","Level","Indikator","Status"]].concat(D.map(d=>[d[0],sek(d[0])==="H"?"Hereditas":"Evolusi",d[1],d[2],d[3],done.has(d[0])?"Dikuasai":"Belum"]));
+  return "\ufeff"+rows.map(r=>r.map(q).join(",")).join("\r\n");
+}
+$("#dlh").onclick=()=>saveFile("ultron-kisi-kisi.html",pageHtml(),"text/html");
+$("#dlc").onclick=()=>saveFile("kisi-kisi-phb1-kelas-xii.csv",csv(),"text/csv");
+draw();
+</script>
+</body>
+</html>
