@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>J.A.R.V.I.S. // Papan Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#050a12;
+  --bg-grid:#08111c;
+  --panel:#0a1622;
+  --panel-2:#0d1c2b;
+  --cyan:#2be3ff;
+  --cyan-dim:#0f7c94;
+  --violet:#7b61ff;
+  --amber:#ffb020;
+  --red:#ff4d5e;
+  --text:#d6f2ff;
+  --muted:#5b7c95;
+  --line:#173347;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:
+    radial-gradient(ellipse at top, #0a1826 0%, var(--bg) 55%),
+    repeating-linear-gradient(0deg, rgba(43,227,255,.025) 0px, rgba(43,227,255,.025) 1px, transparent 1px, transparent 3px);
+  color:var(--text);
+  font-family:'Share Tech Mono', monospace;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+.hud-font{font-family:'Orbitron', sans-serif;}
+
+/* scanline sweep, one orchestrated moment on load */
+.boot{
+  position:fixed;inset:0;background:#020508;z-index:999;
+  display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;
+  animation:bootOut .6s ease 1.4s forwards;
+}
+.boot-line{font-family:'Orbitron',sans-serif;color:var(--cyan);letter-spacing:.12em;font-size:13px;opacity:0;animation:bootIn .5s ease forwards;text-shadow:0 0 12px rgba(43,227,255,.7);}
+.boot-line:nth-child(1){animation-delay:.1s;}
+.boot-line:nth-child(2){animation-delay:.5s;}
+.boot-line:nth-child(3){animation-delay:.9s;}
+@keyframes bootIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+@keyframes bootOut{to{opacity:0;visibility:hidden;pointer-events:none;}}
+.boot-ring{width:64px;height:64px;border-radius:50%;border:2px solid var(--cyan-dim);border-top-color:var(--cyan);animation:spin 1s linear infinite;box-shadow:0 0 24px rgba(43,227,255,.35);}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+header{
+  position:sticky;top:0;z-index:20;
+  background:linear-gradient(180deg, rgba(5,10,18,.97), rgba(5,10,18,.9));
+  border-bottom:1px solid var(--line);
+  padding:12px 16px 10px;
+}
+.title-row{display:flex;align-items:center;justify-content:space-between;gap:12px;max-width:1100px;margin:0 auto 10px;}
+.brand{display:flex;align-items:center;gap:10px;}
+.brand-mark{width:26px;height:26px;position:relative;flex-shrink:0;}
+.brand-mark svg{width:100%;height:100%;}
+.brand h1{font-size:15px;margin:0;letter-spacing:.16em;font-weight:700;color:var(--cyan);text-shadow:0 0 10px rgba(43,227,255,.5);}
+.brand small{display:block;font-size:10px;color:var(--muted);letter-spacing:.14em;margin-top:1px;}
+.status{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted);cursor:pointer;padding:6px 10px;border:1px solid var(--line);clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px);background:var(--panel);}
+.status:hover{border-color:var(--cyan-dim);}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex-shrink:0;}
+.dot.online{background:var(--cyan);box-shadow:0 0 8px var(--cyan);animation:pulse 2s ease-in-out infinite;}
+.dot.local{background:var(--amber);box-shadow:0 0 8px var(--amber);}
+.dot.error{background:var(--red);box-shadow:0 0 8px var(--red);}
+.dot.sync{background:var(--violet);box-shadow:0 0 8px var(--violet);animation:pulse 1s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+
+.menu-row{display:flex;gap:8px;overflow-x:auto;max-width:1100px;margin:0 auto;padding-bottom:2px;}
+.menu-tab{
+  position:relative;padding:8px 26px 8px 14px;border:1px solid var(--line);background:var(--panel);color:var(--muted);
+  white-space:nowrap;cursor:pointer;font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:.08em;
+  clip-path:polygon(8px 0,100% 0,100% 100%,0 100%,0 8px);flex-shrink:0;
+}
+.menu-tab.active{color:var(--cyan);border-color:var(--cyan-dim);background:var(--panel-2);box-shadow:inset 0 0 12px rgba(43,227,255,.12);}
+.menu-del{position:absolute;right:8px;top:50%;transform:translateY(-50%);opacity:.5;font-size:13px;}
+.menu-del:hover{opacity:1;color:var(--red);}
+#add-menu-btn{flex-shrink:0;padding:8px 14px;border:1px dashed var(--line);background:transparent;color:var(--muted);cursor:pointer;font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:.08em;}
+#add-menu-btn:hover{color:var(--cyan);border-color:var(--cyan-dim);}
+
+main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
+.add-panel-btn{
+  display:flex;align-items:center;justify-content:center;gap:8px;margin:0 0 18px;padding:11px 16px;
+  border:1px dashed var(--line);background:transparent;color:var(--muted);cursor:pointer;width:100%;
+  font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:.1em;
+}
+.add-panel-btn:hover{color:var(--cyan);border-color:var(--cyan-dim);}
+.panels-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:16px;}
+
+.panel-card{
+  background:var(--panel);border:1px solid var(--line);padding:0;position:relative;
+  clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px);
+}
+.panel-card::before{
+  content:'';position:absolute;top:0;left:0;width:100%;height:2px;
+  background:linear-gradient(90deg, var(--cyan), transparent 60%);opacity:.6;
+}
+.panel-head{display:flex;justify-content:space-between;align-items:center;padding:12px 14px 10px;border-bottom:1px solid var(--line);}
+.panel-head h3{margin:0;font-size:13px;font-family:'Orbitron',sans-serif;letter-spacing:.06em;color:var(--text);}
+.icon-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px;padding:2px 6px;line-height:1;}
+.icon-btn:hover{color:var(--red);}
+.panel-body{padding:4px 14px 12px;}
+.sub-card{border-top:1px solid var(--line);padding:10px 0;}
+.sub-card:first-child{border-top:none;}
+.sub-card img{max-width:100%;display:block;margin-top:8px;border:1px solid var(--line);filter:saturate(.85) contrast(1.05);}
+.sub-title{font-weight:700;font-size:13px;color:var(--text);}
+.sub-subtitle{color:var(--muted);font-size:11.5px;margin-top:2px;}
+.sub-link{color:var(--cyan);font-size:11.5px;display:inline-block;margin-top:7px;text-decoration:none;border-bottom:1px solid var(--cyan-dim);}
+.sub-link:hover{text-shadow:0 0 6px rgba(43,227,255,.6);}
+.add-sub-btn{margin-top:8px;font-size:11px;background:none;border:1px dashed var(--line);color:var(--muted);padding:7px 10px;cursor:pointer;font-family:'Orbitron',sans-serif;letter-spacing:.06em;width:100%;}
+.add-sub-btn:hover{color:var(--cyan);border-color:var(--cyan-dim);}
+.empty{color:var(--muted);text-align:center;padding:60px 20px;font-size:12px;letter-spacing:.04em;border:1px dashed var(--line);grid-column:1/-1;}
+
+.modal-overlay{position:fixed;inset:0;background:rgba(2,5,8,.75);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;padding:16px;z-index:100;}
+.modal{
+  background:var(--panel-2);border:1px solid var(--cyan-dim);padding:22px;width:100%;max-width:400px;max-height:90vh;overflow-y:auto;
+  box-shadow:0 0 40px rgba(43,227,255,.12);clip-path:polygon(16px 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,0 100%,0 16px);
+}
+.modal h4{margin:0 0 4px;font-family:'Orbitron',sans-serif;font-size:14px;letter-spacing:.08em;color:var(--cyan);}
+.modal .sub{font-size:11px;color:var(--muted);margin-bottom:6px;}
+.modal label{display:block;font-size:10.5px;color:var(--muted);margin:12px 0 5px;letter-spacing:.06em;font-family:'Orbitron',sans-serif;}
+.modal input{width:100%;padding:9px 10px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px;font-family:'Share Tech Mono',monospace;}
+.modal input:focus{outline:none;border-color:var(--cyan);}
+.modal-actions{display:flex;gap:8px;margin-top:18px;justify-content:flex-end;}
+.btn{padding:9px 16px;border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer;font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:.06em;}
+.btn:hover{color:var(--text);border-color:var(--muted);}
+.btn-primary{background:var(--cyan-dim);border-color:var(--cyan);color:#02141a;font-weight:700;}
+.btn-primary:hover{color:#02141a;box-shadow:0 0 14px rgba(43,227,255,.4);}
+.hint{font-size:10.5px;color:var(--muted);margin-top:10px;line-height:1.5;}
+.hint code{color:var(--cyan);}
+</style>
+</head>
+<body>
+<div class="boot">
+  <div class="boot-ring"></div>
+  <div class="boot-line hud-font">INITIALIZING INTERFACE</div>
+  <div class="boot-line hud-font">LINKING MAINFRAME</div>
+  <div class="boot-line hud-font">J.A.R.V.I.S. // PAPAN PANEL</div>
+</div>
+<div id="app"></div>
+
+<script>
+(function(){
+  var STORAGE_KEY = 'papan-panel-state-v1';
+  var CONFIG_KEY = 'papan-panel-config-v1';
+  var defaultState = {menus:[{id:'m1', name:'Umum'}], activeMenu:'m1', panels:[]};
+  var state = loadState();
+  var config = loadConfig();
+  var syncStatus = 'idle'; // idle | local | online | syncing | error
+  var syncTimer = null;
+
+  function loadState(){
+    try{
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if(raw) return JSON.parse(raw);
+    }catch(e){ console.error(e); }
+    return JSON.parse(JSON.stringify(defaultState));
+  }
+  function loadConfig(){
+    try{
+      var raw = localStorage.getItem(CONFIG_KEY);
+      if(raw) return JSON.parse(raw);
+    }catch(e){}
+    return {apiUrl:''};
+  }
+  function persistLocal(){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+    catch(e){ console.error(e); }
+  }
+  function persistConfig(){
+    try{ localStorage.setItem(CONFIG_KEY, JSON.stringify(config)); }catch(e){}
+  }
+
+  function uid(){ return Math.random().toString(36).slice(2,10)+Date.now().toString(36); }
+  function esc(s){ return (s||'').replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+
+  // ---- Google Apps Script sync layer ----
+  function hasApi(){ return !!(config.apiUrl && config.apiUrl.trim()); }
+
+  function loadFromApi(){
+    if(!hasApi()){ syncStatus='local'; render(); return; }
+    syncStatus='syncing'; render();
+    fetch(config.apiUrl, {method:'GET'})
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if(data && typeof data==='object' && data.menus){
+          state = data;
+          persistLocal();
+        }
+        syncStatus='online';
+        render();
+      })
+      .catch(function(err){
+        console.error('Gagal memuat dari mainframe:', err);
+        syncStatus='error';
+        render();
+      });
+  }
+
+  function pushToApi(){
+    if(!hasApi()) return;
+    syncStatus='syncing'; renderStatusOnly();
+    fetch(config.apiUrl, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'}, // avoids CORS preflight on Apps Script
+      body: JSON.stringify(state)
+    })
+      .then(function(r){ return r.json(); })
+      .then(function(res){
+        syncStatus = (res && res.ok) ? 'online' : 'error';
+        renderStatusOnly();
+      })
+      .catch(function(err){
+        console.error('Gagal menyimpan ke mainframe:', err);
+        syncStatus='error';
+        renderStatusOnly();
+      });
+  }
+
+  function queueSync(){
+    if(!hasApi()) return;
+    if(syncTimer) clearTimeout(syncTimer);
+    syncTimer = setTimeout(pushToApi, 500); // debounce rapid edits
+  }
+
+  function statusLabel(){
+    if(!hasApi()) return {cls:'local', text:'MODE LOKAL'};
+    if(syncStatus==='syncing') return {cls:'sync', text:'SYNCING...'};
+    if(syncStatus==='online') return {cls:'online', text:'MAINFRAME ONLINE'};
+    if(syncStatus==='error') return {cls:'error', text:'SYNC GAGAL'};
+    return {cls:'local', text:'MENGHUBUNGKAN...'};
+  }
+
+  function renderStatusOnly(){
+    var el = document.getElementById('status-dot');
+    var lb = document.getElementById('status-label');
+    if(!el||!lb) return;
+    var s = statusLabel();
+    el.className = 'dot '+s.cls;
+    lb.textContent = s.text;
+  }
+
+  // ---- Render ----
+  function render(){
+    var app = document.getElementById('app');
+    var s = statusLabel();
+    var menusHtml = state.menus.map(function(m){
+      return '<button class="menu-tab'+(m.id===state.activeMenu?' active':'')+'" data-switch="'+m.id+'">'+esc(m.name)+'<span class="menu-del" data-delmenu="'+m.id+'">\u00d7</span></button>';
+    }).join('');
+    var panels = state.panels.filter(function(p){ return p.menuId===state.activeMenu; });
+    var panelsHtml = panels.length ? panels.map(panelHtml).join('') : '<div class="empty">TIDAK ADA PANEL TERDETEKSI<br>Klik "+ TAMBAH PANEL" untuk memulai</div>';
+    app.innerHTML =
+      '<header>'+
+        '<div class="title-row">'+
+          '<div class="brand">'+
+            '<div class="brand-mark"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="17" fill="none" stroke="#2be3ff" stroke-width="1.4" opacity="0.55"/><circle cx="20" cy="20" r="11" fill="none" stroke="#2be3ff" stroke-width="1.2" opacity="0.8"/><circle cx="20" cy="20" r="3.2" fill="#2be3ff"/><line x1="20" y1="1" x2="20" y2="7" stroke="#2be3ff" stroke-width="1.2"/><line x1="20" y1="33" x2="20" y2="39" stroke="#2be3ff" stroke-width="1.2"/><line x1="1" y1="20" x2="7" y2="20" stroke="#2be3ff" stroke-width="1.2"/><line x1="33" y1="20" x2="39" y2="20" stroke="#2be3ff" stroke-width="1.2"/></svg></div>'+
+            '<div><h1 class="hud-font">J.A.R.V.I.S.</h1><small>PAPAN PANEL — ANTARMUKA KONTROL</small></div>'+
+          '</div>'+
+          '<div class="status" id="status-toggle" title="Pengaturan koneksi mainframe"><span class="dot '+s.cls+'" id="status-dot"></span><span id="status-label">'+s.text+'</span></div>'+
+        '</div>'+
+        '<div class="menu-row">'+menusHtml+'<button id="add-menu-btn" data-addmenu>+ MENU</button></div>'+
+      '</header>'+
+      '<main>'+
+        '<button class="add-panel-btn" data-addpanel>+ TAMBAH PANEL</button>'+
+        '<div class="panels-grid">'+panelsHtml+'</div>'+
+      '</main>';
+    app.querySelectorAll('[data-switch]').forEach(function(el){ el.addEventListener('click', function(){ state.activeMenu = el.getAttribute('data-switch'); save(); }); });
+    app.querySelectorAll('[data-delmenu]').forEach(function(el){ el.addEventListener('click', function(e){ e.stopPropagation(); delMenu(el.getAttribute('data-delmenu')); }); });
+    var am = document.getElementById('add-menu-btn'); if(am) am.addEventListener('click', addMenuModal);
+    var ap = app.querySelector('[data-addpanel]'); if(ap) ap.addEventListener('click', addPanelModal);
+    app.querySelectorAll('[data-delpanel]').forEach(function(el){ el.addEventListener('click', function(){ delPanel(el.getAttribute('data-delpanel')); }); });
+    app.querySelectorAll('[data-addsub]').forEach(function(el){ el.addEventListener('click', function(){ addSubModal(el.getAttribute('data-addsub')); }); });
+    app.querySelectorAll('[data-delsub]').forEach(function(el){ el.addEventListener('click', function(){ delSub(el.getAttribute('data-delsub'), el.getAttribute('data-panel')); }); });
+    var st = document.getElementById('status-toggle'); if(st) st.addEventListener('click', settingsModal);
+  }
+
+  function panelHtml(p){
+    var subs = p.subpanels.map(function(s){
+      return '<div class="sub-card">'+
+        '<div style="display:flex;justify-content:space-between;">'+
+          '<div><div class="sub-title">'+esc(s.title)+'</div>'+(s.subtitle?'<div class="sub-subtitle">'+esc(s.subtitle)+'</div>':'')+'</div>'+
+          '<button class="icon-btn" data-delsub="'+s.id+'" data-panel="'+p.id+'">\u00d7</button>'+
+        '</div>'+
+        (s.image?'<img src="'+esc(s.image)+'" alt="">':'')+
+        (s.linkUrl?'<a class="sub-link" href="'+esc(s.linkUrl)+'" target="_blank" rel="noopener">'+esc(s.linkLabel||s.linkUrl)+'</a>':'')+
+      '</div>';
+    }).join('');
+    return '<div class="panel-card">'+
+      '<div class="panel-head"><h3 class="hud-font">'+esc(p.title)+'</h3><button class="icon-btn" data-delpanel="'+p.id+'">\u00d7</button></div>'+
+      '<div class="panel-body">'+subs+
+      '<button class="add-sub-btn" data-addsub="'+p.id+'">+ SUB-PANEL</button></div>'+
+    '</div>';
+  }
+
+  function openModal(title, sub, fields, onSave, saveLabel){
+    var ov = document.createElement('div'); ov.className='modal-overlay';
+    var f = fields.map(function(fl){ return '<label>'+fl.label+'</label><input data-f="'+fl.name+'" type="text" value="'+esc(fl.value||'')+'" placeholder="'+(fl.placeholder||'')+'">'; }).join('');
+    ov.innerHTML = '<div class="modal"><h4 class="hud-font">'+title+'</h4>'+(sub?'<div class="sub">'+sub+'</div>':'')+f+'<div class="modal-actions"><button class="btn" data-cancel>BATAL</button><button class="btn btn-primary" data-save>'+(saveLabel||'SIMPAN')+'</button></div></div>';
+    document.body.appendChild(ov);
+    ov.addEventListener('click', function(e){ if(e.target===ov) ov.remove(); });
+    ov.querySelector('[data-cancel]').onclick = function(){ ov.remove(); };
+    ov.querySelector('[data-save]').onclick = function(){
+      var vals = {};
+      fields.forEach(function(fl){ vals[fl.name] = ov.querySelector('[data-f="'+fl.name+'"]').value.trim(); });
+      ov.remove();
+      onSave(vals);
+    };
+    return ov;
+  }
+
+  function addMenuModal(){
+    openModal('MENU BARU', null, [{name:'name', label:'Nama menu', placeholder:'Contoh: Materi Kelas X'}], function(v){
+      if(!v.name) return;
+      var id = uid();
+      state.menus.push({id:id, name:v.name});
+      state.activeMenu = id;
+      save();
+    });
+  }
+  function delMenu(id){
+    if(!confirm('Hapus menu ini beserta semua panelnya?')) return;
+    state.menus = state.menus.filter(function(m){ return m.id!==id; });
+    state.panels = state.panels.filter(function(p){ return p.menuId!==id; });
+    if(state.activeMenu===id) state.activeMenu = state.menus.length? state.menus[0].id : null;
+    save();
+  }
+  function addPanelModal(){
+    if(!state.activeMenu){ alert('Buat menu terlebih dahulu.'); return; }
+    openModal('PANEL BARU', null, [{name:'title', label:'Judul panel', placeholder:'Contoh: Bahan Bacaan'}], function(v){
+      if(!v.title) return;
+      state.panels.push({id:uid(), menuId:state.activeMenu, title:v.title, subpanels:[]});
+      save();
+    });
+  }
+  function delPanel(id){
+    if(!confirm('Hapus panel ini?')) return;
+    state.panels = state.panels.filter(function(p){ return p.id!==id; });
+    save();
+  }
+  function addSubModal(panelId){
+    openModal('SUB-PANEL BARU', null, [
+      {name:'title', label:'Judul', placeholder:'Judul sub-panel'},
+      {name:'subtitle', label:'Sub-judul', placeholder:'Opsional'},
+      {name:'linkUrl', label:'Hyperlink (URL)', placeholder:'https://...'},
+      {name:'linkLabel', label:'Teks link', placeholder:'Opsional'},
+      {name:'image', label:'URL gambar', placeholder:'https://...jpg'}
+    ], function(v){
+      if(!v.title) return;
+      var p = state.panels.find(function(p){ return p.id===panelId; });
+      if(!p) return;
+      p.subpanels.push({id:uid(), title:v.title, subtitle:v.subtitle, linkUrl:v.linkUrl, linkLabel:v.linkLabel, image:v.image});
+      save();
+    });
+  }
+  function delSub(subId, panelId){
+    var p = state.panels.find(function(p){ return p.id===panelId; });
+    if(!p) return;
+    p.subpanels = p.subpanels.filter(function(s){ return s.id!==subId; });
+    save();
+  }
+
+  function settingsModal(){
+    var ov = openModal('KONEKSI MAINFRAME', 'Tempel URL Web App Google Apps Script untuk menyimpan data ke Google Sheets. Kosongkan untuk mode lokal (localStorage saja).',
+      [{name:'apiUrl', label:'Apps Script Web App URL', placeholder:'https://script.google.com/macros/s/.../exec', value:config.apiUrl}],
+      function(v){
+        config.apiUrl = v.apiUrl;
+        persistConfig();
+        if(hasApi()){ loadFromApi(); } else { syncStatus='local'; render(); }
+      }, 'HUBUNGKAN');
+    var hint = document.createElement('div');
+    hint.className = 'hint';
+    hint.innerHTML = 'Deploy skrip Apps Script sebagai Web App (Execute as: Me, Access: Anyone), lalu tempel URL <code>/exec</code> di atas.';
+    ov.querySelector('.modal').appendChild(hint);
+  }
+
+  function save(){ render(); persistLocal(); queueSync(); }
+
+  render();
+  loadFromApi();
+})();
+</script>
+</body>
+</html>
