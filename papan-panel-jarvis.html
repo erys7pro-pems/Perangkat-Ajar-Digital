@@ -146,6 +146,25 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
 .modal textarea:focus{outline:none;border-color:var(--cyan);}
 .modal input[type="date"]{color-scheme:dark;}
 
+/* Drag & drop */
+.drag-handle{cursor:grab;color:var(--muted);font-size:15px;padding:6px 8px;user-select:none;touch-action:none;flex-shrink:0;line-height:1;}
+.drag-handle:hover{color:var(--cyan);}
+.drag-handle:active{cursor:grabbing;}
+.move-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;padding:4px 5px;line-height:1;}
+.move-btn:hover{color:var(--cyan);}
+.move-btn:disabled{opacity:.25;cursor:default;}
+.move-btn:disabled:hover{color:var(--muted);}
+.panel-head-right{display:flex;align-items:center;gap:2px;flex-shrink:0;}
+.panel-head-left{display:flex;align-items:center;gap:6px;min-width:0;}
+.panel-head-left h3{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.panel-card.type-info.dragging{opacity:.35;}
+.panel-card.type-info.drag-over{outline:2px dashed var(--cyan);outline-offset:-3px;}
+.sub-card{position:relative;}
+.sub-card.dragging{opacity:.35;}
+.sub-card.drag-over{outline:2px dashed var(--cyan);outline-offset:-2px;}
+.sub-head-left{display:flex;align-items:flex-start;gap:6px;min-width:0;}
+.sub-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+
 .modal-overlay{position:fixed;inset:0;background:rgba(2,5,8,.75);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;padding:16px;z-index:100;}
 .modal{
   background:var(--panel-2);border:1px solid var(--cyan-dim);padding:22px;width:100%;max-width:400px;max-height:90vh;overflow-y:auto;
@@ -179,10 +198,23 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
   var STORAGE_KEY = 'papan-panel-state-v1';
   var CONFIG_KEY = 'papan-panel-config-v1';
   var defaultState = {menus:[{id:'m1', name:'Umum'}], activeMenu:'m1', panels:[]};
-  var state = loadState();
+  var state = normalizeState(loadState());
   var config = loadConfig();
   var syncStatus = 'idle'; // idle | local | online | syncing | error
   var syncTimer = null;
+
+  // Migrasi: panel yang dibuat versi file lama belum punya field "type"/"subpanels".
+  // Tanpa ini, filter berbasis type==='info' akan mengabaikan panel lama tsb sepenuhnya
+  // sehingga tombol panah & drag terlihat tidak merespons pada panel-panel tersebut.
+  function normalizeState(s){
+    if(s && Array.isArray(s.panels)){
+      s.panels.forEach(function(p){
+        if(p.type !== 'announcement') p.type = 'info';
+        if(!Array.isArray(p.subpanels)) p.subpanels = [];
+      });
+    }
+    return s;
+  }
 
   function loadState(){
     try{
@@ -239,7 +271,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
       .then(function(r){ return r.json(); })
       .then(function(data){
         if(data && typeof data==='object' && data.menus){
-          state = data;
+          state = normalizeState(data);
           persistLocal();
         }
         syncStatus='online';
@@ -333,7 +365,83 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     app.querySelectorAll('[data-delpanel]').forEach(function(el){ el.addEventListener('click', function(){ delPanel(el.getAttribute('data-delpanel')); }); });
     app.querySelectorAll('[data-addsub]').forEach(function(el){ el.addEventListener('click', function(){ addSubModal(el.getAttribute('data-addsub')); }); });
     app.querySelectorAll('[data-delsub]').forEach(function(el){ el.addEventListener('click', function(){ delSub(el.getAttribute('data-delsub'), el.getAttribute('data-panel')); }); });
+    app.querySelectorAll('[data-movepanel]').forEach(function(el){ el.addEventListener('click', function(){ movePanelPosition(el.getAttribute('data-pid'), el.getAttribute('data-movepanel')==='up'?-1:1); }); });
     var st = document.getElementById('status-toggle'); if(st) st.addEventListener('click', settingsModal);
+    wireDragAndDrop(app);
+  }
+
+  // ---- Drag & drop wiring (native HTML5 DnD) ----
+  function wireDragAndDrop(app){
+    var draggedPanelId = null;
+    app.querySelectorAll('[data-dragpanel]').forEach(function(handle){
+      handle.addEventListener('dragstart', function(e){
+        draggedPanelId = handle.getAttribute('data-dragpanel');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', draggedPanelId);
+        var card = handle.closest('.panel-card');
+        if(card) setTimeout(function(){ card.classList.add('dragging'); }, 0);
+      });
+      handle.addEventListener('dragend', function(){
+        var card = handle.closest('.panel-card');
+        if(card) card.classList.remove('dragging');
+        draggedPanelId = null;
+        app.querySelectorAll('.panel-card.drag-over').forEach(function(c){ c.classList.remove('drag-over'); });
+      });
+    });
+    app.querySelectorAll('.panel-card.type-info').forEach(function(card){
+      card.addEventListener('dragover', function(e){
+        if(!draggedPanelId) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        card.classList.add('drag-over');
+      });
+      card.addEventListener('dragleave', function(){ card.classList.remove('drag-over'); });
+      card.addEventListener('drop', function(e){
+        e.preventDefault();
+        card.classList.remove('drag-over');
+        var targetId = card.getAttribute('data-pid');
+        var dragId = draggedPanelId || e.dataTransfer.getData('text/plain');
+        if(dragId) reorderInfoPanels(dragId, targetId);
+      });
+    });
+
+    var draggedSubId = null, draggedSubPanel = null;
+    app.querySelectorAll('[data-dragsub]').forEach(function(handle){
+      handle.addEventListener('dragstart', function(e){
+        draggedSubId = handle.getAttribute('data-dragsub');
+        draggedSubPanel = handle.getAttribute('data-panel');
+        e.stopPropagation();
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', draggedSubId);
+        var sub = handle.closest('.sub-card');
+        if(sub) setTimeout(function(){ sub.classList.add('dragging'); }, 0);
+      });
+      handle.addEventListener('dragend', function(){
+        var sub = handle.closest('.sub-card');
+        if(sub) sub.classList.remove('dragging');
+        draggedSubId = null; draggedSubPanel = null;
+        app.querySelectorAll('.sub-card.drag-over').forEach(function(c){ c.classList.remove('drag-over'); });
+      });
+    });
+    app.querySelectorAll('.sub-card').forEach(function(sub){
+      sub.addEventListener('dragover', function(e){
+        if(!draggedSubId || draggedSubPanel!==sub.getAttribute('data-panel')) return;
+        e.preventDefault();
+        e.stopPropagation();
+        e.dataTransfer.dropEffect = 'move';
+        sub.classList.add('drag-over');
+      });
+      sub.addEventListener('dragleave', function(){ sub.classList.remove('drag-over'); });
+      sub.addEventListener('drop', function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        sub.classList.remove('drag-over');
+        var targetId = sub.getAttribute('data-subid');
+        var panelId = sub.getAttribute('data-panel');
+        var dragId = draggedSubId || e.dataTransfer.getData('text/plain');
+        if(dragId && panelId===draggedSubPanel) reorderSubpanels(panelId, dragId, targetId);
+      });
+    });
   }
 
   function panelHtml(p){
@@ -342,18 +450,24 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
 
   function infoPanelHtml(p){
     var subs = p.subpanels.map(function(s){
-      return '<div class="sub-card">'+
-        '<div style="display:flex;justify-content:space-between;">'+
-          '<div><div class="sub-title">'+esc(s.title)+'</div>'+(s.subtitle?'<div class="sub-subtitle">'+esc(s.subtitle)+'</div>':'')+'</div>'+
+      return '<div class="sub-card" data-subid="'+s.id+'" data-panel="'+p.id+'">'+
+        '<div class="sub-head">'+
+          '<div class="sub-head-left"><span class="drag-handle" draggable="true" data-dragsub="'+s.id+'" data-panel="'+p.id+'" title="Seret untuk urutkan">\u283f</span>'+
+          '<div><div class="sub-title">'+esc(s.title)+'</div>'+(s.subtitle?'<div class="sub-subtitle">'+esc(s.subtitle)+'</div>':'')+'</div></div>'+
           '<button class="icon-btn" data-delsub="'+s.id+'" data-panel="'+p.id+'">\u00d7</button>'+
         '</div>'+
         (s.image?'<img src="'+esc(s.image)+'" alt="">':'')+
         (s.linkUrl?'<a class="sub-link" href="'+esc(s.linkUrl)+'" target="_blank" rel="noopener">'+esc(s.linkLabel||s.linkUrl)+'</a>':'')+
       '</div>';
     }).join('');
-    return '<div class="panel-card type-info">'+
-      '<div class="panel-head"><h3 class="hud-font">'+esc(p.title)+'</h3><button class="icon-btn" data-delpanel="'+p.id+'">\u00d7</button></div>'+
-      '<div class="panel-body">'+subs+
+    return '<div class="panel-card type-info" data-pid="'+p.id+'">'+
+      '<div class="panel-head"><div class="panel-head-left"><span class="drag-handle" draggable="true" data-dragpanel="'+p.id+'" title="Seret untuk urutkan">\u283f</span><h3 class="hud-font">'+esc(p.title)+'</h3></div>'+
+      '<div class="panel-head-right">'+
+        '<button class="move-btn" data-movepanel="up" data-pid="'+p.id+'" title="Pindah ke atas">\u25b2</button>'+
+        '<button class="move-btn" data-movepanel="down" data-pid="'+p.id+'" title="Pindah ke bawah">\u25bc</button>'+
+        '<button class="icon-btn" data-delpanel="'+p.id+'">\u00d7</button>'+
+      '</div></div>'+
+      '<div class="panel-body" data-panelbody="'+p.id+'">'+subs+
       '<button class="add-sub-btn" data-addsub="'+p.id+'">+ SUB-PANEL</button></div>'+
     '</div>';
   }
@@ -473,6 +587,50 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     var p = state.panels.find(function(p){ return p.id===panelId; });
     if(!p) return;
     p.subpanels = p.subpanels.filter(function(s){ return s.id!==subId; });
+    save();
+  }
+
+  // ---- Reorder via drag & drop ----
+  function reorderInfoPanels(draggedId, targetId){
+    if(draggedId===targetId) return;
+    var idxs = [];
+    state.panels.forEach(function(p, i){ if(p.menuId===state.activeMenu && p.type!=='announcement') idxs.push(i); });
+    var items = idxs.map(function(i){ return state.panels[i]; });
+    var di = items.findIndex(function(p){ return p.id===draggedId; });
+    var ti = items.findIndex(function(p){ return p.id===targetId; });
+    if(di<0 || ti<0 || di===ti) return;
+    var moved = items.splice(di, 1)[0];
+    // ti is the target's index BEFORE removal; splicing at that same numeric
+    // index on the shortened array correctly places moved right after the
+    // target when dragging forward, and right before it when dragging
+    // backward. Recomputing ti via findIndex after the splice (as before)
+    // breaks the forward case and made adjacent-forward drags a no-op.
+    items.splice(ti, 0, moved);
+    idxs.forEach(function(origIdx, k){ state.panels[origIdx] = items[k]; });
+    save();
+  }
+  function reorderSubpanels(panelId, draggedId, targetId){
+    if(draggedId===targetId) return;
+    var p = state.panels.find(function(x){ return x.id===panelId; });
+    if(!p) return;
+    var arr = p.subpanels;
+    var di = arr.findIndex(function(s){ return s.id===draggedId; });
+    var ti = arr.findIndex(function(s){ return s.id===targetId; });
+    if(di<0 || ti<0 || di===ti) return;
+    var moved = arr.splice(di, 1)[0];
+    arr.splice(ti, 0, moved); // see note above in reorderInfoPanels
+    save();
+  }
+  function movePanelPosition(panelId, direction){
+    // direction: -1 = naik satu posisi, +1 = turun satu posisi, di antara panel informasi lain saja
+    var idxs = [];
+    state.panels.forEach(function(p, i){ if(p.menuId===state.activeMenu && p.type!=='announcement') idxs.push(i); });
+    var items = idxs.map(function(i){ return state.panels[i]; });
+    var pos = items.findIndex(function(p){ return p.id===panelId; });
+    var newPos = pos + direction;
+    if(pos<0 || newPos<0 || newPos>=items.length) return;
+    var tmp = items[pos]; items[pos] = items[newPos]; items[newPos] = tmp;
+    idxs.forEach(function(origIdx, k){ state.panels[origIdx] = items[k]; });
     save();
   }
 
