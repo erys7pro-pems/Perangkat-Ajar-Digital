@@ -235,6 +235,15 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
 .uf-left{flex-shrink:0;font-size:10.5px;color:var(--muted);}
 .panel-card.flash{animation:flashCard 1.8s ease;}
 @keyframes flashCard{0%,100%{box-shadow:none;}25%{box-shadow:inset 0 0 0 2px var(--violet),inset 0 0 34px rgba(123,97,255,.4);}}
+/* Geser menu (guru) */
+.menu-tab{user-select:none;}
+.menu-tab[draggable="true"]{cursor:grab;}
+.menu-tab.dragging{opacity:.35;}
+.menu-tab.drag-over{border-color:var(--cyan);box-shadow:inset 0 0 0 1px var(--cyan),inset 0 0 12px rgba(43,227,255,.3);}
+.menu-move{display:inline-block;margin-left:6px;padding:0 3px;font-size:9px;line-height:1;opacity:.65;cursor:pointer;}
+.menu-move:hover{opacity:1;color:var(--cyan);}
+.menu-move.disabled{opacity:.2;cursor:default;}
+.menu-move.disabled:hover{color:inherit;opacity:.2;}
 </style>
 </head>
 <body>
@@ -526,7 +535,11 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     var menusList = g ? state.menus : state.menus.filter(function(m){ return !m.hidden; });
     if(!menusList.some(function(m){ return m.id===state.activeMenu; })) state.activeMenu = menusList.length ? menusList[0].id : null;
     var menusHtml = menusList.map(function(m){
-      return '<button class="menu-tab'+(m.id===state.activeMenu?' active':'')+(g&&m.hidden?' teacher-only':'')+'" data-switch="'+m.id+'">'+esc(m.name)+newTag(m.newAt, !m.hidden)+(g?visToggle('menu',m.id,m.hidden)+'<span class="menu-del" data-delmenu="'+m.id+'">\u00d7</span>':'')+'</button>';
+      var idx = state.menus.indexOf(m);
+      var arrows = (g && m.id===state.activeMenu) ?
+        '<span class="menu-move'+(idx<=0?' disabled':'')+'" data-movemenu="left" data-id="'+m.id+'" title="Geser menu ke kiri">\u25c0</span>'+
+        '<span class="menu-move'+(idx>=state.menus.length-1?' disabled':'')+'" data-movemenu="right" data-id="'+m.id+'" title="Geser menu ke kanan">\u25b6</span>' : '';
+      return '<div role="button" tabindex="0" class="menu-tab'+(m.id===state.activeMenu?' active':'')+(g&&m.hidden?' teacher-only':'')+'"'+(g?' draggable="true" title="Seret untuk mengubah urutan menu"':'')+' data-switch="'+m.id+'">'+esc(m.name)+newTag(m.newAt, !m.hidden)+arrows+(g?visToggle('menu',m.id,m.hidden)+'<span class="menu-del" data-delmenu="'+m.id+'">\u00d7</span>':'')+'</div>';
     }).join('');
     var histCount = historyItems().length;
     // Pengumuman yang sudah lewat batas waktu dipindahkan ke riwayat (tidak tampil di papan)
@@ -559,7 +572,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
       '</header>'+
       '<main>'+
         updateFeedHtml()+
-        (g?'<div class="vis-legend"><span class="vis-toggle"></span>Biru: tampil ke murid<span class="vis-toggle off"></span>Kuning: hanya guru<span>· Menu/panel kuning menyembunyikan seluruh isinya dari murid.</span></div>':'')+
+        (g?'<div class="vis-legend"><span class="vis-toggle"></span>Biru: tampil ke murid<span class="vis-toggle off"></span>Kuning: hanya guru<span>· Menu/panel kuning menyembunyikan seluruh isinya dari murid. · Seret tab menu (atau pakai panah ◀ ▶ di menu aktif) untuk mengatur urutan.</span></div>':'')+
         (g?'<button class="add-panel-btn" data-addpanel>+ TAMBAH PANEL</button>':'')+
         '<div class="panels-grid">'+panelsHtml+'</div>'+
       '</main>';
@@ -572,6 +585,8 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     app.querySelectorAll('[data-delsub]').forEach(function(el){ el.addEventListener('click', function(){ delSub(el.getAttribute('data-delsub'), el.getAttribute('data-panel')); }); });
     app.querySelectorAll('[data-movepanel]').forEach(function(el){ el.addEventListener('click', function(){ movePanelPosition(el.getAttribute('data-pid'), el.getAttribute('data-movepanel')==='up'?-1:1); }); });
     var st = document.getElementById('status-toggle'); if(st) st.addEventListener('click', settingsModal);
+    app.querySelectorAll('.menu-tab').forEach(function(el){ el.addEventListener('keydown', function(e){ if((e.key==='Enter'||e.key===' ') && e.target===el){ e.preventDefault(); el.click(); } }); });
+    app.querySelectorAll('[data-movemenu]').forEach(function(el){ el.addEventListener('click', function(e){ e.stopPropagation(); moveMenuPosition(el.getAttribute('data-id'), el.getAttribute('data-movemenu')==='left'?-1:1); }); });
     app.querySelectorAll('[data-goto-menu]').forEach(function(el){ el.addEventListener('click', function(){ goToItem(el.getAttribute('data-goto-menu'), el.getAttribute('data-goto-panel')); }); });
     app.querySelectorAll('[data-vis]').forEach(function(el){ el.addEventListener('click', function(e){ e.stopPropagation(); toggleVisibility(el.getAttribute('data-vis'), el.getAttribute('data-id'), el.getAttribute('data-panel')); }); });
     var rb = document.getElementById('role-btn'); if(rb) rb.addEventListener('click', function(){ if(isGuru()){ setRole('murid'); if(hasApi()) loadFromApi(); } else { loginModal(); } });
@@ -649,6 +664,34 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
         var panelId = sub.getAttribute('data-panel');
         var dragId = draggedSubId || e.dataTransfer.getData('text/plain');
         if(dragId && panelId===draggedSubPanel) reorderSubpanels(panelId, dragId, targetId);
+      });
+    });
+
+    // ---- Geser tab menu (guru) ----
+    var draggedMenuId = null;
+    app.querySelectorAll('.menu-tab[draggable="true"]').forEach(function(tab){
+      tab.addEventListener('dragstart', function(e){
+        draggedMenuId = tab.getAttribute('data-switch');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', draggedMenuId);
+        setTimeout(function(){ tab.classList.add('dragging'); }, 0);
+      });
+      tab.addEventListener('dragend', function(){
+        draggedMenuId = null;
+        app.querySelectorAll('.menu-tab.dragging, .menu-tab.drag-over').forEach(function(t){ t.classList.remove('dragging','drag-over'); });
+      });
+      tab.addEventListener('dragover', function(e){
+        if(!draggedMenuId) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        tab.classList.add('drag-over');
+      });
+      tab.addEventListener('dragleave', function(){ tab.classList.remove('drag-over'); });
+      tab.addEventListener('drop', function(e){
+        e.preventDefault();
+        tab.classList.remove('drag-over');
+        var dragId = draggedMenuId || e.dataTransfer.getData('text/plain');
+        if(dragId) reorderMenus(dragId, tab.getAttribute('data-switch'));
       });
     });
   }
@@ -841,6 +884,25 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     if(di<0 || ti<0 || di===ti) return;
     var moved = arr.splice(di, 1)[0];
     arr.splice(ti, 0, moved); // see note above in reorderInfoPanels
+    save();
+  }
+  function reorderMenus(draggedId, targetId){
+    if(!isGuru() || draggedId===targetId) return;
+    var arr = state.menus;
+    var di = arr.findIndex(function(m){ return m.id===draggedId; });
+    var ti = arr.findIndex(function(m){ return m.id===targetId; });
+    if(di<0 || ti<0 || di===ti) return;
+    var moved = arr.splice(di, 1)[0];
+    arr.splice(ti, 0, moved); // geser maju: tepat setelah target; geser mundur: tepat sebelum target
+    save();
+  }
+  function moveMenuPosition(id, direction){
+    if(!isGuru()) return;
+    var arr = state.menus;
+    var pos = arr.findIndex(function(m){ return m.id===id; });
+    var np = pos + direction;
+    if(pos<0 || np<0 || np>=arr.length) return;
+    var tmp = arr[pos]; arr[pos] = arr[np]; arr[np] = tmp;
     save();
   }
   function movePanelPosition(panelId, direction){
