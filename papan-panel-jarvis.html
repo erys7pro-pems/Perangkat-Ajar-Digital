@@ -501,7 +501,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
   }
 
   function statusLabel(){
-    if(!hasApi()) return {cls:'local', text:'MODE LOKAL'};
+    if(!hasApi()) return {cls:'local', text: isGuru() ? 'MODE LOKAL' : 'HUBUNGKAN MAINFRAME'};
     if(syncStatus==='syncing') return {cls:'sync', text:'SYNCING...'};
     if(syncStatus==='online') return {cls:'online', text:'MAINFRAME ONLINE'};
     if(syncStatus==='error') return {cls:'error', text:'SYNC GAGAL'};
@@ -538,7 +538,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
       if(aAnn !== bAnn) return aAnn - bAnn;
       return a.i - b.i;
     }).map(function(x){ return x.p; });
-    var panelsHtml = panels.length ? panels.map(panelHtml).join('') : '<div class="empty">TIDAK ADA PANEL TERDETEKSI'+(g?'<br>Klik "+ TAMBAH PANEL" untuk memulai':'')+'</div>';
+    var panelsHtml = panels.length ? panels.map(panelHtml).join('') : (!g && !hasApi() ? '<div class="empty">BELUM TERHUBUNG KE MAINFRAME<br>Klik "HUBUNGKAN MAINFRAME" di kanan atas, lalu tempel URL yang diberikan gurumu.</div>' : '<div class="empty">TIDAK ADA PANEL TERDETEKSI'+(g?'<br>Klik "+ TAMBAH PANEL" untuk memulai':'')+'</div>');
     app.innerHTML =
       '<header>'+
         '<div class="title-row">'+
@@ -548,7 +548,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
           '</div>'+
           '<div class="header-right">'+
             '<div class="header-row"><span class="role-pill'+(g?' guru':'')+'">'+(g?'MODE GURU':'MODE MURID')+'</span>'+
-            '<div class="status'+(g?'':' readonly')+'" id="status-toggle" title="'+(g?'Pengaturan koneksi mainframe':'Status koneksi mainframe')+'"><span class="dot '+s.cls+'" id="status-dot"></span><span id="status-label">'+s.text+'</span></div></div>'+
+            '<div class="status" id="status-toggle" title="Pengaturan koneksi mainframe"><span class="dot '+s.cls+'" id="status-dot"></span><span id="status-label">'+s.text+'</span></div></div>'+
             '<div class="header-row">'+
               '<div class="hist-btn" id="hist-btn" title="Lihat riwayat pengumuman">RIWAYAT PENGUMUMAN'+(histCount?'<span class="hist-count">'+histCount+'</span>':'')+'</div>'+
               '<div class="role-btn" id="role-btn">'+(g?'KELUAR GURU':'MASUK GURU')+'</div>'+
@@ -571,7 +571,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     app.querySelectorAll('[data-addsub]').forEach(function(el){ el.addEventListener('click', function(){ addSubModal(el.getAttribute('data-addsub')); }); });
     app.querySelectorAll('[data-delsub]').forEach(function(el){ el.addEventListener('click', function(){ delSub(el.getAttribute('data-delsub'), el.getAttribute('data-panel')); }); });
     app.querySelectorAll('[data-movepanel]').forEach(function(el){ el.addEventListener('click', function(){ movePanelPosition(el.getAttribute('data-pid'), el.getAttribute('data-movepanel')==='up'?-1:1); }); });
-    var st = document.getElementById('status-toggle'); if(st && g) st.addEventListener('click', settingsModal);
+    var st = document.getElementById('status-toggle'); if(st) st.addEventListener('click', settingsModal);
     app.querySelectorAll('[data-goto-menu]').forEach(function(el){ el.addEventListener('click', function(){ goToItem(el.getAttribute('data-goto-menu'), el.getAttribute('data-goto-panel')); }); });
     app.querySelectorAll('[data-vis]').forEach(function(el){ el.addEventListener('click', function(e){ e.stopPropagation(); toggleVisibility(el.getAttribute('data-vis'), el.getAttribute('data-id'), el.getAttribute('data-panel')); }); });
     var rb = document.getElementById('role-btn'); if(rb) rb.addEventListener('click', function(){ if(isGuru()){ setRole('murid'); if(hasApi()) loadFromApi(); } else { loginModal(); } });
@@ -901,8 +901,10 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
   }
 
   function settingsModal(){
-    if(!isGuru()) return;
-    var ov = openModal('KONEKSI MAINFRAME', 'Tempel URL Web App Google Apps Script untuk menyimpan data ke Google Sheets. Kosongkan untuk mode lokal (localStorage saja).',
+    var g = isGuru();
+    var ov = openModal('KONEKSI MAINFRAME',
+      g ? 'Tempel URL Web App Google Apps Script untuk menyimpan data ke Google Sheets. Kosongkan untuk mode lokal (localStorage saja).'
+        : 'Tempel URL mainframe yang diberikan gurumu. Kamu hanya bisa melihat isinya, tidak bisa mengubahnya.',
       [{name:'apiUrl', label:'Apps Script Web App URL', placeholder:'https://script.google.com/macros/s/.../exec', value:config.apiUrl||DEFAULT_API_URL}],
       function(v){
         config.apiUrl = v.apiUrl;
@@ -911,8 +913,38 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
       }, 'HUBUNGKAN');
     var hint = document.createElement('div');
     hint.className = 'hint';
-    hint.innerHTML = 'Deploy skrip Apps Script sebagai Web App (Execute as: Me, Access: Anyone), lalu tempel URL <code>/exec</code> di atas.';
+    hint.innerHTML = g ? 'Deploy skrip Apps Script sebagai Web App (Execute as: Me, Access: Anyone), lalu tempel URL <code>/exec</code> di atas.'
+                       : 'Alamat ini biasanya berakhiran <code>/exec</code>. Tanyakan ke gurumu jika belum punya.';
     ov.querySelector('.modal').appendChild(hint);
+    if(g){
+      var box = document.createElement('div');
+      box.className = 'hint';
+      box.style.borderTop = '1px solid var(--line)';
+      box.style.paddingTop = '12px';
+      box.innerHTML = '<b style="color:var(--cyan)">Bagikan ke murid</b><br>Unduh salinan halaman yang sudah terisi URL di atas, lalu kirim file itu ke murid. Murid langsung terhubung tanpa perlu mengetik URL. Kata sandi guru tidak ikut tersimpan di dalam file.<br>';
+      var btn = document.createElement('button');
+      btn.className = 'btn'; btn.style.marginTop = '8px'; btn.textContent = 'UNDUH FILE UNTUK MURID';
+      btn.onclick = function(){ downloadStudentCopy(ov.querySelector('[data-f="apiUrl"]').value.trim()); };
+      box.appendChild(btn);
+      ov.querySelector('.modal').appendChild(box);
+    }
+  }
+
+  // Salinan halaman untuk murid: sama persis, hanya DEFAULT_API_URL yang sudah terisi.
+  function downloadStudentCopy(url){
+    url = url || apiUrl();
+    if(!url){ alert('Isi dan simpan URL mainframe terlebih dahulu.'); return; }
+    var clone = document.documentElement.cloneNode(true);
+    var appEl = clone.querySelector('#app'); if(appEl) appEl.innerHTML = '';
+    clone.querySelectorAll('.modal-overlay').forEach(function(n){ n.remove(); });
+    var html = '<!DOCTYPE html>\n' + clone.outerHTML;
+    html = html.replace(/var DEFAULT_API_URL = '[^']*';/, function(){ return 'var DEFAULT_API_URL = ' + JSON.stringify(url) + ';'; });
+    var blob = new Blob([html], {type:'text/html'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'papan-panel-murid.html';
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 800);
   }
 
   function save(){ if(!isGuru()){ render(); return; } render(); persistLocal(); queueSync(); }
