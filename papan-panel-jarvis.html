@@ -182,6 +182,21 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
 .btn-primary:hover{color:#02141a;box-shadow:0 0 14px rgba(43,227,255,.4);}
 .hint{font-size:10.5px;color:var(--muted);margin-top:10px;line-height:1.5;}
 .hint code{color:var(--cyan);}
+/* Riwayat pengumuman */
+.header-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;}
+.hist-btn{display:flex;align-items:center;gap:8px;font-family:'Orbitron',sans-serif;font-size:9.5px;letter-spacing:.07em;color:var(--amber);cursor:pointer;padding:6px 10px;border:1px solid var(--line);background:var(--panel);clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px);}
+.hist-btn:hover{border-color:var(--amber);box-shadow:0 0 10px rgba(255,176,32,.2);}
+.hist-count{background:var(--amber);color:#1a0f00;font-weight:900;padding:1px 6px;font-size:9px;min-width:16px;text-align:center;}
+.modal.wide{max-width:560px;}
+.hist-list{margin-top:10px;}
+.hist-item{border-top:1px solid var(--line);padding:12px 0;}
+.hist-item:first-child{border-top:none;}
+.hist-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+.hist-title{font-family:'Orbitron',sans-serif;font-size:12.5px;letter-spacing:.04em;color:var(--text);}
+.hist-body{font-size:12px;line-height:1.6;color:var(--muted);white-space:pre-wrap;margin-top:6px;}
+.hist-meta{font-size:10.5px;color:var(--muted);margin-top:8px;display:flex;flex-wrap:wrap;gap:6px 12px;}
+.hist-menu{color:var(--cyan);}
+.hist-empty{color:var(--muted);text-align:center;padding:30px 10px;font-size:12px;border:1px dashed var(--line);margin-top:10px;}
 </style>
 </head>
 <body>
@@ -334,7 +349,9 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     var menusHtml = state.menus.map(function(m){
       return '<button class="menu-tab'+(m.id===state.activeMenu?' active':'')+'" data-switch="'+m.id+'">'+esc(m.name)+'<span class="menu-del" data-delmenu="'+m.id+'">\u00d7</span></button>';
     }).join('');
-    var panels = state.panels.filter(function(p){ return p.menuId===state.activeMenu; });
+    var histCount = historyItems().length;
+    // Pengumuman yang sudah lewat batas waktu dipindahkan ke riwayat (tidak tampil di papan)
+    var panels = state.panels.filter(function(p){ return p.menuId===state.activeMenu && !(p.type==='announcement' && isExpired(p)); });
     // Panel pengumuman selalu tampil lebih dulu (kiri atas), urutan lain dipertahankan
     panels = panels.map(function(p, i){ return {p:p, i:i}; }).sort(function(a, b){
       var aAnn = (a.p.type==='announcement') ? 0 : 1;
@@ -350,7 +367,10 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
             '<div class="brand-mark"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="17" fill="none" stroke="#2be3ff" stroke-width="1.4" opacity="0.55"/><circle cx="20" cy="20" r="11" fill="none" stroke="#2be3ff" stroke-width="1.2" opacity="0.8"/><circle cx="20" cy="20" r="3.2" fill="#2be3ff"/><line x1="20" y1="1" x2="20" y2="7" stroke="#2be3ff" stroke-width="1.2"/><line x1="20" y1="33" x2="20" y2="39" stroke="#2be3ff" stroke-width="1.2"/><line x1="1" y1="20" x2="7" y2="20" stroke="#2be3ff" stroke-width="1.2"/><line x1="33" y1="20" x2="39" y2="20" stroke="#2be3ff" stroke-width="1.2"/></svg></div>'+
             '<div><h1 class="hud-font">J.A.R.V.I.S.</h1><small>PAPAN PANEL — ANTARMUKA KONTROL</small></div>'+
           '</div>'+
-          '<div class="status" id="status-toggle" title="Pengaturan koneksi mainframe"><span class="dot '+s.cls+'" id="status-dot"></span><span id="status-label">'+s.text+'</span></div>'+
+          '<div class="header-right">'+
+            '<div class="status" id="status-toggle" title="Pengaturan koneksi mainframe"><span class="dot '+s.cls+'" id="status-dot"></span><span id="status-label">'+s.text+'</span></div>'+
+            '<div class="hist-btn" id="hist-btn" title="Lihat riwayat pengumuman">RIWAYAT PENGUMUMAN'+(histCount?'<span class="hist-count">'+histCount+'</span>':'')+'</div>'+
+          '</div>'+
         '</div>'+
         '<div class="menu-row">'+menusHtml+'<button id="add-menu-btn" data-addmenu>+ MENU</button></div>'+
       '</header>'+
@@ -367,6 +387,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     app.querySelectorAll('[data-delsub]').forEach(function(el){ el.addEventListener('click', function(){ delSub(el.getAttribute('data-delsub'), el.getAttribute('data-panel')); }); });
     app.querySelectorAll('[data-movepanel]').forEach(function(el){ el.addEventListener('click', function(){ movePanelPosition(el.getAttribute('data-pid'), el.getAttribute('data-movepanel')==='up'?-1:1); }); });
     var st = document.getElementById('status-toggle'); if(st) st.addEventListener('click', settingsModal);
+    var hb = document.getElementById('hist-btn'); if(hb) hb.addEventListener('click', historyModal);
     wireDragAndDrop(app);
   }
 
@@ -632,6 +653,48 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     var tmp = items[pos]; items[pos] = items[newPos]; items[newPos] = tmp;
     idxs.forEach(function(origIdx, k){ state.panels[origIdx] = items[k]; });
     save();
+  }
+
+  // ---- Riwayat pengumuman ----
+  function historyItems(){
+    return state.panels.filter(function(p){ return p.type==='announcement' && isExpired(p); })
+      .sort(function(a, b){ return (b.deadline||'').localeCompare(a.deadline||''); });
+  }
+  function menuName(id){
+    var m = state.menus.find(function(x){ return x.id===id; });
+    return m ? m.name : '-';
+  }
+  function historyModal(){
+    var ov = document.createElement('div'); ov.className = 'modal-overlay';
+    document.body.appendChild(ov);
+    ov.addEventListener('click', function(e){ if(e.target===ov) ov.remove(); });
+    function draw(){
+      var items = historyItems();
+      var list = items.length ? items.map(function(p){
+        return '<div class="hist-item">'+
+          '<div class="hist-top"><div class="hist-title">'+esc(p.title)+'</div><button class="icon-btn" data-delhist="'+p.id+'" title="Hapus dari riwayat">\u00d7</button></div>'+
+          (p.body?'<div class="hist-body">'+esc(p.body)+'</div>':'')+
+          '<div class="hist-meta"><span class="hist-menu">Menu: '+esc(menuName(p.menuId))+'</span>'+
+            '<span>Batas waktu: '+formatDate(p.deadline)+'</span>'+
+            (p.createdAt?'<span>Dibuat: '+formatDate(new Date(p.createdAt).toISOString().slice(0,10))+'</span>':'')+
+          '</div></div>';
+      }).join('') : '<div class="hist-empty">BELUM ADA RIWAYAT PENGUMUMAN<br>Pengumuman yang lewat batas waktu akan tersimpan di sini.</div>';
+      ov.innerHTML = '<div class="modal wide"><h4 class="hud-font">RIWAYAT PENGUMUMAN</h4>'+
+        '<div class="sub">'+items.length+' pengumuman sudah diumumkan (lewat batas waktu).</div>'+
+        '<div class="hist-list">'+list+'</div>'+
+        '<div class="modal-actions"><button class="btn" data-close>TUTUP</button></div></div>';
+      ov.querySelector('[data-close]').onclick = function(){ ov.remove(); };
+      ov.querySelectorAll('[data-delhist]').forEach(function(b){
+        b.onclick = function(){
+          if(!confirm('Hapus pengumuman ini dari riwayat secara permanen?')) return;
+          var id = b.getAttribute('data-delhist');
+          state.panels = state.panels.filter(function(p){ return p.id!==id; });
+          save();
+          draw();
+        };
+      });
+    }
+    draw();
   }
 
   function settingsModal(){
