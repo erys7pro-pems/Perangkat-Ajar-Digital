@@ -205,6 +205,19 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
 .role-btn:hover{border-color:var(--cyan-dim);box-shadow:0 0 10px rgba(43,227,255,.2);}
 .status.readonly{cursor:default;}
 .status.readonly:hover{border-color:var(--line);}
+/* Toggle visibilitas: biru = tampil ke murid, kuning = hanya guru */
+.vis-toggle{position:relative;display:inline-block;vertical-align:middle;width:26px;height:14px;border-radius:8px;border:1px solid var(--cyan);background:rgba(43,227,255,.18);cursor:pointer;flex-shrink:0;box-shadow:0 0 8px rgba(43,227,255,.4);transition:background .15s,border-color .15s,box-shadow .15s;}
+.vis-toggle::after{content:'';position:absolute;top:2px;left:14px;width:8px;height:8px;border-radius:50%;background:var(--cyan);transition:left .15s,background .15s;}
+.vis-toggle.off{border-color:var(--amber);background:rgba(255,176,32,.16);box-shadow:0 0 8px rgba(255,176,32,.4);}
+.vis-toggle.off::after{left:2px;background:var(--amber);}
+.menu-tab .vis-toggle{margin-left:8px;}
+.sub-head-right{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.panel-head-right .vis-toggle{margin-right:6px;}
+.teacher-only{opacity:.72;}
+.panel-card.teacher-only,.menu-tab.teacher-only{border-style:dashed;}
+.sub-card.teacher-only{background:repeating-linear-gradient(135deg, rgba(255,176,32,.05) 0 6px, transparent 6px 12px);}
+.vis-legend{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:10.5px;color:var(--muted);margin:0 0 14px;letter-spacing:.02em;}
+.vis-legend .vis-toggle{cursor:default;}
 </style>
 </head>
 <body>
@@ -240,8 +253,33 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     }
   }catch(e){}
   function isGuru(){ return role==='guru'; }
+  var fullLoaded = false; // true jika state di memori adalah data lengkap (bukan versi yang sudah disaring untuk murid)
+  var JSON_HDR = {'Content-Type':'text/plain;charset=utf-8'}; // avoids CORS preflight on Apps Script
+
+  // ---- Visibilitas: item dengan hidden===true hanya tampil untuk guru ----
+  function menuVisible(id){
+    if(isGuru()) return true;
+    var m = state.menus.find(function(x){ return x.id===id; });
+    return !!m && !m.hidden;
+  }
+  function panelVisible(p){ return isGuru() || (!p.hidden && menuVisible(p.menuId)); }
+  function visToggle(kind, id, hidden, panelId){
+    return '<span class="vis-toggle'+(hidden?' off':'')+'" role="switch" aria-checked="'+(!hidden)+'" data-vis="'+kind+'" data-id="'+id+'"'+(panelId?' data-panel="'+panelId+'"':'')+
+      ' title="'+(hidden?'KUNING: hanya tampil untuk guru (klik agar tampil ke murid)':'BIRU: tampil untuk murid (klik untuk sembunyikan dari murid)')+'"></span>';
+  }
+  function toggleVisibility(kind, id, panelId){
+    if(!isGuru()) return;
+    var item = null;
+    if(kind==='menu') item = state.menus.find(function(m){ return m.id===id; });
+    else if(kind==='panel') item = state.panels.find(function(p){ return p.id===id; });
+    else { var pp = state.panels.find(function(x){ return x.id===panelId; }); item = pp && pp.subpanels.find(function(x){ return x.id===id; }); }
+    if(!item) return;
+    item.hidden = !item.hidden;
+    save();
+  }
   function setRole(r, pw){
     role = r; teacherPw = pw || '';
+    if(r!=='guru') fullLoaded = false;
     try{
       if(r==='guru'){ sessionStorage.setItem('papan-panel-role','guru'); sessionStorage.setItem('papan-panel-pw', teacherPw); }
       else { sessionStorage.removeItem('papan-panel-role'); sessionStorage.removeItem('papan-panel-pw'); }
@@ -312,11 +350,24 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
   function apiUrl(){ return ((config.apiUrl||'').trim()) || (DEFAULT_API_URL||'').trim(); }
   function hasApi(){ return !!apiUrl(); }
 
+  // Guru memuat data LENGKAP lewat POST bersandi; murid memuat lewat GET (server sudah membuang item yang disembunyikan).
+  function fetchState(){
+    if(isGuru()){
+      return fetch(apiUrl(), {method:'POST', headers:JSON_HDR, body:JSON.stringify({action:'load', password:teacherPw})})
+        .then(function(r){ return r.json(); })
+        .then(function(res){
+          if(res && res.error==='unauthorized') throw {unauthorized:true};
+          if(res && res.ok && res.state) return res.state;
+          throw new Error((res && res.error) || 'Gagal memuat data guru');
+        });
+    }
+    return fetch(apiUrl(), {method:'GET'}).then(function(r){ return r.json(); });
+  }
+
   function loadFromApi(silent){
     if(!hasApi()){ syncStatus='local'; render(); return; }
     if(!silent){ syncStatus='syncing'; render(); }
-    fetch(apiUrl(), {method:'GET'})
-      .then(function(r){ return r.json(); })
+    fetchState()
       .then(function(data){
         var changed = false;
         if(data && typeof data==='object' && data.menus){
@@ -324,6 +375,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
           var keep = state.activeMenu; // menu aktif bersifat lokal per pengguna
           changed = JSON.stringify(fresh.panels)!==JSON.stringify(state.panels) || JSON.stringify(fresh.menus)!==JSON.stringify(state.menus);
           state = fresh;
+          if(isGuru()) fullLoaded = true;
           if(keep && state.menus.some(function(m){ return m.id===keep; })) state.activeMenu = keep;
           persistLocal();
         }
@@ -331,6 +383,12 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
         if(!silent || changed) render(); else renderStatusOnly();
       })
       .catch(function(err){
+        if(err && err.unauthorized){
+          alert('Sesi guru tidak valid (kata sandi ditolak server). Kamu dikembalikan ke mode murid.');
+          setRole('murid');
+          loadFromApi();
+          return;
+        }
         console.error('Gagal memuat dari mainframe:', err);
         syncStatus='error';
         if(silent) renderStatusOnly(); else render();
@@ -339,6 +397,9 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
 
   function pushToApi(){
     if(!hasApi() || !isGuru()) return;
+    if(!fullLoaded){ // jangan menimpa server dengan data yang belum lengkap
+      syncStatus='error'; renderStatusOnly(); return;
+    }
     syncStatus='syncing'; renderStatusOnly();
     fetch(apiUrl(), {
       method:'POST',
@@ -392,12 +453,14 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     var s = statusLabel();
     var g = isGuru();
     if(state.menus.length && !state.menus.some(function(m){ return m.id===state.activeMenu; })) state.activeMenu = state.menus[0].id;
-    var menusHtml = state.menus.map(function(m){
-      return '<button class="menu-tab'+(m.id===state.activeMenu?' active':'')+'" data-switch="'+m.id+'">'+esc(m.name)+(g?'<span class="menu-del" data-delmenu="'+m.id+'">\u00d7</span>':'')+'</button>';
+    var menusList = g ? state.menus : state.menus.filter(function(m){ return !m.hidden; });
+    if(!menusList.some(function(m){ return m.id===state.activeMenu; })) state.activeMenu = menusList.length ? menusList[0].id : null;
+    var menusHtml = menusList.map(function(m){
+      return '<button class="menu-tab'+(m.id===state.activeMenu?' active':'')+(g&&m.hidden?' teacher-only':'')+'" data-switch="'+m.id+'">'+esc(m.name)+(g?visToggle('menu',m.id,m.hidden)+'<span class="menu-del" data-delmenu="'+m.id+'">\u00d7</span>':'')+'</button>';
     }).join('');
     var histCount = historyItems().length;
     // Pengumuman yang sudah lewat batas waktu dipindahkan ke riwayat (tidak tampil di papan)
-    var panels = state.panels.filter(function(p){ return p.menuId===state.activeMenu && !(p.type==='announcement' && isExpired(p)); });
+    var panels = state.panels.filter(function(p){ return p.menuId===state.activeMenu && panelVisible(p) && !(p.type==='announcement' && isExpired(p)); });
     // Panel pengumuman selalu tampil lebih dulu (kiri atas), urutan lain dipertahankan
     panels = panels.map(function(p, i){ return {p:p, i:i}; }).sort(function(a, b){
       var aAnn = (a.p.type==='announcement') ? 0 : 1;
@@ -425,6 +488,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
         '<div class="menu-row">'+menusHtml+(g?'<button id="add-menu-btn" data-addmenu>+ MENU</button>':'')+'</div>'+
       '</header>'+
       '<main>'+
+        (g?'<div class="vis-legend"><span class="vis-toggle"></span>Biru: tampil ke murid<span class="vis-toggle off"></span>Kuning: hanya guru<span>· Menu/panel kuning menyembunyikan seluruh isinya dari murid.</span></div>':'')+
         (g?'<button class="add-panel-btn" data-addpanel>+ TAMBAH PANEL</button>':'')+
         '<div class="panels-grid">'+panelsHtml+'</div>'+
       '</main>';
@@ -437,7 +501,8 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     app.querySelectorAll('[data-delsub]').forEach(function(el){ el.addEventListener('click', function(){ delSub(el.getAttribute('data-delsub'), el.getAttribute('data-panel')); }); });
     app.querySelectorAll('[data-movepanel]').forEach(function(el){ el.addEventListener('click', function(){ movePanelPosition(el.getAttribute('data-pid'), el.getAttribute('data-movepanel')==='up'?-1:1); }); });
     var st = document.getElementById('status-toggle'); if(st && g) st.addEventListener('click', settingsModal);
-    var rb = document.getElementById('role-btn'); if(rb) rb.addEventListener('click', function(){ if(isGuru()){ setRole('murid'); } else { loginModal(); } });
+    app.querySelectorAll('[data-vis]').forEach(function(el){ el.addEventListener('click', function(e){ e.stopPropagation(); toggleVisibility(el.getAttribute('data-vis'), el.getAttribute('data-id'), el.getAttribute('data-panel')); }); });
+    var rb = document.getElementById('role-btn'); if(rb) rb.addEventListener('click', function(){ if(isGuru()){ setRole('murid'); if(hasApi()) loadFromApi(); } else { loginModal(); } });
     var hb = document.getElementById('hist-btn'); if(hb) hb.addEventListener('click', historyModal);
     wireDragAndDrop(app);
   }
@@ -522,20 +587,21 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
 
   function infoPanelHtml(p){
     var g = isGuru();
-    var subs = p.subpanels.map(function(s){
-      return '<div class="sub-card" data-subid="'+s.id+'" data-panel="'+p.id+'">'+
+    var subsList = g ? p.subpanels : p.subpanels.filter(function(x){ return !x.hidden; });
+    var subs = subsList.map(function(s){
+      return '<div class="sub-card'+(g&&s.hidden?' teacher-only':'')+'" data-subid="'+s.id+'" data-panel="'+p.id+'">'+
         '<div class="sub-head">'+
           '<div class="sub-head-left">'+(g?'<span class="drag-handle" draggable="true" data-dragsub="'+s.id+'" data-panel="'+p.id+'" title="Seret untuk urutkan">\u283f</span>':'')+
           '<div><div class="sub-title">'+esc(s.title)+'</div>'+(s.subtitle?'<div class="sub-subtitle">'+esc(s.subtitle)+'</div>':'')+'</div></div>'+
-          (g?'<button class="icon-btn" data-delsub="'+s.id+'" data-panel="'+p.id+'">\u00d7</button>':'')+
+          (g?'<div class="sub-head-right">'+visToggle('sub',s.id,s.hidden,p.id)+'<button class="icon-btn" data-delsub="'+s.id+'" data-panel="'+p.id+'">\u00d7</button></div>':'')+
         '</div>'+
         (s.image?'<img src="'+esc(s.image)+'" alt="">':'')+
         (s.linkUrl?'<a class="sub-link" href="'+esc(s.linkUrl)+'" target="_blank" rel="noopener">'+esc(s.linkLabel||s.linkUrl)+'</a>':'')+
       '</div>';
     }).join('');
-    return '<div class="panel-card type-info" data-pid="'+p.id+'">'+
+    return '<div class="panel-card type-info'+(g&&p.hidden?' teacher-only':'')+'" data-pid="'+p.id+'">'+
       '<div class="panel-head"><div class="panel-head-left">'+(g?'<span class="drag-handle" draggable="true" data-dragpanel="'+p.id+'" title="Seret untuk urutkan">\u283f</span>':'')+'<h3 class="hud-font">'+esc(p.title)+'</h3></div>'+
-      (g?'<div class="panel-head-right">'+
+      (g?'<div class="panel-head-right">'+visToggle('panel',p.id,p.hidden)+
         '<button class="move-btn" data-movepanel="up" data-pid="'+p.id+'" title="Pindah ke atas">\u25b2</button>'+
         '<button class="move-btn" data-movepanel="down" data-pid="'+p.id+'" title="Pindah ke bawah">\u25bc</button>'+
         '<button class="icon-btn" data-delpanel="'+p.id+'">\u00d7</button>'+
@@ -548,9 +614,9 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
   function announcementPanelHtml(p){
     var expired = isExpired(p);
     var fresh = isFresh(p) && !expired;
-    return '<div class="panel-card type-announcement'+(expired?' expired':'')+'">'+
+    return '<div class="panel-card type-announcement'+(expired?' expired':'')+(isGuru()&&p.hidden?' teacher-only':'')+'">'+
       (fresh?'<div class="new-badge">BARU!</div>':'')+
-      '<div class="panel-head"><h3 class="hud-font">'+esc(p.title)+'</h3>'+(isGuru()?'<button class="icon-btn" data-delpanel="'+p.id+'">\u00d7</button>':'')+'</div>'+
+      '<div class="panel-head"><h3 class="hud-font">'+esc(p.title)+'</h3>'+(isGuru()?'<div class="panel-head-right">'+visToggle('panel',p.id,p.hidden)+'<button class="icon-btn" data-delpanel="'+p.id+'">\u00d7</button></div>':'')+'</div>'+
       '<div class="panel-body">'+
         '<div class="ann-body">'+esc(p.body)+'</div>'+
         '<div class="ann-meta">'+
@@ -721,7 +787,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
 
   // ---- Riwayat pengumuman ----
   function historyItems(){
-    return state.panels.filter(function(p){ return p.type==='announcement' && isExpired(p); })
+    return state.panels.filter(function(p){ return p.type==='announcement' && isExpired(p) && panelVisible(p); })
       .sort(function(a, b){ return (b.deadline||'').localeCompare(a.deadline||''); });
   }
   function menuName(id){
@@ -790,7 +856,16 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
           fetch(apiUrl(), {method:'POST', headers:hdr, body:JSON.stringify({action:'login', password:v.pw})})
             .then(function(r){ return r.json(); })
             .then(function(res){
-              if(res && res.ok){ setRole('guru', v.pw); }
+              if(res && res.ok){
+                if(res.state && typeof res.state==='object' && res.state.menus){
+                  var keep = state.activeMenu;
+                  state = normalizeState(res.state);
+                  if(keep && state.menus.some(function(m){ return m.id===keep; })) state.activeMenu = keep;
+                  persistLocal();
+                }
+                fullLoaded = true;
+                setRole('guru', v.pw);
+              }
               else alert('Kata sandi salah, atau Code.gs di server belum diperbarui ke versi yang mendukung peran guru.');
             })
             .catch(function(){ alert('Tidak dapat menghubungi mainframe. Periksa koneksi internet dan URL Web App.'); });
