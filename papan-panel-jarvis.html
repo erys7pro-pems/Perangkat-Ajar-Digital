@@ -218,6 +218,23 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
 .sub-card.teacher-only{background:repeating-linear-gradient(135deg, rgba(255,176,32,.05) 0 6px, transparent 6px 12px);}
 .vis-legend{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:10.5px;color:var(--muted);margin:0 0 14px;letter-spacing:.02em;}
 .vis-legend .vis-toggle{cursor:default;}
+/* Label BARU! inline + feed pembaruan otomatis */
+.new-tag{display:inline-block;flex-shrink:0;margin-left:7px;background:var(--amber);color:#1a0f00;font-family:'Orbitron',sans-serif;font-size:8.5px;font-weight:900;letter-spacing:.06em;padding:2px 6px 2px;line-height:1.3;vertical-align:middle;box-shadow:0 0 8px rgba(255,176,32,.55);animation:pulse 1.4s ease-in-out infinite;clip-path:polygon(0 0,100% 0,100% 100%,4px 100%,0 65%);}
+.update-feed{border:1px solid var(--violet);background:linear-gradient(180deg,rgba(123,97,255,.09),rgba(10,22,34,.9));margin:0 0 16px;clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px);}
+.uf-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;padding:10px 14px 8px;border-bottom:1px solid var(--line);}
+.uf-title{font-size:12px;letter-spacing:.1em;color:var(--violet);text-shadow:0 0 10px rgba(123,97,255,.5);}
+.uf-sub{font-size:10.5px;color:var(--muted);}
+.uf-list{max-height:176px;overflow-y:auto;padding:2px 14px 6px;}
+.uf-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line);cursor:pointer;font-size:12px;}
+.uf-item:first-child{border-top:none;}
+.uf-item:hover .uf-strong{color:var(--cyan);}
+.uf-kind{flex-shrink:0;font-family:'Orbitron',sans-serif;font-size:8.5px;letter-spacing:.06em;color:var(--violet);border:1px solid var(--violet);padding:2px 6px;}
+.uf-text{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.uf-strong{color:var(--text);font-weight:700;}
+.uf-where{color:var(--muted);}
+.uf-left{flex-shrink:0;font-size:10.5px;color:var(--muted);}
+.panel-card.flash{animation:flashCard 1.8s ease;}
+@keyframes flashCard{0%,100%{box-shadow:none;}25%{box-shadow:inset 0 0 0 2px var(--violet),inset 0 0 34px rgba(123,97,255,.4);}}
 </style>
 </head>
 <body>
@@ -267,6 +284,57 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     return '<span class="vis-toggle'+(hidden?' off':'')+'" role="switch" aria-checked="'+(!hidden)+'" data-vis="'+kind+'" data-id="'+id+'"'+(panelId?' data-panel="'+panelId+'"':'')+
       ' title="'+(hidden?'KUNING: hanya tampil untuk guru (klik agar tampil ke murid)':'BIRU: tampil untuk murid (klik untuk sembunyikan dari murid)')+'"></span>';
   }
+  // ---- Label BARU! & feed pembaruan (3 hari sejak item dibuat / mulai tampil ke murid) ----
+  function inNewWindow(ts){ return !!ts && (Date.now() - ts) < NEW_BADGE_DURATION_MS; }
+  function newTag(ts, eff){ return (eff && inNewWindow(ts)) ? '<span class="new-tag">BARU!</span>' : ''; }
+  function menuById(id){ return state.menus.find(function(m){ return m.id===id; }); }
+  function panelEff(p){ var m = menuById(p.menuId); return !!m && !m.hidden && !p.hidden; } // benar-benar bisa dilihat murid
+  function timeLeft(ts){
+    var h = Math.max(1, Math.ceil((ts + NEW_BADGE_DURATION_MS - Date.now()) / 3600000));
+    return h>=24 ? Math.ceil(h/24)+' hari lagi' : h+' jam lagi';
+  }
+  var SAME_SESSION_MS = 60 * 60 * 1000; // anak yang dibuat <1 jam setelah induknya tidak dibuatkan baris sendiri
+  function updateItems(){
+    var items = [];
+    state.menus.forEach(function(m){
+      if(!m.hidden && inNewWindow(m.newAt)) items.push({kind:'menu', ts:m.newAt, title:m.name, menuId:m.id});
+    });
+    state.panels.forEach(function(p){
+      if(p.type==='announcement' || !panelEff(p)) return; // pengumuman biasa sudah punya label BARU! sendiri
+      var m = menuById(p.menuId);
+      if(inNewWindow(p.newAt) && !(m.newAt && p.newAt - m.newAt < SAME_SESSION_MS)){
+        items.push({kind:'panel', ts:p.newAt, title:p.title, where:'di menu '+m.name, menuId:m.id, panelId:p.id});
+      }
+      (p.subpanels||[]).forEach(function(sp){
+        if(sp.hidden || !inNewWindow(sp.newAt)) return;
+        if(p.newAt && sp.newAt - p.newAt < SAME_SESSION_MS) return;
+        items.push({kind:'sub', ts:sp.newAt, title:sp.title, where:'di panel '+p.title+' · menu '+m.name, menuId:m.id, panelId:p.id});
+      });
+    });
+    return items.sort(function(a, b){ return b.ts - a.ts; });
+  }
+  function updateFeedHtml(){
+    var items = updateItems();
+    if(!items.length) return '';
+    var labels = {menu:'MENU BARU', panel:'PANEL BARU', sub:'SUB-PANEL BARU'};
+    var rows = items.map(function(it){
+      return '<div class="uf-item" data-goto-menu="'+it.menuId+'"'+(it.panelId?' data-goto-panel="'+it.panelId+'"':'')+'>'+
+        '<span class="uf-kind">'+labels[it.kind]+'</span>'+
+        '<span class="uf-text"><span class="uf-strong">'+esc(it.title)+'</span>'+(it.where?'<span class="uf-where"> · '+esc(it.where)+'</span>':'')+'</span>'+
+        '<span class="uf-left">'+timeLeft(it.ts)+'</span></div>';
+    }).join('');
+    return '<div class="update-feed"><div class="uf-head"><div class="uf-title hud-font">PEMBARUAN</div>'+
+      '<div class="uf-sub">Otomatis dari menu, panel &amp; sub-panel baru · berlaku 3 hari</div></div>'+
+      '<div class="uf-list">'+rows+'</div></div>';
+  }
+  function goToItem(menuId, panelId){
+    state.activeMenu = menuId; render(); persistLocal();
+    if(panelId){
+      var el = document.querySelector('.panel-card[data-pid="'+panelId+'"]');
+      if(el){ el.scrollIntoView({behavior:'smooth', block:'center'}); el.classList.add('flash'); setTimeout(function(){ el.classList.remove('flash'); }, 1900); }
+    }
+  }
+
   function toggleVisibility(kind, id, panelId){
     if(!isGuru()) return;
     var item = null;
@@ -275,6 +343,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     else { var pp = state.panels.find(function(x){ return x.id===panelId; }); item = pp && pp.subpanels.find(function(x){ return x.id===id; }); }
     if(!item) return;
     item.hidden = !item.hidden;
+    if(!item.hidden) item.newAt = Date.now(); // baru diizinkan dilihat murid -> dianggap baru lagi
     save();
   }
   function setRole(r, pw){
@@ -329,8 +398,9 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
   // ---- Pengumuman: label "BARU!" hilang otomatis setelah 3 hari ----
   var NEW_BADGE_DURATION_MS = 3 * 24 * 60 * 60 * 1000;
   function isFresh(p){
-    if(!p.createdAt) return false;
-    return (Date.now() - p.createdAt) < NEW_BADGE_DURATION_MS;
+    var ts = p.newAt || p.createdAt; // newAt di-reset saat item diubah jadi tampil ke murid
+    if(!ts) return false;
+    return (Date.now() - ts) < NEW_BADGE_DURATION_MS;
   }
   function isExpired(p){
     if(!p.deadline) return false;
@@ -380,7 +450,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
           persistLocal();
         }
         syncStatus='online';
-        if(!silent || changed) render(); else renderStatusOnly();
+        render();
       })
       .catch(function(err){
         if(err && err.unauthorized){
@@ -456,7 +526,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     var menusList = g ? state.menus : state.menus.filter(function(m){ return !m.hidden; });
     if(!menusList.some(function(m){ return m.id===state.activeMenu; })) state.activeMenu = menusList.length ? menusList[0].id : null;
     var menusHtml = menusList.map(function(m){
-      return '<button class="menu-tab'+(m.id===state.activeMenu?' active':'')+(g&&m.hidden?' teacher-only':'')+'" data-switch="'+m.id+'">'+esc(m.name)+(g?visToggle('menu',m.id,m.hidden)+'<span class="menu-del" data-delmenu="'+m.id+'">\u00d7</span>':'')+'</button>';
+      return '<button class="menu-tab'+(m.id===state.activeMenu?' active':'')+(g&&m.hidden?' teacher-only':'')+'" data-switch="'+m.id+'">'+esc(m.name)+newTag(m.newAt, !m.hidden)+(g?visToggle('menu',m.id,m.hidden)+'<span class="menu-del" data-delmenu="'+m.id+'">\u00d7</span>':'')+'</button>';
     }).join('');
     var histCount = historyItems().length;
     // Pengumuman yang sudah lewat batas waktu dipindahkan ke riwayat (tidak tampil di papan)
@@ -488,6 +558,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
         '<div class="menu-row">'+menusHtml+(g?'<button id="add-menu-btn" data-addmenu>+ MENU</button>':'')+'</div>'+
       '</header>'+
       '<main>'+
+        updateFeedHtml()+
         (g?'<div class="vis-legend"><span class="vis-toggle"></span>Biru: tampil ke murid<span class="vis-toggle off"></span>Kuning: hanya guru<span>· Menu/panel kuning menyembunyikan seluruh isinya dari murid.</span></div>':'')+
         (g?'<button class="add-panel-btn" data-addpanel>+ TAMBAH PANEL</button>':'')+
         '<div class="panels-grid">'+panelsHtml+'</div>'+
@@ -501,6 +572,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     app.querySelectorAll('[data-delsub]').forEach(function(el){ el.addEventListener('click', function(){ delSub(el.getAttribute('data-delsub'), el.getAttribute('data-panel')); }); });
     app.querySelectorAll('[data-movepanel]').forEach(function(el){ el.addEventListener('click', function(){ movePanelPosition(el.getAttribute('data-pid'), el.getAttribute('data-movepanel')==='up'?-1:1); }); });
     var st = document.getElementById('status-toggle'); if(st && g) st.addEventListener('click', settingsModal);
+    app.querySelectorAll('[data-goto-menu]').forEach(function(el){ el.addEventListener('click', function(){ goToItem(el.getAttribute('data-goto-menu'), el.getAttribute('data-goto-panel')); }); });
     app.querySelectorAll('[data-vis]').forEach(function(el){ el.addEventListener('click', function(e){ e.stopPropagation(); toggleVisibility(el.getAttribute('data-vis'), el.getAttribute('data-id'), el.getAttribute('data-panel')); }); });
     var rb = document.getElementById('role-btn'); if(rb) rb.addEventListener('click', function(){ if(isGuru()){ setRole('murid'); if(hasApi()) loadFromApi(); } else { loginModal(); } });
     var hb = document.getElementById('hist-btn'); if(hb) hb.addEventListener('click', historyModal);
@@ -592,7 +664,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
       return '<div class="sub-card'+(g&&s.hidden?' teacher-only':'')+'" data-subid="'+s.id+'" data-panel="'+p.id+'">'+
         '<div class="sub-head">'+
           '<div class="sub-head-left">'+(g?'<span class="drag-handle" draggable="true" data-dragsub="'+s.id+'" data-panel="'+p.id+'" title="Seret untuk urutkan">\u283f</span>':'')+
-          '<div><div class="sub-title">'+esc(s.title)+'</div>'+(s.subtitle?'<div class="sub-subtitle">'+esc(s.subtitle)+'</div>':'')+'</div></div>'+
+          '<div><div class="sub-title">'+esc(s.title)+newTag(s.newAt, panelEff(p) && !s.hidden)+'</div>'+(s.subtitle?'<div class="sub-subtitle">'+esc(s.subtitle)+'</div>':'')+'</div></div>'+
           (g?'<div class="sub-head-right">'+visToggle('sub',s.id,s.hidden,p.id)+'<button class="icon-btn" data-delsub="'+s.id+'" data-panel="'+p.id+'">\u00d7</button></div>':'')+
         '</div>'+
         (s.image?'<img src="'+esc(s.image)+'" alt="">':'')+
@@ -600,7 +672,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
       '</div>';
     }).join('');
     return '<div class="panel-card type-info'+(g&&p.hidden?' teacher-only':'')+'" data-pid="'+p.id+'">'+
-      '<div class="panel-head"><div class="panel-head-left">'+(g?'<span class="drag-handle" draggable="true" data-dragpanel="'+p.id+'" title="Seret untuk urutkan">\u283f</span>':'')+'<h3 class="hud-font">'+esc(p.title)+'</h3></div>'+
+      '<div class="panel-head"><div class="panel-head-left">'+(g?'<span class="drag-handle" draggable="true" data-dragpanel="'+p.id+'" title="Seret untuk urutkan">\u283f</span>':'')+'<h3 class="hud-font">'+esc(p.title)+'</h3>'+newTag(p.newAt, panelEff(p))+'</div>'+
       (g?'<div class="panel-head-right">'+visToggle('panel',p.id,p.hidden)+
         '<button class="move-btn" data-movepanel="up" data-pid="'+p.id+'" title="Pindah ke atas">\u25b2</button>'+
         '<button class="move-btn" data-movepanel="down" data-pid="'+p.id+'" title="Pindah ke bawah">\u25bc</button>'+
@@ -613,7 +685,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
 
   function announcementPanelHtml(p){
     var expired = isExpired(p);
-    var fresh = isFresh(p) && !expired;
+    var fresh = isFresh(p) && !expired && panelEff(p);
     return '<div class="panel-card type-announcement'+(expired?' expired':'')+(isGuru()&&p.hidden?' teacher-only':'')+'">'+
       (fresh?'<div class="new-badge">BARU!</div>':'')+
       '<div class="panel-head"><h3 class="hud-font">'+esc(p.title)+'</h3>'+(isGuru()?'<div class="panel-head-right">'+visToggle('panel',p.id,p.hidden)+'<button class="icon-btn" data-delpanel="'+p.id+'">\u00d7</button></div>':'')+'</div>'+
@@ -667,7 +739,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     openModal('MENU BARU', null, [{name:'name', label:'Nama menu', placeholder:'Contoh: Materi Kelas X'}], function(v){
       if(!v.name) return;
       var id = uid();
-      state.menus.push({id:id, name:v.name});
+      state.menus.push({id:id, name:v.name, newAt:Date.now()});
       state.activeMenu = id;
       save();
     });
@@ -692,7 +764,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     if(!isGuru()) return;
     openModal('PANEL INFORMASI BARU', null, [{name:'title', label:'Judul panel', placeholder:'Contoh: Bahan Bacaan'}], function(v){
       if(!v.title) return;
-      state.panels.push({id:uid(), menuId:state.activeMenu, type:'info', title:v.title, subpanels:[]});
+      state.panels.push({id:uid(), menuId:state.activeMenu, type:'info', title:v.title, newAt:Date.now(), subpanels:[]});
       save();
     });
   }
@@ -704,7 +776,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
       {name:'deadline', label:'Batas waktu', type:'date'}
     ], function(v){
       if(!v.title) return;
-      state.panels.push({id:uid(), menuId:state.activeMenu, type:'announcement', title:v.title, body:v.body, deadline:v.deadline||null, createdAt:Date.now(), subpanels:[]});
+      state.panels.push({id:uid(), menuId:state.activeMenu, type:'announcement', title:v.title, body:v.body, deadline:v.deadline||null, createdAt:Date.now(), newAt:Date.now(), subpanels:[]});
       save();
     });
   }
@@ -726,7 +798,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
       if(!v.title) return;
       var p = state.panels.find(function(p){ return p.id===panelId; });
       if(!p) return;
-      p.subpanels.push({id:uid(), title:v.title, subtitle:v.subtitle, linkUrl:v.linkUrl, linkLabel:v.linkLabel, image:v.image});
+      p.subpanels.push({id:uid(), title:v.title, subtitle:v.subtitle, linkUrl:v.linkUrl, linkLabel:v.linkLabel, image:v.image, newAt:Date.now()});
       save();
     });
   }
