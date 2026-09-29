@@ -291,16 +291,18 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
 
   // ---- Visibilitas 3 jalur: setiap item punya SATU pemilik akses -----
   // 'student' (biru, murid) | 'staff' (ungu, petugas) | 'teacher' (kuning, hanya guru)
-  // Untuk terlihat oleh peran tertentu, item ITU dan SEMUA induknya harus berakses sama.
+  // Item ITU dan SEMUA induknya harus termasuk akses yang diizinkan untuk peran penonton.
+  // Murid diizinkan: biru saja. Petugas diizinkan: biru + ungu (petugas tetap dianggap murid).
   function itemAccess(item){ return item.access || (item.hidden ? 'teacher' : 'student'); }
-  function viewerAccessKey(){ return isPetugas() ? 'staff' : 'student'; } // hanya relevan saat bukan guru
+  // Petugas juga murid: boleh lihat item biru (murid) DAN ungu (petugas). Murid hanya biru.
+  function viewerAllowedAccess(){ return isPetugas() ? ['student','staff'] : ['student']; } // hanya relevan saat bukan guru
   function menuVisible(id){
     if(isGuru()) return true;
     var m = state.menus.find(function(x){ return x.id===id; });
-    return !!m && itemAccess(m)===viewerAccessKey();
+    return !!m && viewerAllowedAccess().indexOf(itemAccess(m))!==-1;
   }
-  function panelVisible(p){ return isGuru() || (itemAccess(p)===viewerAccessKey() && menuVisible(p.menuId)); }
-  var ACCESS_LABEL = {student:'BIRU: murid', staff:'UNGU: petugas', teacher:'KUNING: hanya guru'};
+  function panelVisible(p){ return isGuru() || (viewerAllowedAccess().indexOf(itemAccess(p))!==-1 && menuVisible(p.menuId)); }
+  var ACCESS_LABEL = {student:'BIRU: murid (petugas ikut lihat)', staff:'UNGU: khusus petugas', teacher:'KUNING: hanya guru'};
   var ACCESS_NEXT = {student:'staff', staff:'teacher', teacher:'student'};
   function visToggle(kind, id, access, panelId){
     access = access || 'student';
@@ -555,7 +557,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     var s = statusLabel();
     var g = isGuru();
     if(state.menus.length && !state.menus.some(function(m){ return m.id===state.activeMenu; })) state.activeMenu = state.menus[0].id;
-    var menusList = g ? state.menus : state.menus.filter(function(m){ return itemAccess(m)===viewerAccessKey(); });
+    var menusList = g ? state.menus : state.menus.filter(function(m){ return viewerAllowedAccess().indexOf(itemAccess(m))!==-1; });
     if(!menusList.some(function(m){ return m.id===state.activeMenu; })) state.activeMenu = menusList.length ? menusList[0].id : null;
     var menusHtml = menusList.map(function(m){
       var idx = state.menus.indexOf(m);
@@ -598,7 +600,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
       '</header>'+
       '<main>'+
         updateFeedHtml()+
-        (g?'<div class="vis-legend"><span class="vis-tri"></span>Biru: murid<span class="vis-tri staff"></span>Ungu: petugas<span class="vis-tri teacher"></span>Kuning: hanya guru<span>· Klik segitiga untuk gonta-ganti akses. Menu/panel kuning atau ungu menyembunyikan seluruh isinya dari peran lain. · Seret tab menu (atau pakai panah ◀ ▶ di menu aktif) untuk mengatur urutan.</span></div>':'')+
+        (g?'<div class="vis-legend"><span class="vis-tri"></span>Biru: murid (petugas ikut lihat)<span class="vis-tri staff"></span>Ungu: khusus petugas<span class="vis-tri teacher"></span>Kuning: hanya guru<span>· Klik segitiga untuk gonta-ganti akses. Menu/panel kuning menyembunyikan dari murid & petugas; ungu menyembunyikan dari murid saja. · Seret tab menu (atau pakai panah ◀ ▶ di menu aktif) untuk mengatur urutan.</span></div>':'')+
         (g?'<button class="add-panel-btn" data-addpanel>+ TAMBAH PANEL</button>':'')+
         '<div class="panels-grid">'+panelsHtml+'</div>'+
       '</main>';
@@ -730,7 +732,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
 
   function infoPanelHtml(p){
     var g = isGuru();
-    var subsList = g ? p.subpanels : p.subpanels.filter(function(x){ return itemAccess(x)===viewerAccessKey(); });
+    var subsList = g ? p.subpanels : p.subpanels.filter(function(x){ return viewerAllowedAccess().indexOf(itemAccess(x))!==-1; });
     var subs = subsList.map(function(s){
       var sAcc = itemAccess(s);
       return '<div class="sub-card'+(g&&sAcc==='teacher'?' teacher-only':'')+(g&&sAcc==='staff'?' staff-only':'')+'" data-subid="'+s.id+'" data-panel="'+p.id+'">'+
