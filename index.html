@@ -10,6 +10,7 @@
 <style>
 :root{
   --bg:#050a12;
+  --bg-top:#0a1826;
   --bg-grid:#08111c;
   --panel:#0a1622;
   --panel-2:#0d1c2b;
@@ -22,22 +23,38 @@
   --muted:#5b7c95;
   --line:#173347;
 }
+:root[data-theme="light"]{
+  --bg:#eef3f8;
+  --bg-top:#dbe8f2;
+  --bg-grid:#e4edf5;
+  --panel:#ffffff;
+  --panel-2:#f3f8fc;
+  --cyan:#0089ab;
+  --cyan-dim:#4fa4bd;
+  --violet:#6a4fe0;
+  --amber:#b56e00;
+  --red:#c93341;
+  --text:#0d2436;
+  --muted:#5c7488;
+  --line:#c9d8e3;
+}
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;}
 body{
   background:
-    radial-gradient(ellipse at top, #0a1826 0%, var(--bg) 55%),
+    radial-gradient(ellipse at top, var(--bg-top) 0%, var(--bg) 55%),
     repeating-linear-gradient(0deg, rgba(43,227,255,.025) 0px, rgba(43,227,255,.025) 1px, transparent 1px, transparent 3px);
   color:var(--text);
   font-family:'Share Tech Mono', monospace;
   min-height:100vh;
   overflow-x:hidden;
+  transition:background-color .25s,color .25s;
 }
 .hud-font{font-family:'Orbitron', sans-serif;}
 
 /* scanline sweep, one orchestrated moment on load */
 .boot{
-  position:fixed;inset:0;background:#020508;z-index:999;
+  position:fixed;inset:0;background:var(--bg);z-index:999;
   display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;
   animation:bootOut .6s ease 1.4s forwards;
 }
@@ -145,6 +162,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
 .modal textarea{width:100%;padding:9px 10px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px;font-family:'Share Tech Mono',monospace;resize:vertical;min-height:70px;}
 .modal textarea:focus{outline:none;border-color:var(--cyan);}
 .modal input[type="date"]{color-scheme:dark;}
+:root[data-theme="light"] .modal input[type="date"]{color-scheme:light;}
 
 /* Drag & drop */
 .drag-handle{cursor:grab;color:var(--muted);font-size:15px;padding:6px 8px;user-select:none;touch-action:none;flex-shrink:0;line-height:1;}
@@ -286,6 +304,19 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
   }catch(e){}
   function isGuru(){ return role==='guru'; }
   function isPetugas(){ return role==='petugas'; }
+
+  // ---- Mode gelap/terang ----
+  var THEME_KEY = 'papan-panel-theme';
+  var theme = 'dark';
+  try{ var savedTheme = localStorage.getItem(THEME_KEY); if(savedTheme==='light'||savedTheme==='dark') theme = savedTheme; }catch(e){}
+  function applyTheme(){ document.documentElement.setAttribute('data-theme', theme); }
+  applyTheme();
+  function toggleTheme(){
+    theme = theme==='dark' ? 'light' : 'dark';
+    applyTheme();
+    try{ localStorage.setItem(THEME_KEY, theme); }catch(e){}
+    render();
+  }
   var fullLoaded = false; // true jika state di memori adalah data lengkap (bukan versi yang sudah disaring untuk peran ini)
   var JSON_HDR = {'Content-Type':'text/plain;charset=utf-8'}; // avoids CORS preflight on Apps Script
 
@@ -587,6 +618,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
           '</div>'+
           '<div class="header-right">'+
             '<div class="header-row"><span class="role-pill'+(role!=='murid'?' active':'')+'">'+(g?'MODE GURU':isPetugas()?'MODE PETUGAS':'MODE MURID')+'</span>'+
+            '<div class="role-btn" id="theme-toggle" title="Ganti mode gelap/terang">'+(theme==='dark'?'\u2600 TERANG':'\u263e GELAP')+'</div>'+
             '<div class="status" id="status-toggle" title="Pengaturan koneksi mainframe"><span class="dot '+s.cls+'" id="status-dot"></span><span id="status-label">'+s.text+'</span></div></div>'+
             '<div class="header-row">'+
               '<div class="hist-btn" id="hist-btn" title="Lihat riwayat pengumuman">RIWAYAT PENGUMUMAN'+(histCount?'<span class="hist-count">'+histCount+'</span>':'')+'</div>'+
@@ -613,6 +645,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     app.querySelectorAll('[data-delsub]').forEach(function(el){ el.addEventListener('click', function(){ delSub(el.getAttribute('data-delsub'), el.getAttribute('data-panel')); }); });
     app.querySelectorAll('[data-movepanel]').forEach(function(el){ el.addEventListener('click', function(){ movePanelPosition(el.getAttribute('data-pid'), el.getAttribute('data-movepanel')==='up'?-1:1); }); });
     var st = document.getElementById('status-toggle'); if(st) st.addEventListener('click', settingsModal);
+    var tt = document.getElementById('theme-toggle'); if(tt) tt.addEventListener('click', toggleTheme);
     app.querySelectorAll('.menu-tab').forEach(function(el){ el.addEventListener('keydown', function(e){ if((e.key==='Enter'||e.key===' ') && e.target===el){ e.preventDefault(); el.click(); } }); });
     app.querySelectorAll('[data-movemenu]').forEach(function(el){ el.addEventListener('click', function(e){ e.stopPropagation(); moveMenuPosition(el.getAttribute('data-id'), el.getAttribute('data-movemenu')==='left'?-1:1); }); });
     app.querySelectorAll('[data-goto-menu]').forEach(function(el){ el.addEventListener('click', function(){ goToItem(el.getAttribute('data-goto-menu'), el.getAttribute('data-goto-panel')); }); });
