@@ -200,24 +200,28 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
 /* Peran guru / murid */
 .header-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end;}
 .role-pill{font-family:'Orbitron',sans-serif;font-size:9px;letter-spacing:.07em;padding:5px 8px;border:1px solid var(--line);color:var(--muted);}
-.role-pill.guru{color:var(--violet);border-color:var(--violet);box-shadow:0 0 8px rgba(123,97,255,.25);}
+.role-pill.active{color:var(--violet);border-color:var(--violet);box-shadow:0 0 8px rgba(123,97,255,.25);}
 .role-btn{font-family:'Orbitron',sans-serif;font-size:9.5px;letter-spacing:.07em;color:var(--cyan);cursor:pointer;padding:6px 10px;border:1px solid var(--line);background:var(--panel);clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px);}
 .role-btn:hover{border-color:var(--cyan-dim);box-shadow:0 0 10px rgba(43,227,255,.2);}
 .status.readonly{cursor:default;}
 .status.readonly:hover{border-color:var(--line);}
-/* Toggle visibilitas: biru = tampil ke murid, kuning = hanya guru */
-.vis-toggle{position:relative;display:inline-block;vertical-align:middle;width:26px;height:14px;border-radius:8px;border:1px solid var(--cyan);background:rgba(43,227,255,.18);cursor:pointer;flex-shrink:0;box-shadow:0 0 8px rgba(43,227,255,.4);transition:background .15s,border-color .15s,box-shadow .15s;}
-.vis-toggle::after{content:'';position:absolute;top:2px;left:14px;width:8px;height:8px;border-radius:50%;background:var(--cyan);transition:left .15s,background .15s;}
-.vis-toggle.off{border-color:var(--amber);background:rgba(255,176,32,.16);box-shadow:0 0 8px rgba(255,176,32,.4);}
-.vis-toggle.off::after{left:2px;background:var(--amber);}
-.menu-tab .vis-toggle{margin-left:8px;}
+/* Tombol segitiga 3-warna: biru = murid, ungu = petugas, kuning = hanya guru */
+.vis-tri{position:relative;display:inline-block;vertical-align:middle;width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:12px solid var(--cyan);cursor:pointer;flex-shrink:0;filter:drop-shadow(0 0 5px rgba(43,227,255,.75));transition:filter .15s,border-bottom-color .15s;}
+.vis-tri:hover{filter:drop-shadow(0 0 9px rgba(43,227,255,.95));}
+.vis-tri.staff{border-bottom-color:var(--violet);filter:drop-shadow(0 0 5px rgba(123,97,255,.8));}
+.vis-tri.staff:hover{filter:drop-shadow(0 0 9px rgba(123,97,255,1));}
+.vis-tri.teacher{border-bottom-color:var(--amber);filter:drop-shadow(0 0 5px rgba(255,176,32,.8));}
+.vis-tri.teacher:hover{filter:drop-shadow(0 0 9px rgba(255,176,32,1));}
+.menu-tab .vis-tri{margin-left:8px;}
 .sub-head-right{display:flex;align-items:center;gap:6px;flex-shrink:0;}
-.panel-head-right .vis-toggle{margin-right:6px;}
+.panel-head-right .vis-tri{margin-right:6px;}
 .teacher-only{opacity:.72;}
 .panel-card.teacher-only,.menu-tab.teacher-only{border-style:dashed;}
 .sub-card.teacher-only{background:repeating-linear-gradient(135deg, rgba(255,176,32,.05) 0 6px, transparent 6px 12px);}
+.panel-card.staff-only,.menu-tab.staff-only{border-style:dashed;border-color:var(--violet);}
+.sub-card.staff-only{background:repeating-linear-gradient(135deg, rgba(123,97,255,.06) 0 6px, transparent 6px 12px);}
 .vis-legend{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:10.5px;color:var(--muted);margin:0 0 14px;letter-spacing:.02em;}
-.vis-legend .vis-toggle{cursor:default;}
+.vis-legend .vis-tri{cursor:default;}
 /* Label BARU! inline + feed pembaruan otomatis */
 .new-tag{display:inline-block;flex-shrink:0;margin-left:7px;background:var(--amber);color:#1a0f00;font-family:'Orbitron',sans-serif;font-size:8.5px;font-weight:900;letter-spacing:.06em;padding:2px 6px 2px;line-height:1.3;vertical-align:middle;box-shadow:0 0 8px rgba(255,176,32,.55);animation:pulse 1.4s ease-in-out infinite;clip-path:polygon(0 0,100% 0,100% 100%,4px 100%,0 65%);}
 .update-feed{border:1px solid var(--violet);background:linear-gradient(180deg,rgba(123,97,255,.09),rgba(10,22,34,.9));margin:0 0 16px;clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px);}
@@ -270,35 +274,44 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
   var syncStatus = 'idle'; // idle | local | online | syncing | error
   var syncTimer = null;
 
-  // ---- Peran: 'murid' (hanya lihat) atau 'guru' (bisa mengubah) ----
+  // ---- Peran: 'murid' (hanya lihat), 'petugas' (lihat item yang diizinkan), atau 'guru' (bisa mengubah semua) ----
   var role = 'murid';
-  var teacherPw = '';
+  var actorPw = ''; // kata sandi guru ATAU petugas, tergantung peran saat ini
   try{
-    if(sessionStorage.getItem('papan-panel-role')==='guru'){
-      role = 'guru';
-      teacherPw = sessionStorage.getItem('papan-panel-pw') || '';
+    var savedRole = sessionStorage.getItem('papan-panel-role');
+    if(savedRole==='guru' || savedRole==='petugas'){
+      role = savedRole;
+      actorPw = sessionStorage.getItem('papan-panel-pw') || '';
     }
   }catch(e){}
   function isGuru(){ return role==='guru'; }
-  var fullLoaded = false; // true jika state di memori adalah data lengkap (bukan versi yang sudah disaring untuk murid)
+  function isPetugas(){ return role==='petugas'; }
+  var fullLoaded = false; // true jika state di memori adalah data lengkap (bukan versi yang sudah disaring untuk peran ini)
   var JSON_HDR = {'Content-Type':'text/plain;charset=utf-8'}; // avoids CORS preflight on Apps Script
 
-  // ---- Visibilitas: item dengan hidden===true hanya tampil untuk guru ----
+  // ---- Visibilitas 3 jalur: setiap item punya SATU pemilik akses -----
+  // 'student' (biru, murid) | 'staff' (ungu, petugas) | 'teacher' (kuning, hanya guru)
+  // Untuk terlihat oleh peran tertentu, item ITU dan SEMUA induknya harus berakses sama.
+  function itemAccess(item){ return item.access || (item.hidden ? 'teacher' : 'student'); }
+  function viewerAccessKey(){ return isPetugas() ? 'staff' : 'student'; } // hanya relevan saat bukan guru
   function menuVisible(id){
     if(isGuru()) return true;
     var m = state.menus.find(function(x){ return x.id===id; });
-    return !!m && !m.hidden;
+    return !!m && itemAccess(m)===viewerAccessKey();
   }
-  function panelVisible(p){ return isGuru() || (!p.hidden && menuVisible(p.menuId)); }
-  function visToggle(kind, id, hidden, panelId){
-    return '<span class="vis-toggle'+(hidden?' off':'')+'" role="switch" aria-checked="'+(!hidden)+'" data-vis="'+kind+'" data-id="'+id+'"'+(panelId?' data-panel="'+panelId+'"':'')+
-      ' title="'+(hidden?'KUNING: hanya tampil untuk guru (klik agar tampil ke murid)':'BIRU: tampil untuk murid (klik untuk sembunyikan dari murid)')+'"></span>';
+  function panelVisible(p){ return isGuru() || (itemAccess(p)===viewerAccessKey() && menuVisible(p.menuId)); }
+  var ACCESS_LABEL = {student:'BIRU: murid', staff:'UNGU: petugas', teacher:'KUNING: hanya guru'};
+  var ACCESS_NEXT = {student:'staff', staff:'teacher', teacher:'student'};
+  function visToggle(kind, id, access, panelId){
+    access = access || 'student';
+    return '<span class="vis-tri'+(access!=='student'?' '+access:'')+'" role="button" data-vis="'+kind+'" data-id="'+id+'"'+(panelId?' data-panel="'+panelId+'"':'')+
+      ' title="'+ACCESS_LABEL[access]+' (klik untuk ganti ke '+ACCESS_LABEL[ACCESS_NEXT[access]]+')"></span>';
   }
   // ---- Label BARU! & feed pembaruan (3 hari sejak item dibuat / mulai tampil ke murid) ----
   function inNewWindow(ts){ return !!ts && (Date.now() - ts) < NEW_BADGE_DURATION_MS; }
   function newTag(ts, eff){ return (eff && inNewWindow(ts)) ? '<span class="new-tag">BARU!</span>' : ''; }
   function menuById(id){ return state.menus.find(function(m){ return m.id===id; }); }
-  function panelEff(p){ var m = menuById(p.menuId); return !!m && !m.hidden && !p.hidden; } // benar-benar bisa dilihat murid
+  function panelEff(p){ var m = menuById(p.menuId); return !!m && itemAccess(m)==='student' && itemAccess(p)==='student'; } // benar-benar bisa dilihat murid
   function timeLeft(ts){
     var h = Math.max(1, Math.ceil((ts + NEW_BADGE_DURATION_MS - Date.now()) / 3600000));
     return h>=24 ? Math.ceil(h/24)+' hari lagi' : h+' jam lagi';
@@ -307,7 +320,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
   function updateItems(){
     var items = [];
     state.menus.forEach(function(m){
-      if(!m.hidden && inNewWindow(m.newAt)) items.push({kind:'menu', ts:m.newAt, title:m.name, menuId:m.id});
+      if(itemAccess(m)==='student' && inNewWindow(m.newAt)) items.push({kind:'menu', ts:m.newAt, title:m.name, menuId:m.id});
     });
     state.panels.forEach(function(p){
       if(p.type==='announcement' || !panelEff(p)) return; // pengumuman biasa sudah punya label BARU! sendiri
@@ -316,7 +329,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
         items.push({kind:'panel', ts:p.newAt, title:p.title, where:'di menu '+m.name, menuId:m.id, panelId:p.id});
       }
       (p.subpanels||[]).forEach(function(sp){
-        if(sp.hidden || !inNewWindow(sp.newAt)) return;
+        if(itemAccess(sp)!=='student' || !inNewWindow(sp.newAt)) return;
         if(p.newAt && sp.newAt - p.newAt < SAME_SESSION_MS) return;
         items.push({kind:'sub', ts:sp.newAt, title:sp.title, where:'di panel '+p.title+' · menu '+m.name, menuId:m.id, panelId:p.id});
       });
@@ -352,15 +365,17 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     else if(kind==='panel') item = state.panels.find(function(p){ return p.id===id; });
     else { var pp = state.panels.find(function(x){ return x.id===panelId; }); item = pp && pp.subpanels.find(function(x){ return x.id===id; }); }
     if(!item) return;
-    item.hidden = !item.hidden;
-    if(!item.hidden) item.newAt = Date.now(); // baru diizinkan dilihat murid -> dianggap baru lagi
+    var next = ACCESS_NEXT[itemAccess(item)];
+    item.access = next;
+    delete item.hidden;
+    if(next==='student') item.newAt = Date.now(); // baru diizinkan dilihat murid -> dianggap baru lagi
     save();
   }
   function setRole(r, pw){
-    role = r; teacherPw = pw || '';
-    if(r!=='guru') fullLoaded = false;
+    role = r; actorPw = pw || '';
+    if(r==='murid') fullLoaded = false;
     try{
-      if(r==='guru'){ sessionStorage.setItem('papan-panel-role','guru'); sessionStorage.setItem('papan-panel-pw', teacherPw); }
+      if(r==='guru' || r==='petugas'){ sessionStorage.setItem('papan-panel-role', r); sessionStorage.setItem('papan-panel-pw', actorPw); }
       else { sessionStorage.removeItem('papan-panel-role'); sessionStorage.removeItem('papan-panel-pw'); }
     }catch(e){}
     render();
@@ -371,11 +386,16 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
   // Tanpa ini, filter berbasis type==='info' akan mengabaikan panel lama tsb sepenuhnya
   // sehingga tombol panah & drag terlihat tidak merespons pada panel-panel tersebut.
   function normalizeState(s){
-    if(s && Array.isArray(s.panels)){
-      s.panels.forEach(function(p){
-        if(p.type !== 'announcement') p.type = 'info';
-        if(!Array.isArray(p.subpanels)) p.subpanels = [];
-      });
+    if(s){
+      (s.menus||[]).forEach(function(m){ m.access = itemAccess(m); delete m.hidden; });
+      if(Array.isArray(s.panels)){
+        s.panels.forEach(function(p){
+          if(p.type !== 'announcement') p.type = 'info';
+          if(!Array.isArray(p.subpanels)) p.subpanels = [];
+          p.access = itemAccess(p); delete p.hidden;
+          p.subpanels.forEach(function(sp){ sp.access = itemAccess(sp); delete sp.hidden; });
+        });
+      }
     }
     return s;
   }
@@ -430,15 +450,17 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
   function apiUrl(){ return ((config.apiUrl||'').trim()) || (DEFAULT_API_URL||'').trim(); }
   function hasApi(){ return !!apiUrl(); }
 
-  // Guru memuat data LENGKAP lewat POST bersandi; murid memuat lewat GET (server sudah membuang item yang disembunyikan).
+  // Guru memuat data LENGKAP; petugas memuat versi yang sudah disaring server (hanya item akses "petugas");
+  // murid memuat lewat GET (server sudah membuang item yang bukan akses "murid").
   function fetchState(){
-    if(isGuru()){
-      return fetch(apiUrl(), {method:'POST', headers:JSON_HDR, body:JSON.stringify({action:'load', password:teacherPw})})
+    if(isGuru() || isPetugas()){
+      var act = isGuru() ? 'load' : 'load_staff';
+      return fetch(apiUrl(), {method:'POST', headers:JSON_HDR, body:JSON.stringify({action:act, password:actorPw})})
         .then(function(r){ return r.json(); })
         .then(function(res){
           if(res && res.error==='unauthorized') throw {unauthorized:true};
           if(res && res.ok && res.state) return res.state;
-          throw new Error((res && res.error) || 'Gagal memuat data guru');
+          throw new Error((res && res.error) || 'Gagal memuat data');
         });
     }
     return fetch(apiUrl(), {method:'GET'}).then(function(r){ return r.json(); });
@@ -455,7 +477,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
           var keep = state.activeMenu; // menu aktif bersifat lokal per pengguna
           changed = JSON.stringify(fresh.panels)!==JSON.stringify(state.panels) || JSON.stringify(fresh.menus)!==JSON.stringify(state.menus);
           state = fresh;
-          if(isGuru()) fullLoaded = true;
+          if(isGuru()) fullLoaded = true; // petugas & murid selalu menerima versi yang sudah disaring server (bukan data lengkap)
           if(keep && state.menus.some(function(m){ return m.id===keep; })) state.activeMenu = keep;
           persistLocal();
         }
@@ -464,7 +486,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
       })
       .catch(function(err){
         if(err && err.unauthorized){
-          alert('Sesi guru tidak valid (kata sandi ditolak server). Kamu dikembalikan ke mode murid.');
+          alert('Sesi '+(isGuru()?'guru':'petugas')+' tidak valid (kata sandi ditolak server). Kamu dikembalikan ke mode murid.');
           setRole('murid');
           loadFromApi();
           return;
@@ -484,7 +506,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     fetch(apiUrl(), {
       method:'POST',
       headers:{'Content-Type':'text/plain;charset=utf-8'}, // avoids CORS preflight on Apps Script
-      body: JSON.stringify({action:'save', password:teacherPw, state:state})
+      body: JSON.stringify({action:'save', password:actorPw, state:state})
     })
       .then(function(r){ return r.json(); })
       .then(function(res){
@@ -511,7 +533,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
   }
 
   function statusLabel(){
-    if(!hasApi()) return {cls:'local', text: isGuru() ? 'MODE LOKAL' : 'HUBUNGKAN MAINFRAME'};
+    if(!hasApi()) return {cls:'local', text: (isGuru()||isPetugas()) ? 'MODE LOKAL' : 'HUBUNGKAN MAINFRAME'};
     if(syncStatus==='syncing') return {cls:'sync', text:'SYNCING...'};
     if(syncStatus==='online') return {cls:'online', text:'MAINFRAME ONLINE'};
     if(syncStatus==='error') return {cls:'error', text:'SYNC GAGAL'};
@@ -533,14 +555,15 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     var s = statusLabel();
     var g = isGuru();
     if(state.menus.length && !state.menus.some(function(m){ return m.id===state.activeMenu; })) state.activeMenu = state.menus[0].id;
-    var menusList = g ? state.menus : state.menus.filter(function(m){ return !m.hidden; });
+    var menusList = g ? state.menus : state.menus.filter(function(m){ return itemAccess(m)===viewerAccessKey(); });
     if(!menusList.some(function(m){ return m.id===state.activeMenu; })) state.activeMenu = menusList.length ? menusList[0].id : null;
     var menusHtml = menusList.map(function(m){
       var idx = state.menus.indexOf(m);
       var arrows = (g && m.id===state.activeMenu) ?
         '<span class="menu-move'+(idx<=0?' disabled':'')+'" data-movemenu="left" data-id="'+m.id+'" title="Geser menu ke kiri">\u25c0</span>'+
         '<span class="menu-move'+(idx>=state.menus.length-1?' disabled':'')+'" data-movemenu="right" data-id="'+m.id+'" title="Geser menu ke kanan">\u25b6</span>' : '';
-      return '<div role="button" tabindex="0" class="menu-tab'+(m.id===state.activeMenu?' active':'')+(g&&m.hidden?' teacher-only':'')+'"'+(g?' draggable="true" title="Seret untuk mengubah urutan menu"':'')+' data-switch="'+m.id+'">'+esc(m.name)+newTag(m.newAt, !m.hidden)+arrows+(g?visToggle('menu',m.id,m.hidden)+'<span class="menu-del" data-delmenu="'+m.id+'">\u00d7</span>':'')+'</div>';
+      var mAcc = itemAccess(m);
+      return '<div role="button" tabindex="0" class="menu-tab'+(m.id===state.activeMenu?' active':'')+(g&&mAcc==='teacher'?' teacher-only':'')+(g&&mAcc==='staff'?' staff-only':'')+'"'+(g?' draggable="true" title="Seret untuk mengubah urutan menu"':'')+' data-switch="'+m.id+'">'+esc(m.name)+newTag(m.newAt, mAcc==='student')+arrows+(g?visToggle('menu',m.id,mAcc)+'<span class="menu-del" data-delmenu="'+m.id+'">\u00d7</span>':'')+'</div>';
     }).join('');
     var histCount = historyItems().length;
     // Pengumuman yang sudah lewat batas waktu dipindahkan ke riwayat (tidak tampil di papan)
@@ -561,11 +584,13 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
             '<div><h1 class="hud-font">J.A.R.V.I.S.I.C.E.R.Y</h1><small>PAPAN PANEL — ANTARMUKA KONTROL</small></div>'+
           '</div>'+
           '<div class="header-right">'+
-            '<div class="header-row"><span class="role-pill'+(g?' guru':'')+'">'+(g?'MODE GURU':'MODE MURID')+'</span>'+
+            '<div class="header-row"><span class="role-pill'+(role!=='murid'?' active':'')+'">'+(g?'MODE GURU':isPetugas()?'MODE PETUGAS':'MODE MURID')+'</span>'+
             '<div class="status" id="status-toggle" title="Pengaturan koneksi mainframe"><span class="dot '+s.cls+'" id="status-dot"></span><span id="status-label">'+s.text+'</span></div></div>'+
             '<div class="header-row">'+
               '<div class="hist-btn" id="hist-btn" title="Lihat riwayat pengumuman">RIWAYAT PENGUMUMAN'+(histCount?'<span class="hist-count">'+histCount+'</span>':'')+'</div>'+
-              '<div class="role-btn" id="role-btn">'+(g?'KELUAR GURU':'MASUK GURU')+'</div>'+
+              (role==='murid' ?
+                '<div class="role-btn" id="role-btn-guru">MASUK GURU</div><div class="role-btn" id="role-btn-petugas">MASUK PETUGAS</div>' :
+                '<div class="role-btn" id="role-btn-logout">'+(g?'KELUAR GURU':'KELUAR PETUGAS')+'</div>') +
             '</div>'+
           '</div>'+
         '</div>'+
@@ -573,7 +598,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
       '</header>'+
       '<main>'+
         updateFeedHtml()+
-        (g?'<div class="vis-legend"><span class="vis-toggle"></span>Biru: tampil ke murid<span class="vis-toggle off"></span>Kuning: hanya guru<span>· Menu/panel kuning menyembunyikan seluruh isinya dari murid. · Seret tab menu (atau pakai panah ◀ ▶ di menu aktif) untuk mengatur urutan.</span></div>':'')+
+        (g?'<div class="vis-legend"><span class="vis-tri"></span>Biru: murid<span class="vis-tri staff"></span>Ungu: petugas<span class="vis-tri teacher"></span>Kuning: hanya guru<span>· Klik segitiga untuk gonta-ganti akses. Menu/panel kuning atau ungu menyembunyikan seluruh isinya dari peran lain. · Seret tab menu (atau pakai panah ◀ ▶ di menu aktif) untuk mengatur urutan.</span></div>':'')+
         (g?'<button class="add-panel-btn" data-addpanel>+ TAMBAH PANEL</button>':'')+
         '<div class="panels-grid">'+panelsHtml+'</div>'+
       '</main>';
@@ -590,7 +615,9 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     app.querySelectorAll('[data-movemenu]').forEach(function(el){ el.addEventListener('click', function(e){ e.stopPropagation(); moveMenuPosition(el.getAttribute('data-id'), el.getAttribute('data-movemenu')==='left'?-1:1); }); });
     app.querySelectorAll('[data-goto-menu]').forEach(function(el){ el.addEventListener('click', function(){ goToItem(el.getAttribute('data-goto-menu'), el.getAttribute('data-goto-panel')); }); });
     app.querySelectorAll('[data-vis]').forEach(function(el){ el.addEventListener('click', function(e){ e.stopPropagation(); toggleVisibility(el.getAttribute('data-vis'), el.getAttribute('data-id'), el.getAttribute('data-panel')); }); });
-    var rb = document.getElementById('role-btn'); if(rb) rb.addEventListener('click', function(){ if(isGuru()){ setRole('murid'); if(hasApi()) loadFromApi(); } else { loginModal(); } });
+    var rbg = document.getElementById('role-btn-guru'); if(rbg) rbg.addEventListener('click', function(){ loginModal('guru'); });
+    var rbp = document.getElementById('role-btn-petugas'); if(rbp) rbp.addEventListener('click', function(){ loginModal('petugas'); });
+    var rbo = document.getElementById('role-btn-logout'); if(rbo) rbo.addEventListener('click', function(){ setRole('murid'); if(hasApi()) loadFromApi(); });
     var hb = document.getElementById('hist-btn'); if(hb) hb.addEventListener('click', historyModal);
     wireDragAndDrop(app);
   }
@@ -703,21 +730,23 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
 
   function infoPanelHtml(p){
     var g = isGuru();
-    var subsList = g ? p.subpanels : p.subpanels.filter(function(x){ return !x.hidden; });
+    var subsList = g ? p.subpanels : p.subpanels.filter(function(x){ return itemAccess(x)===viewerAccessKey(); });
     var subs = subsList.map(function(s){
-      return '<div class="sub-card'+(g&&s.hidden?' teacher-only':'')+'" data-subid="'+s.id+'" data-panel="'+p.id+'">'+
+      var sAcc = itemAccess(s);
+      return '<div class="sub-card'+(g&&sAcc==='teacher'?' teacher-only':'')+(g&&sAcc==='staff'?' staff-only':'')+'" data-subid="'+s.id+'" data-panel="'+p.id+'">'+
         '<div class="sub-head">'+
           '<div class="sub-head-left">'+(g?'<span class="drag-handle" draggable="true" data-dragsub="'+s.id+'" data-panel="'+p.id+'" title="Seret untuk urutkan">\u283f</span>':'')+
-          '<div><div class="sub-title">'+esc(s.title)+newTag(s.newAt, panelEff(p) && !s.hidden)+'</div>'+(s.subtitle?'<div class="sub-subtitle">'+esc(s.subtitle)+'</div>':'')+'</div></div>'+
-          (g?'<div class="sub-head-right">'+visToggle('sub',s.id,s.hidden,p.id)+'<button class="icon-btn" data-delsub="'+s.id+'" data-panel="'+p.id+'">\u00d7</button></div>':'')+
+          '<div><div class="sub-title">'+esc(s.title)+newTag(s.newAt, panelEff(p) && sAcc==='student')+'</div>'+(s.subtitle?'<div class="sub-subtitle">'+esc(s.subtitle)+'</div>':'')+'</div></div>'+
+          (g?'<div class="sub-head-right">'+visToggle('sub',s.id,sAcc,p.id)+'<button class="icon-btn" data-delsub="'+s.id+'" data-panel="'+p.id+'">\u00d7</button></div>':'')+
         '</div>'+
         (s.image?'<img src="'+esc(s.image)+'" alt="">':'')+
         (s.linkUrl?'<a class="sub-link" href="'+esc(s.linkUrl)+'" target="_blank" rel="noopener">'+esc(s.linkLabel||s.linkUrl)+'</a>':'')+
       '</div>';
     }).join('');
-    return '<div class="panel-card type-info'+(g&&p.hidden?' teacher-only':'')+'" data-pid="'+p.id+'">'+
+    var pAcc = itemAccess(p);
+    return '<div class="panel-card type-info'+(g&&pAcc==='teacher'?' teacher-only':'')+(g&&pAcc==='staff'?' staff-only':'')+'" data-pid="'+p.id+'">'+
       '<div class="panel-head"><div class="panel-head-left">'+(g?'<span class="drag-handle" draggable="true" data-dragpanel="'+p.id+'" title="Seret untuk urutkan">\u283f</span>':'')+'<h3 class="hud-font">'+esc(p.title)+'</h3>'+newTag(p.newAt, panelEff(p))+'</div>'+
-      (g?'<div class="panel-head-right">'+visToggle('panel',p.id,p.hidden)+
+      (g?'<div class="panel-head-right">'+visToggle('panel',p.id,pAcc)+
         '<button class="move-btn" data-movepanel="up" data-pid="'+p.id+'" title="Pindah ke atas">\u25b2</button>'+
         '<button class="move-btn" data-movepanel="down" data-pid="'+p.id+'" title="Pindah ke bawah">\u25bc</button>'+
         '<button class="icon-btn" data-delpanel="'+p.id+'">\u00d7</button>'+
@@ -730,9 +759,10 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
   function announcementPanelHtml(p){
     var expired = isExpired(p);
     var fresh = isFresh(p) && !expired && panelEff(p);
-    return '<div class="panel-card type-announcement'+(expired?' expired':'')+(isGuru()&&p.hidden?' teacher-only':'')+'">'+
+    var annAcc = itemAccess(p);
+    return '<div class="panel-card type-announcement'+(expired?' expired':'')+(isGuru()&&annAcc==='teacher'?' teacher-only':'')+(isGuru()&&annAcc==='staff'?' staff-only':'')+'">'+
       (fresh?'<div class="new-badge">BARU!</div>':'')+
-      '<div class="panel-head"><h3 class="hud-font">'+esc(p.title)+'</h3>'+(isGuru()?'<div class="panel-head-right">'+visToggle('panel',p.id,p.hidden)+'<button class="icon-btn" data-delpanel="'+p.id+'">\u00d7</button></div>':'')+'</div>'+
+      '<div class="panel-head"><h3 class="hud-font">'+esc(p.title)+'</h3>'+(isGuru()?'<div class="panel-head-right">'+visToggle('panel',p.id,annAcc)+'<button class="icon-btn" data-delpanel="'+p.id+'">\u00d7</button></div>':'')+'</div>'+
       '<div class="panel-body">'+
         '<div class="ann-body">'+esc(p.body)+'</div>'+
         '<div class="ann-meta">'+
@@ -1012,15 +1042,19 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
 
   function save(){ if(!isGuru()){ render(); return; } render(); persistLocal(); queueSync(); }
 
-  // ---- Login guru ----
-  function loginModal(){
+  // ---- Login guru / petugas ----
+  function loginModal(kind){
     var hdr = {'Content-Type':'text/plain;charset=utf-8'};
+    var isG = kind==='guru';
+    var label = isG ? 'GURU' : 'PETUGAS';
+    var loginAction = isG ? 'login' : 'login_staff';
+    var localKey = isG ? 'localPw' : 'localStaffPw';
     if(hasApi()){
-      openModal('MASUK SEBAGAI GURU', 'Kata sandi diperiksa oleh server (Google Apps Script).',
-        [{name:'pw', label:'Kata sandi guru', type:'password'}],
+      openModal('MASUK SEBAGAI '+label, 'Kata sandi diperiksa oleh server (Google Apps Script).',
+        [{name:'pw', label:'Kata sandi '+label.toLowerCase(), type:'password'}],
         function(v){
           if(!v.pw) return;
-          fetch(apiUrl(), {method:'POST', headers:hdr, body:JSON.stringify({action:'login', password:v.pw})})
+          fetch(apiUrl(), {method:'POST', headers:hdr, body:JSON.stringify({action:loginAction, password:v.pw})})
             .then(function(r){ return r.json(); })
             .then(function(res){
               if(res && res.ok){
@@ -1030,26 +1064,26 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
                   if(keep && state.menus.some(function(m){ return m.id===keep; })) state.activeMenu = keep;
                   persistLocal();
                 }
-                fullLoaded = true;
-                setRole('guru', v.pw);
+                fullLoaded = isG; // versi petugas tetap versi tersaring, bukan data lengkap
+                setRole(kind, v.pw);
               }
-              else alert('Kata sandi salah, atau Code.gs di server belum diperbarui ke versi yang mendukung peran guru.');
+              else alert('Kata sandi salah, atau Code.gs di server belum diperbarui ke versi yang mendukung peran '+label.toLowerCase()+'.');
             })
             .catch(function(){ alert('Tidak dapat menghubungi mainframe. Periksa koneksi internet dan URL Web App.'); });
         }, 'MASUK');
-    } else if(!config.localPw){
-      openModal('BUAT KATA SANDI GURU', 'Mode lokal (belum terhubung ke Apps Script): kata sandi hanya disimpan di browser ini dan tidak mengamankan data dari orang lain yang memakai browser yang sama.',
+    } else if(!config[localKey]){
+      openModal('BUAT KATA SANDI '+label, 'Mode lokal (belum terhubung ke Apps Script): kata sandi hanya disimpan di browser ini dan tidak mengamankan data dari orang lain yang memakai browser yang sama.',
         [{name:'pw', label:'Kata sandi baru', type:'password'}],
         function(v){
           if(!v.pw) return;
-          config.localPw = hashPw(v.pw); persistConfig();
-          setRole('guru', '');
+          config[localKey] = hashPw(v.pw); persistConfig();
+          setRole(kind, '');
         }, 'SIMPAN & MASUK');
     } else {
-      openModal('MASUK SEBAGAI GURU', null,
-        [{name:'pw', label:'Kata sandi guru', type:'password'}],
+      openModal('MASUK SEBAGAI '+label, null,
+        [{name:'pw', label:'Kata sandi '+label.toLowerCase(), type:'password'}],
         function(v){
-          if(hashPw(v.pw||'')===config.localPw){ setRole('guru', ''); }
+          if(hashPw(v.pw||'')===config[localKey]){ setRole(kind, ''); }
           else alert('Kata sandi salah.');
         }, 'MASUK');
     }
