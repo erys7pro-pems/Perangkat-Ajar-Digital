@@ -338,6 +338,57 @@
   .tabel-siswa tr.rendah td.nama-siswa{ color: var(--red); }
   .tabel-siswa tr.rendah td.nama-siswa::before{ content: "⚠ "; }
 
+  .peringatan-panel{
+    background: rgba(255,77,106,.06);
+    border: 1px solid rgba(255,77,106,.4);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    margin-bottom: 16px;
+    position: relative;
+  }
+  .peringatan-panel::before{
+    content: ""; position: absolute; top: -1px; left: -1px;
+    width: 14px; height: 14px;
+    border-top: 2px solid var(--red); border-left: 2px solid var(--red);
+  }
+  .peringatan-judul{
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--red);
+    margin-bottom: 8px;
+  }
+  .peringatan-desc{
+    font-size: 12.5px;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+    line-height: 1.5;
+  }
+  .peringatan-row{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 0;
+    border-top: 1px solid rgba(255,77,106,.15);
+    flex-wrap: wrap;
+  }
+  .peringatan-nama{
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 13.5px;
+    color: var(--red);
+  }
+  .peringatan-kelas{
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    color: var(--text);
+    background: rgba(255,77,106,.1);
+    padding: 3px 9px;
+    border-radius: 999px;
+  }
+
   .ringkasan-panel{
     background: var(--panel);
     border: 1px solid var(--border);
@@ -463,6 +514,7 @@
     <div id="hasilKehadiran"></div>
 
     <div class="tingkat-heading">Kuis Harian</div>
+    <div id="peringatanKuis"></div>
     <div id="ringkasanKuis"></div>
     <div id="hasilKuis"></div>
   </div>
@@ -477,6 +529,7 @@
   const hasil = document.getElementById('hasil');
   const hasilKehadiran = document.getElementById('hasilKehadiran');
   const ringkasanKuis = document.getElementById('ringkasanKuis');
+  const peringatanKuis = document.getElementById('peringatanKuis');
   const hasilKuis = document.getElementById('hasilKuis');
   const refreshBtn = document.getElementById('refreshBtn');
 
@@ -491,6 +544,7 @@
     hasilKehadiran.innerHTML = '';
     hasilKuis.innerHTML = '';
     ringkasanKuis.innerHTML = '';
+    peringatanKuis.innerHTML = '';
 
     try {
       const res = await fetch(`${APPS_SCRIPT_URL}?action=dashboard`);
@@ -535,6 +589,10 @@
       } else {
         cacheKuis = daftarKuis;
         cacheKehadiranUntukKuis = daftarKehadiran;
+
+        const bentrok = cekKonsistensiSiswaKuis(daftarKuis);
+        peringatanKuis.innerHTML = buatPeringatanSiswa(bentrok);
+
         ringkasanKuis.innerHTML = buatRingkasanKuisShell();
         pasangKontrolRingkasan();
         renderBarisRingkasanKuis();
@@ -732,6 +790,42 @@
         </div>
       `;
     }).join('');
+  }
+
+  function cekKonsistensiSiswaKuis(daftarKuis) {
+    const petaSiswa = {}; // key ternormalisasi -> { nama asli, set kelas }
+
+    daftarKuis.forEach(k => {
+      (k.siswa || []).forEach(s => {
+        const key = (s.nama || '').trim().toLowerCase().replace(/\s+/g, ' ');
+        if (!key) return;
+        if (!petaSiswa[key]) petaSiswa[key] = { nama: s.nama, kelas: new Set() };
+        petaSiswa[key].kelas.add(k.kelas);
+      });
+    });
+
+    return Object.values(petaSiswa)
+      .filter(p => p.kelas.size > 1)
+      .map(p => ({ nama: p.nama, kelas: [...p.kelas].sort() }));
+  }
+
+  function buatPeringatanSiswa(daftarBentrok) {
+    if (daftarBentrok.length === 0) return '';
+
+    const baris = daftarBentrok.map(p => `
+      <div class="peringatan-row">
+        <span class="peringatan-nama">⚠ ${p.nama}</span>
+        <span>${p.kelas.map(k => `<span class="peringatan-kelas">${k}</span>`).join(' ')}</span>
+      </div>
+    `).join('');
+
+    return `
+      <div class="peringatan-panel">
+        <div class="peringatan-judul">⚠ Data Tidak Konsisten Terdeteksi</div>
+        <div class="peringatan-desc">${daftarBentrok.length} nama siswa muncul di data Kuis Harian untuk lebih dari satu kelas. Kemungkinan penyebab: penulisan nama kelas tidak konsisten, salah pilih Jadwal Pertemuan saat input, atau siswa memang pindah kelas. Periksa sheet "Kuis Harian" untuk memastikan.</div>
+        ${baris}
+      </div>
+    `;
   }
 
   function buatKartuKuis(k) {
