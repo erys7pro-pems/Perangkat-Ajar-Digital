@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>J.A.R.V.I.S. · Buku Nilai Biologi XI</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Rajdhani:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#030d18;--panel:#071a2b;--line:#12496b;--cy:#5ce1ff;--cy2:#2a9fc4;--am:#ffb43c;--gr:#7dffb0;--tx:#d4f1fb;--mut:#7ea9bd;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:radial-gradient(1200px 600px at 50% -10%,#0a2c47 0,var(--bg) 60%) var(--bg);color:var(--tx);font:500 16px/1.45 Rajdhani,"Segoe UI",sans-serif;min-height:100vh}
+h1,h2,.num{font-family:Orbitron,"Segoe UI",sans-serif;font-weight:700;letter-spacing:.04em;margin:0}
+main{max-width:1100px;margin:0 auto;padding:20px 16px 40px}
+header{display:flex;gap:18px;align-items:center;flex-wrap:wrap;padding-bottom:16px;border-bottom:1px solid var(--line)}
+.reactor{width:76px;height:76px;flex:none}
+.ring{transform-origin:50px 50px;animation:spin 14s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.ring{animation:none}}
+h1{font-size:clamp(20px,4vw,30px);color:var(--cy)}
+.meta{color:var(--mut);margin:4px 0 0}.meta b{color:var(--tx);font-weight:600}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:18px 0}
+.stat{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--cy);padding:12px 14px}
+.stat.g{border-left-color:var(--gr)}.stat.w{border-left-color:var(--am)}
+.stat .num{font-size:26px;color:var(--cy)}.stat.g .num{color:var(--gr)}.stat.w .num{color:var(--am)}
+.stat span{color:var(--mut)}
+section{background:var(--panel);border:1px solid var(--line);padding:16px;margin-bottom:16px}
+h2{font-size:15px;color:var(--cy);margin-bottom:12px}
+ul{margin:0;padding:0;list-style:none;display:grid;gap:8px}
+li{border-left:2px solid var(--line);padding-left:12px;max-width:80ch}
+li b{color:var(--cy);font-weight:600}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+button,input{font:inherit;color:var(--tx);background:#04111d;border:1px solid var(--line);padding:7px 12px;border-radius:2px}
+button{cursor:pointer}button:hover{border-color:var(--cy)}
+button.on{background:var(--cy);color:#02202e;border-color:var(--cy);font-weight:600}
+:focus-visible{outline:2px solid #fff;outline-offset:2px}
+input{flex:1;min-width:160px}
+.chart{display:flex;overflow-x:auto;padding-top:6px}
+.col{flex:1 0 42px;display:flex;flex-direction:column;align-items:center;background:none;border:0;padding:0 3px}
+.bars{position:relative;height:200px;width:100%;display:flex;flex-direction:column;justify-content:flex-end}
+.bars::after{content:"";position:absolute;left:-3px;right:-3px;bottom:152px;border-top:1px dashed var(--am);opacity:.8}
+.bars i{display:block;width:100%}
+.base{background:linear-gradient(var(--cy),var(--cy2))}.base.lo{background:linear-gradient(var(--am),#b8741a)}
+.add{background:var(--gr)}
+.ghost{border:1px dashed var(--am);border-bottom:0;background:none}
+.col em{font:normal 600 13px Rajdhani;margin-top:4px}
+.col small{font-size:12px;color:var(--mut)}
+.col.sel .bars{outline:1px solid #fff}
+.legend{display:flex;gap:6px 16px;flex-wrap:wrap;color:var(--mut);font-size:14px;margin-top:10px}
+.legend b{display:inline-block;width:10px;height:10px;margin-right:5px;background:var(--cy)}
+.legend .a{background:var(--am)}.legend .g{background:var(--gr)}.legend .d{background:none;border:1px dashed var(--am)}
+.wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:820px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid #0e3550;white-space:nowrap}
+th{color:var(--cy);cursor:pointer;user-select:none;font-weight:600}
+tr.row{cursor:pointer}tr.row:hover td,tr.sel td{background:#0b2a42}
+.tag{padding:2px 8px;border:1px solid;font-size:14px}
+.tag.l{color:var(--cy);border-color:var(--cy2)}.tag.t{color:var(--gr);border-color:var(--gr)}.tag.r{color:var(--am);border-color:var(--am)}
+#detail{display:none}#detail.open{display:block;border-color:var(--cy)}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:10px}
+.kv div{border-left:2px solid var(--line);padding-left:10px}
+.kv span{display:block;color:var(--mut);font-size:14px}.kv b{font-size:20px;font-weight:600}
+.empty{color:var(--mut);padding:16px 0}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <svg class="reactor" viewBox="0 0 100 100" aria-hidden="true">
+    <circle cx="50" cy="50" r="44" fill="none" stroke="#12496b" stroke-width="2"/>
+    <g class="ring" stroke="#5ce1ff" stroke-width="3" fill="none"><path d="M50 6a44 44 0 0 1 38 22"/><path d="M94 50a44 44 0 0 1-22 38"/><path d="M50 94a44 44 0 0 1-38-22"/><path d="M6 50a44 44 0 0 1 22-38"/></g>
+    <circle cx="50" cy="50" r="26" fill="none" stroke="#2a9fc4" stroke-width="2"/>
+    <circle cx="50" cy="50" r="14" fill="#5ce1ff" opacity=".9"/>
+  </svg>
+  <div>
+    <h1>BUKU NILAI BIOLOGI · KELAS XI</h1>
+    <p class="meta">MAN Insan Cendekia Lampung Timur · <b>Kelas gabungan 11 A + 11 D</b> (mapel pilihan) · Semester 1 · TP 2026-2027 · Guru: Ery Santosa, S.Pd.</p>
+    <p class="meta">Asesmen <b>PHB 1</b> · nilai minimal tuntas <b>76</b> · PHB 2 belum terlaksana</p>
+  </div>
+</header>
+
+<div class="stats" id="stats"></div>
+
+<section><h2>RINGKASAN PHB 1</h2><ul id="sum"></ul></section>
+
+<section>
+  <h2>PHB 1 PER MURID</h2>
+  <div class="chart" id="chart"></div>
+  <div class="legend">
+    <span><b></b>PHB 1 asli ≥ 76</span><span><b class="a"></b>PHB 1 asli &lt; 76</span>
+    <span><b class="g"></b>Tambahan kuis</span><span><b class="d"></b>Kuis tersedia, tetap belum cukup</span>
+    <span>Garis putus-putus = 76 · klik batang untuk detail</span>
+  </div>
+</section>
+
+<section id="detail" aria-live="polite"></section>
+
+<section>
+  <h2>DATA MURID</h2>
+  <div class="bar" id="filters">
+    <button data-k="Semua">Semua</button><button data-k="11 A">11 A</button><button data-k="11 D">11 D</button>
+    <button data-s="aman">Tuntas dari nilai asli</button><button data-s="tambah">Tuntas dengan kuis</button><button data-s="kurang">Belum tuntas</button>
+    <input id="q" type="search" placeholder="Cari nama murid…" aria-label="Cari nama murid">
+  </div>
+  <div class="wrap"><table>
+    <thead><tr>
+      <th data-c="n">No</th><th data-c="nama">Nama</th><th data-c="kelas">Kelas</th>
+      <th data-c="nilai">PHB 1 asli</th><th data-c="kuis">Kuis harian</th><th data-c="tambah">Ditambahkan</th>
+      <th data-c="akhir">PHB 1 akhir</th><th data-c="sel">Selisih ke 76</th><th data-c="rank">Keterangan</th>
+    </tr></thead>
+    <tbody id="tb"></tbody>
+  </table></div>
+  <div class="empty" id="empty" hidden>Tidak ada murid yang cocok. Ubah filter atau kata pencarian.</div>
+</section>
+</main>
+
+<script>
+const MIN=76;
+// no, nama, kelas, PHB 1 asli, kuis harian
+const D=[
+[1,"Abdalmighty Ahmad Syaffathino","11 A",86,19],[2,"Amara Nurkhaulani","11 A",81,4.5],
+[3,"Ashila Shofia Nasywa","11 A",78,6.5],[4,"Aurellia Adani","11 A",81,4],
+[5,"Azka Faeyza Alfarid","11 A",72,15.5],[6,"Azka Nawwafa Amani","11 A",78,2],
+[7,"Echa Navalin Dexa","11 A",69,0],[8,"Faeyza Nasywa Ashari","11 A",86,2],
+[9,"Falih Fadhlurrohman","11 A",75,5.5],[10,"Fatimatuzzahra Putri Praya","11 A",89,22.5],
+[11,"Lailatul Fitroh","11 A",72,3],[12,"Mecha Mar'Atus Soleha","11 A",86,6],
+[13,"Muhammad Alden Arrafi","11 A",81,1.5],[14,"Muhammad Fakhri Kamal","11 A",56,5],
+[15,"Muhammad Yusuf Farras Yuliansyah","11 A",69,1],[16,"Daffa Hazim Rafeyfa","11 D",50,2],
+[17,"Fakhri Akbar Lesmana","11 D",61,6.5],[18,"Farah Aulia Anggraini","11 D",61,0],
+[19,"Fathir Rizky Aditya","11 D",72,4],[20,"Ghifari Fajar Efendi","11 D",64,1.5],
+[21,"Khansa Tsabita","11 D",86,0],[22,"Mutia Ahsana Amala","11 D",69,4],
+[23,"Syahdan Alvaro Juan","11 D",67,6],[24,"Wahib Kaamil","11 D",58,11.5]
+].map(([n,nama,kelas,nilai,kuis])=>{
+  let cat="kurang",tambah=0;
+  if(nilai>=MIN)cat="aman";else if(nilai+kuis>=MIN){cat="tambah";tambah=MIN-nilai}
+  const akhir=nilai+tambah;
+  return{n,nama,kelas,nilai,kuis,cat,tambah,akhir,sisa:kuis-tambah,sel:akhir-MIN,gap:MIN-nilai-kuis,rank:{aman:0,tambah:1,kurang:2}[cat]};
+});
+const CAT={aman:["Tuntas dari nilai asli","l"],tambah:["Tuntas dengan kuis","t"],kurang:["Belum tuntas","r"]};
+const $=id=>document.getElementById(id);
+const fmt=v=>String(Math.round(v*10)/10).replace(".",",");
+const sum=(a,f)=>a.reduce((s,x)=>s+f(x),0);
+const by=c=>D.filter(d=>d.cat===c);
+let kelas="Semua",cat="",q="",sortC="n",asc=true,sel=null;
+
+function renderTop(){
+  const A=by("aman"),T=by("tambah"),K=by("kurang");
+  const items=[
+    [D.length,"Total murid (15 dari 11 A, 9 dari 11 D)",""],
+    [fmt(sum(D,d=>d.nilai)/D.length),"Rata-rata PHB 1 asli",""],
+    [fmt(sum(D,d=>d.akhir)/D.length),"Rata-rata setelah tambahan kuis",""],
+    [A.length,"Tuntas dari nilai asli",""],
+    [T.length,"Tuntas dengan tambahan kuis","g"],
+    [K.length,"Belum tuntas","w"],
+    [fmt(sum(D,d=>d.tambah)),"Poin kuis terpakai","g"],
+    [fmt(sum(A.concat(T),d=>d.sisa)),"Poin kuis cadangan (murid tuntas)",""]
+  ];
+  $("stats").innerHTML=items.map(i=>`<div class="stat ${i[2]}"><div class="num">${i[0]}</div><span>${i[1]}</span></div>`).join("");
+  const near=K.slice().sort((a,b)=>a.gap-b.gap),far=near[near.length-1];
+  const kl=k=>{const s=D.filter(d=>d.kelas===k);const c=x=>s.filter(d=>d.cat===x).length;return `<b>${k}</b>: ${c("aman")} tuntas asli, ${c("tambah")} dengan kuis, ${c("kurang")} belum tuntas`};
+  $("sum").innerHTML=[
+    `<b>${A.length} murid</b> sudah mencapai 76 dari PHB 1 asli, jadi kuis mereka tidak dipakai. Total ${fmt(sum(A,d=>d.kuis))} poin kuis tersimpan sebagai cadangan asesmen berikutnya.`,
+    `<b>${T.length} murid</b> ditambah kuis hingga tepat 76: ${T.map(d=>`${d.nama} (asli ${d.nilai}, +${d.tambah})`).join("; ")}.`,
+    `<b>${K.length} murid</b> tidak ditambah kuis karena PHB 1 asli ditambah seluruh kuisnya tetap di bawah 76. Kekurangan terkecil: ${near[0].nama}, ${fmt(near[0].gap)} poin lagi. Terbesar: ${far.nama}, ${fmt(far.gap)} poin lagi.`,
+    `${kl("11 A")}; ${kl("11 D")}.`
+  ].map(t=>`<li>${t}</li>`).join("");
+}
+
+function view(){
+  return D.filter(d=>(kelas==="Semua"||d.kelas===kelas)&&(!cat||d.cat===cat)&&d.nama.toLowerCase().includes(q))
+    .sort((a,b)=>{const x=a[sortC],y=b[sortC];return(x>y?1:x<y?-1:0)*(asc?1:-1)});
+}
+const sg=v=>v>0?"+"+fmt(v):v<0?"−"+fmt(-v):"0";
+
+function render(){
+  const r=view();
+  $("tb").innerHTML=r.map(d=>`<tr class="row ${sel===d.n?"sel":""}" data-n="${d.n}" tabindex="0">
+    <td>${d.n}</td><td>${d.nama}</td><td>${d.kelas}</td><td>${d.nilai}</td><td>${fmt(d.kuis)}</td>
+    <td>${d.tambah?"+"+d.tambah:"–"}</td><td>${d.akhir}</td><td>${sg(d.sel)}</td>
+    <td><span class="tag ${CAT[d.cat][1]}">${CAT[d.cat][0]}</span></td></tr>`).join("");
+  $("empty").hidden=r.length>0;
+  $("chart").innerHTML=r.slice().sort((a,b)=>b.nilai-a.nilai).map(d=>`<button class="col ${sel===d.n?"sel":""}" data-n="${d.n}" aria-label="${d.nama}, PHB 1 asli ${d.nilai}, akhir ${d.akhir}">
+    <div class="bars">${d.cat==="kurang"&&d.kuis?`<i class="ghost" style="height:${d.kuis*2}px"></i>`:""}${d.tambah?`<i class="add" style="height:${d.tambah*2}px"></i>`:""}<i class="base ${d.nilai<MIN?"lo":""}" style="height:${d.nilai*2}px"></i></div>
+    <em>${d.akhir}</em><small>${d.nama.split(" ")[0]}</small></button>`).join("");
+  document.querySelectorAll("#filters button").forEach(b=>b.classList.toggle("on",b.dataset.k?b.dataset.k===kelas:b.dataset.s===cat));
+  detail();
+}
+
+function detail(){
+  const el=$("detail"),d=D.find(x=>x.n===sel);
+  if(!d){el.className="";el.innerHTML="";return}
+  const note={
+    aman:"Sudah mencapai 76 dari nilai asli, kuis tidak dipakai dan menjadi cadangan asesmen berikutnya.",
+    tambah:`Nilai asli kurang ${MIN-d.nilai} poin, ditambah kuis ${d.tambah} hingga tepat 76. Sisa kuis ${fmt(d.sisa)} poin.`,
+    kurang:`Nilai asli ditambah seluruh kuis = ${fmt(d.nilai+d.kuis)}, masih kurang ${fmt(d.gap)} poin dari 76, sehingga kuis tidak ditambahkan.`
+  }[d.cat];
+  el.className="open";
+  el.innerHTML=`<h2>${d.nama.toUpperCase()} · ${d.kelas}</h2><div class="kv">
+    <div><span>PHB 1 asli</span><b>${d.nilai}</b></div><div><span>Kuis harian</span><b>${fmt(d.kuis)}</b></div>
+    <div><span>Ditambahkan</span><b>${d.tambah?"+"+d.tambah:"–"}</b></div><div><span>PHB 1 akhir</span><b>${d.akhir}</b></div>
+    <div><span>Sisa kuis</span><b>${fmt(d.sisa)}</b></div><div><span>Keterangan</span><b>${CAT[d.cat][0]}</b></div></div><div>${note}</div>`;
+}
+
+const pick=n=>{sel=sel===n?null:n;render()};
+document.addEventListener("click",e=>{
+  const t=e.target.closest("[data-n]");if(t)return pick(+t.dataset.n);
+  const f=e.target.closest("#filters button");
+  if(f){if(f.dataset.k)kelas=f.dataset.k;else cat=cat===f.dataset.s?"":f.dataset.s;render();return}
+  const h=e.target.closest("th");
+  if(h){const c=h.dataset.c;asc=sortC===c?!asc:true;sortC=c;render()}
+});
+document.addEventListener("keydown",e=>{if(e.key==="Enter"){const t=e.target.closest("tr[data-n]");if(t)pick(+t.dataset.n)}});
+$("q").addEventListener("input",e=>{q=e.target.value.toLowerCase().trim();render()});
+renderTop();render();
+</script>
+</body>
+</html>
