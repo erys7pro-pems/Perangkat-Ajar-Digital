@@ -62,6 +62,7 @@ tr.row{cursor:pointer}tr.row:hover td,tr.sel td{background:#0b2a42}
 .kv div{border-left:2px solid var(--line);padding-left:10px}
 .kv span{display:block;color:var(--mut);font-size:14px}.kv b{font-size:20px;font-weight:600}
 .empty{color:var(--mut);padding:16px 0}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0 0}.tabs button{padding:9px 16px;font-family:Orbitron,"Segoe UI",sans-serif;font-size:13px}
 </style>
 </head>
 <body>
@@ -75,11 +76,12 @@ tr.row{cursor:pointer}tr.row:hover td,tr.sel td{background:#0b2a42}
   </svg>
   <div>
     <h1>BUKU NILAI BIOLOGI · KELAS XI</h1>
-    <p class="meta">MAN Insan Cendekia Lampung Timur · <b>Kelas gabungan 11 A + 11 D</b> (mapel pilihan) · Semester 1 · TP 2026-2027 · Guru: Ery Santosa, S.Pd.</p>
+    <p class="meta">MAN Insan Cendekia Lampung Timur · <b id="kl"></b> · Semester 1 · TP 2026-2027 · Guru: Ery Santosa, S.Pd.</p>
     <p class="meta">Asesmen <b>PHB 1</b> · nilai minimal tuntas <b>76</b> · PHB 2 belum terlaksana</p>
   </div>
 </header>
 
+<nav class="tabs" id="tabs"></nav>
 <div class="stats" id="stats"></div>
 
 <section><h2>RINGKASAN PHB 1</h2><ul id="sum"></ul></section>
@@ -98,9 +100,8 @@ tr.row{cursor:pointer}tr.row:hover td,tr.sel td{background:#0b2a42}
 
 <section>
   <h2>DATA MURID</h2>
-  <div class="bar" id="filters">
-    <button data-k="Semua">Semua</button><button data-k="11 A">11 A</button><button data-k="11 D">11 D</button>
-    <button data-s="aman">Tuntas dari nilai asli</button><button data-s="tambah">Tuntas dengan kuis</button><button data-s="kurang">Belum tuntas</button>
+  <div class="bar" id="filters"><span id="kb" style="display:contents"></span>
+        <button data-s="aman">Tuntas dari nilai asli</button><button data-s="tambah">Tuntas dengan kuis</button><button data-s="kurang">Belum tuntas</button>
     <input id="q" type="search" placeholder="Cari nama murid…" aria-label="Cari nama murid">
   </div>
   <div class="wrap"><table>
@@ -117,70 +118,135 @@ tr.row{cursor:pointer}tr.row:hover td,tr.sel td{background:#0b2a42}
 
 <script>
 const MIN=76;
-// no, nama, kelas, PHB 1 asli, kuis harian
+// kelompok, no absen, nama, kelas, PHB 1 asli, kuis harian
 const D=[
-[1,"Abdalmighty Ahmad Syaffathino","11 A",86,19],[2,"Amara Nurkhaulani","11 A",81,4.5],
-[3,"Ashila Shofia Nasywa","11 A",78,6.5],[4,"Aurellia Adani","11 A",81,4],
-[5,"Azka Faeyza Alfarid","11 A",72,15.5],[6,"Azka Nawwafa Amani","11 A",78,2],
-[7,"Echa Navalin Dexa","11 A",69,0],[8,"Faeyza Nasywa Ashari","11 A",86,2],
-[9,"Falih Fadhlurrohman","11 A",75,5.5],[10,"Fatimatuzzahra Putri Praya","11 A",89,22.5],
-[11,"Lailatul Fitroh","11 A",72,3],[12,"Mecha Mar'Atus Soleha","11 A",86,6],
-[13,"Muhammad Alden Arrafi","11 A",81,1.5],[14,"Muhammad Fakhri Kamal","11 A",56,5],
-[15,"Muhammad Yusuf Farras Yuliansyah","11 A",69,1],[16,"Daffa Hazim Rafeyfa","11 D",50,2],
-[17,"Fakhri Akbar Lesmana","11 D",61,6.5],[18,"Farah Aulia Anggraini","11 D",61,0],
-[19,"Fathir Rizky Aditya","11 D",72,4],[20,"Ghifari Fajar Efendi","11 D",64,1.5],
-[21,"Khansa Tsabita","11 D",86,0],[22,"Mutia Ahsana Amala","11 D",69,4],
-[23,"Syahdan Alvaro Juan","11 D",67,6],[24,"Wahib Kaamil","11 D",58,11.5]
-].map(([n,nama,kelas,nilai,kuis])=>{
+["AD",1,"Abdalmighty Ahmad Syaffathino","11 A",86,19],
+["AD",2,"Amara Nurkhaulani","11 A",81,4.5],
+["AD",3,"Ashila Shofia Nasywa","11 A",78,6.5],
+["AD",4,"Aurellia Adani","11 A",81,4],
+["AD",5,"Azka Faeyza Alfarid","11 A",72,15.5],
+["AD",6,"Azka Nawwafa Amani","11 A",78,2],
+["AD",7,"Echa Navalin Dexa","11 A",69,0],
+["AD",8,"Faeyza Nasywa Ashari","11 A",86,2],
+["AD",9,"Falih Fadhlurrohman","11 A",75,5.5],
+["AD",10,"Fatimatuzzahra Putri Praya","11 A",89,22.5],
+["AD",11,"Lailatul Fitroh","11 A",72,3],
+["AD",12,"Mecha Mar'Atus Soleha","11 A",86,6],
+["AD",13,"Muhammad Alden Arrafi","11 A",81,1.5],
+["AD",14,"Muhammad Fakhri Kamal","11 A",56,5],
+["AD",15,"Muhammad Yusuf Farras Yuliansyah","11 A",69,1],
+["AD",16,"Daffa Hazim Rafeyfa","11 D",50,2],
+["AD",17,"Fakhri Akbar Lesmana","11 D",61,6.5],
+["AD",18,"Farah Aulia Anggraini","11 D",61,0],
+["AD",19,"Fathir Rizky Aditya","11 D",72,4],
+["AD",20,"Ghifari Fajar Efendi","11 D",64,1.5],
+["AD",21,"Khansa Tsabita","11 D",86,0],
+["AD",22,"Mutia Ahsana Amala","11 D",69,4],
+["AD",23,"Syahdan Alvaro Juan","11 D",67,6],
+["AD",24,"Wahib Kaamil","11 D",58,11.5],
+["B",1,"Aisyah Az Zahra","11 B",58,1],
+["B",2,"Ajeng Triadianti","11 B",75,7.5],
+["B",3,"Alifa Dzatil Izzah","11 B",61,0],
+["B",4,"Anedza Wali Dipajuga","11 B",75,3.5],
+["B",5,"Arifah Fitri Hanifayanti Susilo","11 B",78,3],
+["B",6,"Assyifa Zahra Khairunnisa","11 B",78,11],
+["B",7,"Chalista Chalwa Mu'Nisa","11 B",78,1],
+["B",8,"Emira Giza Humaira","11 B",83,1],
+["B",9,"Hafiza Khaira Lubna","11 B",81,9],
+["B",10,"Javier Zhafran Habibie","11 B",58,1],
+["B",11,"Keysha Amirasyifa Sopwan","11 B",75,12],
+["B",12,"Lutfhia Al Zafiraa","11 B",89,10],
+["B",13,"Muhammad Alfian Saputra","11 B",56,1.5],
+["B",14,"Nadihan Bima Saktia Nugraha","11 B",53,2],
+["B",15,"Neda Kalia Alfaqi","11 B",72,20],
+["B",16,"Okseha Rojiza Walafia","11 B",72,1.5],
+["B",17,"Rasya Herian Candra","11 B",58,20],
+["B",18,"Rizkia Asly Syifadini","11 B",81,2],
+["B",19,"Ruby 'Aqila Badridduja","11 B",81,9],
+["B",20,"Sabrina Rahma Syarifa","11 B",67,0],
+["B",21,"Suci Wulandari","11 B",81,2],
+["B",22,"Syahroza Farras Shofa","11 B",81,9],
+["B",23,"Taqy Azzam Alghani Erlangga","11 B",72,5],
+["C",1,"Adyan Arkaan Atallah","11 C",69,15.5],
+["C",2,"Afham Ariya Wicaksana","11 C",75,4],
+["C",3,"Aline Ikhtiari Purnomo","11 C",69,3.5],
+["C",4,"Arhasan Aditya Raya Gani Putra","11 C",50,0],
+["C",5,"Azka Abimanyu Ibadurrahman","11 C",67,9.5],
+["C",6,"Hafidh Fakhri Arfadhia","11 C",78,9],
+["C",7,"Hayu Artaneisya","11 C",64,2.5],
+["C",8,"Ilham Falah Maulana","11 C",50,1.5],
+["C",9,"Jely Ananta Karena","11 C",61,1],
+["C",10,"Keisya Faiha Andzalna","11 C",83,2.5],
+["C",11,"Khansa Khairina Uzma","11 C",83,22.5],
+["C",12,"Labibah Mufida Hamid","11 C",75,2.5],
+["C",13,"M. Pijar Rakha Farant","11 C",75,8],
+["C",14,"Muhammad Athir Rizqullah Arrazy","11 C",61,16.5],
+["C",15,"Muhammad Sahril Adilla","11 C",56,6],
+["C",16,"Nashwa Alikha Krisanti","11 C",75,1.5],
+["C",17,"Nayla Syarifa Herlisto","11 C",67,0],
+["C",18,"Roid Nawwar Khalish","11 C",72,2],
+["C",19,"Tsabithah Nurul Athifah","11 C",78,8],
+["C",20,"Yusuf Rafif Zamzami","11 C",69,7],
+["C",21,"Zhafira Adelia Putri","11 C",89,14],
+["C",22,"Zulva Aulia","11 C",64,4]
+].map(([grp,n,nama,kelas,nilai,kuis],id)=>{
   let cat="kurang",tambah=0;
   if(nilai>=MIN)cat="aman";else if(nilai+kuis>=MIN){cat="tambah";tambah=MIN-nilai}
   const akhir=nilai+tambah;
-  return{n,nama,kelas,nilai,kuis,cat,tambah,akhir,sisa:kuis-tambah,sel:akhir-MIN,gap:MIN-nilai-kuis,rank:{aman:0,tambah:1,kurang:2}[cat]};
+  return{id,grp,n,nama,kelas,nilai,kuis,cat,tambah,akhir,sisa:kuis-tambah,sel:akhir-MIN,gap:MIN-nilai-kuis,rank:{aman:0,tambah:1,kurang:2}[cat]};
 });
 const CAT={aman:["Tuntas dari nilai asli","l"],tambah:["Tuntas dengan kuis","t"],kurang:["Belum tuntas","r"]};
 const $=id=>document.getElementById(id);
 const fmt=v=>String(Math.round(v*10)/10).replace(".",",");
 const sum=(a,f)=>a.reduce((s,x)=>s+f(x),0);
-const by=c=>D.filter(d=>d.cat===c);
-let kelas="Semua",cat="",q="",sortC="n",asc=true,sel=null;
+const by=c=>P.filter(d=>d.cat===c);
+let kelas="Semua",cat="",q="",sortC="n",asc=true,sel=null,tab="AD",P=[];
+const TABS={AD:["Gabungan 11 A + 11 D","Kelas gabungan 11 A + 11 D (mapel pilihan)","kelas gabungan 11 A + 11 D"],B:["11 B","Kelas 11 B","kelas 11 B"],C:["11 C","Kelas 11 C","kelas 11 C"],ALL:["Semua kelas","Semua kelas XI (A + D, B, C)","semua kelas"]};
+function setTab(t){
+  tab=t;kelas="Semua";cat="";sel=null;P=t==="ALL"?D:D.filter(d=>d.grp===t);
+  $("tabs").innerHTML=Object.keys(TABS).map(k=>`<button data-t="${k}" class="${k===t?"on":""}">${TABS[k][0]}</button>`).join("");
+  $("kl").textContent=TABS[t][1];
+  const ks=[...new Set(P.map(d=>d.kelas))];
+  $("kb").innerHTML=ks.length>1?["Semua",...ks].map(k=>`<button data-k="${k}">${k}</button>`).join(""):"";
+  renderTop();render();
+}
 
 function renderTop(){
-  const A=by("aman"),T=by("tambah"),K=by("kurang");
+  const ks2=[...new Set(P.map(d=>d.kelas))];const A=by("aman"),T=by("tambah"),K=by("kurang");
   const items=[
-    [D.length,"Total murid (15 dari 11 A, 9 dari 11 D)",""],
-    [fmt(sum(D,d=>d.nilai)/D.length),"Rata-rata PHB 1 asli",""],
-    [fmt(sum(D,d=>d.akhir)/D.length),"Rata-rata setelah tambahan kuis",""],
+    [P.length,"Total murid ("+TABS[tab][2]+")",""],
+    [fmt(sum(P,d=>d.nilai)/P.length),"Rata-rata PHB 1 asli",""],
+    [fmt(sum(P,d=>d.akhir)/P.length),"Rata-rata setelah tambahan kuis",""],
     [A.length,"Tuntas dari nilai asli",""],
     [T.length,"Tuntas dengan tambahan kuis","g"],
     [K.length,"Belum tuntas","w"],
-    [fmt(sum(D,d=>d.tambah)),"Poin kuis terpakai","g"],
+    [fmt(sum(P,d=>d.tambah)),"Poin kuis terpakai","g"],
     [fmt(sum(A.concat(T),d=>d.sisa)),"Poin kuis cadangan (murid tuntas)",""]
   ];
   $("stats").innerHTML=items.map(i=>`<div class="stat ${i[2]}"><div class="num">${i[0]}</div><span>${i[1]}</span></div>`).join("");
   const near=K.slice().sort((a,b)=>a.gap-b.gap),far=near[near.length-1];
-  const kl=k=>{const s=D.filter(d=>d.kelas===k);const c=x=>s.filter(d=>d.cat===x).length;return `<b>${k}</b>: ${c("aman")} tuntas asli, ${c("tambah")} dengan kuis, ${c("kurang")} belum tuntas`};
+  const kl=k=>{const s=P.filter(d=>d.kelas===k);const c=x=>s.filter(d=>d.cat===x).length;return `<b>${k}</b>: ${c("aman")} tuntas asli, ${c("tambah")} dengan kuis, ${c("kurang")} belum tuntas`};
   $("sum").innerHTML=[
     `<b>${A.length} murid</b> sudah mencapai 76 dari PHB 1 asli, jadi kuis mereka tidak dipakai. Total ${fmt(sum(A,d=>d.kuis))} poin kuis tersimpan sebagai cadangan asesmen berikutnya.`,
     `<b>${T.length} murid</b> ditambah kuis hingga tepat 76: ${T.map(d=>`${d.nama} (asli ${d.nilai}, +${d.tambah})`).join("; ")}.`,
     `<b>${K.length} murid</b> tidak ditambah kuis karena PHB 1 asli ditambah seluruh kuisnya tetap di bawah 76. Kekurangan terkecil: ${near[0].nama}, ${fmt(near[0].gap)} poin lagi. Terbesar: ${far.nama}, ${fmt(far.gap)} poin lagi.`,
-    `${kl("11 A")}; ${kl("11 D")}.`
-  ].map(t=>`<li>${t}</li>`).join("");
+  ].concat(ks2.length>1?[ks2.map(kl).join("; ")+"."]:[]).map(t=>`<li>${t}</li>`).join("");
 }
 
 function view(){
-  return D.filter(d=>(kelas==="Semua"||d.kelas===kelas)&&(!cat||d.cat===cat)&&d.nama.toLowerCase().includes(q))
+  return P.filter(d=>(kelas==="Semua"||d.kelas===kelas)&&(!cat||d.cat===cat)&&d.nama.toLowerCase().includes(q))
     .sort((a,b)=>{const x=a[sortC],y=b[sortC];return(x>y?1:x<y?-1:0)*(asc?1:-1)});
 }
 const sg=v=>v>0?"+"+fmt(v):v<0?"−"+fmt(-v):"0";
 
 function render(){
   const r=view();
-  $("tb").innerHTML=r.map(d=>`<tr class="row ${sel===d.n?"sel":""}" data-n="${d.n}" tabindex="0">
+  $("tb").innerHTML=r.map(d=>`<tr class="row ${sel===d.id?"sel":""}" data-n="${d.id}" tabindex="0">
     <td>${d.n}</td><td>${d.nama}</td><td>${d.kelas}</td><td>${d.nilai}</td><td>${fmt(d.kuis)}</td>
     <td>${d.tambah?"+"+d.tambah:"–"}</td><td>${d.akhir}</td><td>${sg(d.sel)}</td>
     <td><span class="tag ${CAT[d.cat][1]}">${CAT[d.cat][0]}</span></td></tr>`).join("");
   $("empty").hidden=r.length>0;
-  $("chart").innerHTML=r.slice().sort((a,b)=>b.nilai-a.nilai).map(d=>`<button class="col ${sel===d.n?"sel":""}" data-n="${d.n}" aria-label="${d.nama}, PHB 1 asli ${d.nilai}, akhir ${d.akhir}">
+  $("chart").innerHTML=r.slice().sort((a,b)=>b.nilai-a.nilai).map(d=>`<button class="col ${sel===d.id?"sel":""}" data-n="${d.id}" title="${d.nama}" aria-label="${d.nama}, PHB 1 asli ${d.nilai}, akhir ${d.akhir}">
     <div class="bars">${d.cat==="kurang"&&d.kuis?`<i class="ghost" style="height:${d.kuis*2}px"></i>`:""}${d.tambah?`<i class="add" style="height:${d.tambah*2}px"></i>`:""}<i class="base ${d.nilai<MIN?"lo":""}" style="height:${d.nilai*2}px"></i></div>
     <em>${d.akhir}</em><small>${d.nama.split(" ")[0]}</small></button>`).join("");
   document.querySelectorAll("#filters button").forEach(b=>b.classList.toggle("on",b.dataset.k?b.dataset.k===kelas:b.dataset.s===cat));
@@ -188,7 +254,7 @@ function render(){
 }
 
 function detail(){
-  const el=$("detail"),d=D.find(x=>x.n===sel);
+  const el=$("detail"),d=D.find(x=>x.id===sel);
   if(!d){el.className="";el.innerHTML="";return}
   const note={
     aman:"Sudah mencapai 76 dari nilai asli, kuis tidak dipakai dan menjadi cadangan asesmen berikutnya.",
@@ -204,6 +270,7 @@ function detail(){
 
 const pick=n=>{sel=sel===n?null:n;render()};
 document.addEventListener("click",e=>{
+  const tt=e.target.closest("[data-t]");if(tt)return setTab(tt.dataset.t);
   const t=e.target.closest("[data-n]");if(t)return pick(+t.dataset.n);
   const f=e.target.closest("#filters button");
   if(f){if(f.dataset.k)kelas=f.dataset.k;else cat=cat===f.dataset.s?"":f.dataset.s;render();return}
@@ -212,7 +279,7 @@ document.addEventListener("click",e=>{
 });
 document.addEventListener("keydown",e=>{if(e.key==="Enter"){const t=e.target.closest("tr[data-n]");if(t)pick(+t.dataset.n)}});
 $("q").addEventListener("input",e=>{q=e.target.value.toLowerCase().trim();render()});
-renderTop();render();
+setTab("AD");
 </script>
 </body>
 </html>
