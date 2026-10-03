@@ -213,10 +213,13 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
 .modal-overlay.closing .modal,.modal-overlay.closing .lightbox-wrap{opacity:0;transform:scale(.95) translateY(8px);}
 @keyframes grid-switch-in{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
 .panels-grid.menu-switch{animation:grid-switch-in .24s cubic-bezier(.22,.9,.32,1.1);}
+@keyframes app-switch-in{from{opacity:0;transform:translateY(5px) scale(.996);}to{opacity:1;transform:translateY(0) scale(1);}}
+#app.role-switch{animation:app-switch-in .32s cubic-bezier(.22,.9,.32,1.1);}
 @media (prefers-reduced-motion: reduce){
   .modal-overlay,.modal-overlay .modal,.modal-overlay .lightbox-wrap{animation:none !important;transition:none !important;}
   .menu-tab{transition:none !important;}
   .panels-grid.menu-switch{animation:none !important;}
+  #app.role-switch{animation:none !important;}
 }
 .lightbox-overlay{background:rgba(2,5,8,.92);z-index:200;}
 .lightbox-overlay.closing{background-color:rgba(2,5,8,0) !important;}
@@ -338,6 +341,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
   // ---- Peran: 'murid' (hanya lihat), 'petugas' (lihat item yang diizinkan), atau 'guru' (bisa mengubah semua) ----
   var role = 'murid';
   var lastActiveMenu = null; // dipakai render() untuk mendeteksi perpindahan tab menu, agar grid panel dianimasikan hanya saat benar-benar pindah menu
+  var lastRole = null; // dipakai render() untuk mendeteksi login/logout guru & petugas, agar seluruh tampilan beranimasi halus saat peran berganti
   var actorPw = ''; // kata sandi guru ATAU petugas, tergantung peran saat ini
   try{
     var savedRole = sessionStorage.getItem('papan-panel-role');
@@ -684,6 +688,12 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
       var newGrid = app.querySelector('.panels-grid');
       if(newGrid) newGrid.classList.add('menu-switch');
       lastActiveMenu = state.activeMenu;
+    }
+    if(role !== lastRole){
+      app.classList.remove('role-switch');
+      void app.offsetWidth; // paksa reflow supaya animasi terulang walau nama kelasnya sama
+      app.classList.add('role-switch');
+      lastRole = role;
     }
     app.querySelectorAll('[data-switch]').forEach(function(el){ el.addEventListener('click', function(){ state.activeMenu = el.getAttribute('data-switch'); render(); persistLocal(); }); });
     app.querySelectorAll('[data-delmenu]').forEach(function(el){ el.addEventListener('click', function(e){ e.stopPropagation(); delMenu(el.getAttribute('data-delmenu')); }); });
