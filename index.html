@@ -704,6 +704,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     app.querySelectorAll('[data-delsub]').forEach(function(el){ el.addEventListener('click', function(){ delSub(el.getAttribute('data-delsub'), el.getAttribute('data-panel')); }); });
     app.querySelectorAll('[data-movepanel]').forEach(function(el){ el.addEventListener('click', function(){ movePanelPosition(el.getAttribute('data-pid'), el.getAttribute('data-movepanel')==='up'?-1:1); }); });
     app.querySelectorAll('[data-viewsubs]').forEach(function(el){ el.addEventListener('click', function(){ openPanelDetail(el.getAttribute('data-viewsubs')); }); });
+    app.querySelectorAll('[data-editpanel]').forEach(function(el){ el.addEventListener('click', function(){ editPanelModal(el.getAttribute('data-editpanel')); }); });
     app.querySelectorAll('.sub-card img').forEach(function(im){ im.addEventListener('click', function(){ openImageLightbox(im.getAttribute('src')); }); });
     var st = document.getElementById('status-toggle'); if(st) st.addEventListener('click', settingsModal);
     var tt = document.getElementById('theme-toggle'); if(tt) tt.addEventListener('click', toggleTheme);
@@ -844,6 +845,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     return '<div class="panel-card type-info'+(g&&pAcc==='teacher'?' teacher-only':'')+(g&&pAcc==='staff'?' staff-only':'')+'" data-pid="'+p.id+'">'+
       '<div class="panel-head"><div class="panel-head-left">'+(g?'<span class="drag-handle" draggable="true" data-dragpanel="'+p.id+'" title="Seret untuk urutkan">\u283f</span>':'')+'<h3 class="hud-font">'+esc(p.title)+'</h3>'+newTag(p.newAt, panelEff(p))+'</div>'+
       (g?'<div class="panel-head-right">'+visToggle('panel',p.id,pAcc)+
+        '<button class="icon-btn" data-editpanel="'+p.id+'" title="Edit judul panel">\u270e</button>'+
         '<button class="move-btn" data-movepanel="up" data-pid="'+p.id+'" title="Pindah ke atas">\u25b2</button>'+
         '<button class="move-btn" data-movepanel="down" data-pid="'+p.id+'" title="Pindah ke bawah">\u25bc</button>'+
         '<button class="icon-btn" data-delpanel="'+p.id+'">\u00d7</button>'+
@@ -862,7 +864,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     var annAcc = itemAccess(p);
     return '<div class="panel-card type-announcement'+(expired?' expired':'')+(isGuru()&&annAcc==='teacher'?' teacher-only':'')+(isGuru()&&annAcc==='staff'?' staff-only':'')+'">'+
       (fresh?'<div class="new-badge">BARU!</div>':'')+
-      '<div class="panel-head"><h3 class="hud-font">'+esc(p.title)+'</h3>'+(isGuru()?'<div class="panel-head-right">'+visToggle('panel',p.id,annAcc)+'<button class="icon-btn" data-delpanel="'+p.id+'">\u00d7</button></div>':'')+'</div>'+
+      '<div class="panel-head"><h3 class="hud-font">'+esc(p.title)+'</h3>'+(isGuru()?'<div class="panel-head-right">'+visToggle('panel',p.id,annAcc)+'<button class="icon-btn" data-editpanel="'+p.id+'" title="Edit pengumuman">\u270e</button><button class="icon-btn" data-delpanel="'+p.id+'">\u00d7</button></div>':'')+'</div>'+
       '<div class="panel-body">'+
         '<div class="ann-body">'+esc(p.body)+'</div>'+
         '<div class="ann-meta">'+
@@ -1009,6 +1011,30 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
       state.panels.push({id:uid(), menuId:state.activeMenu, type:'announcement', title:v.title, body:v.body, deadline:v.deadline||null, createdAt:Date.now(), newAt:Date.now(), subpanels:[]});
       save();
     });
+  }
+  function editPanelModal(panelId){
+    if(!isGuru()) return;
+    var p = state.panels.find(function(x){ return x.id===panelId; });
+    if(!p) return;
+    if(p.type==='announcement'){
+      openModal('EDIT PANEL PENGUMUMAN', 'Tanda "BARU!" otomatis hilang setelah 3 hari. Setelah lewat batas waktu, pengumuman ditandai "SUDAH DIUMUMKAN".', [
+        {name:'title', label:'Judul pengumuman', placeholder:'Contoh: Libur Nasional', value:p.title},
+        {name:'body', label:'Isi pengumuman', type:'textarea', placeholder:'Tulis isi pengumuman di sini...', value:p.body},
+        {name:'deadline', label:'Batas waktu', type:'date', value:p.deadline||''}
+      ], function(v){
+        if(!v.title) return;
+        p.title = v.title; p.body = v.body; p.deadline = v.deadline||null;
+        save();
+      }, 'SIMPAN PERUBAHAN');
+    } else {
+      openModal('EDIT PANEL', null, [
+        {name:'title', label:'Judul panel', placeholder:'Contoh: Bahan Bacaan', value:p.title}
+      ], function(v){
+        if(!v.title) return;
+        p.title = v.title;
+        save();
+      }, 'SIMPAN PERUBAHAN');
+    }
   }
   function delPanel(id){
     if(!isGuru()) return;
