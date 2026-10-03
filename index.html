@@ -1065,6 +1065,25 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     p.subpanels = p.subpanels.filter(function(s){ return s.id!==subId; });
     save();
   }
+  function editSubModal(panelId, subId, afterSave){
+    if(!isGuru()) return;
+    var p = state.panels.find(function(x){ return x.id===panelId; });
+    if(!p) return;
+    var s = p.subpanels.find(function(x){ return x.id===subId; });
+    if(!s) return;
+    openModal('EDIT SUB-PANEL', null, [
+      {name:'title', label:'Judul', placeholder:'Judul sub-panel', value:s.title},
+      {name:'subtitle', label:'Sub-judul', placeholder:'Opsional', value:s.subtitle},
+      {name:'linkUrl', label:'Hyperlink (URL)', placeholder:'https://...', value:s.linkUrl},
+      {name:'linkLabel', label:'Teks link', placeholder:'Opsional', value:s.linkLabel},
+      {name:'image', label:'URL gambar', placeholder:'https://...jpg', value:s.image}
+    ], function(v){
+      if(!v.title) return;
+      s.title = v.title; s.subtitle = v.subtitle; s.linkUrl = v.linkUrl; s.linkLabel = v.linkLabel; s.image = v.image;
+      save();
+      if(afterSave) afterSave();
+    }, 'SIMPAN PERUBAHAN');
+  }
 
   // ---- Pop-up sub-panel (dibuka lewat tombol "LIHAT SUB-PANEL" di tiap panel) ----
   function subTileHtml(p, s, idx, total){
@@ -1073,7 +1092,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     return '<div class="sub-card sub-tile'+(g&&sAcc==='teacher'?' teacher-only':'')+(g&&sAcc==='staff'?' staff-only':'')+'" data-subid="'+s.id+'">'+
       '<div class="sub-head">'+
         '<div><div class="sub-title">'+esc(s.title)+newTag(s.newAt, panelEff(p) && sAcc==='student')+'</div>'+(s.subtitle?'<div class="sub-subtitle">'+esc(s.subtitle)+'</div>':'')+'</div>'+
-        (g?'<div class="sub-head-right">'+visToggle('sub',s.id,sAcc,p.id)+'<button class="icon-btn" data-delsub="'+s.id+'">\u00d7</button></div>':'')+
+        (g?'<div class="sub-head-right">'+visToggle('sub',s.id,sAcc,p.id)+'<button class="icon-btn" data-editsub="'+s.id+'" title="Edit sub-panel">\u270e</button><button class="icon-btn" data-delsub="'+s.id+'">\u00d7</button></div>':'')+
       '</div>'+
       (s.image?'<img src="'+esc(s.image)+'" alt="">':'')+
       (s.linkUrl?'<a class="sub-link" href="'+esc(s.linkUrl)+'" target="_blank" rel="noopener">'+esc(s.linkLabel||s.linkUrl)+'</a>':'')+
@@ -1105,6 +1124,9 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
       });
       row.querySelectorAll('[data-delsub]').forEach(function(btn){
         btn.addEventListener('click', function(){ delSub(btn.closest('[data-subid]').getAttribute('data-subid'), panelId); refresh(); });
+      });
+      row.querySelectorAll('[data-editsub]').forEach(function(btn){
+        btn.addEventListener('click', function(){ editSubModal(panelId, btn.closest('[data-subid]').getAttribute('data-subid'), refresh); });
       });
       row.querySelectorAll('[data-vis]').forEach(function(el){
         el.addEventListener('click', function(e){ e.stopPropagation(); toggleVisibility(el.getAttribute('data-vis'), el.getAttribute('data-id'), el.getAttribute('data-panel')); refresh(); });
