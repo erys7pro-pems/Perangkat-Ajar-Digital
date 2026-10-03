@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>J.A.R.V.I.S. // Galeri Model 3D</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#080402;--bg-top:#1c0e04;--panel:#140a04;--panel-2:#1d1007;
+  --acc:#ff8a1f;--acc-dim:#9a4f0c;--gold:#ffc766;--red:#ff4d4d;
+  --text:#ffe9d2;--muted:#9a7556;--line:#3a2210;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:radial-gradient(ellipse at top,var(--bg-top),var(--bg) 60%),
+    repeating-linear-gradient(0deg,rgba(255,138,31,.03) 0 1px,transparent 1px 3px);
+  color:var(--text);font-family:'Share Tech Mono',monospace;min-height:100vh;overflow-x:hidden;
+}
+.hud{font-family:'Orbitron',sans-serif}
+header{position:sticky;top:0;z-index:20;background:rgba(8,4,2,.94);border-bottom:1px solid var(--line);padding:12px 16px}
+.bar{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px}
+.brand svg{width:30px;height:30px}
+.core{transform-origin:20px 20px;animation:pulse 2.4s ease-in-out infinite}
+.ring{transform-origin:20px 20px;animation:spin 14s linear infinite}
+h1{margin:0;font-size:15px;letter-spacing:.16em;color:var(--acc);text-shadow:0 0 10px rgba(255,138,31,.55)}
+small{display:block;font-size:10px;color:var(--muted);letter-spacing:.14em}
+.btn{font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:.08em;color:var(--acc);background:var(--panel);
+  border:1px solid var(--acc-dim);padding:9px 14px;cursor:pointer;
+  clip-path:polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px)}
+.btn:hover{background:rgba(255,138,31,.12);box-shadow:0 0 12px rgba(255,138,31,.25)}
+main{max-width:1100px;margin:0 auto;padding:22px 16px 60px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px}
+.card{position:relative;background:var(--panel);border:1px solid var(--line);
+  clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px);
+  animation:rise .4s ease both}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;z-index:2;background:linear-gradient(90deg,var(--acc),transparent 60%)}
+.head{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--line)}
+.head h3{margin:0;font-size:12px;letter-spacing:.06em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.x{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;line-height:1}
+.x:hover{color:var(--red)}
+.thumb{position:relative;aspect-ratio:16/10;background:var(--panel-2);cursor:pointer;overflow:hidden;display:block;width:100%;border:0;padding:0}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block;filter:saturate(.9) contrast(1.05);transition:transform .35s ease}
+.thumb:hover img{transform:scale(1.05)}
+.thumb::after{content:'';position:absolute;inset:0;background:
+  linear-gradient(transparent 60%,rgba(8,4,2,.75)),repeating-linear-gradient(0deg,rgba(255,138,31,.07) 0 1px,transparent 1px 4px);pointer-events:none}
+.fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.fallback svg{width:90px;height:90px;opacity:.7}
+.play{position:absolute;left:50%;top:50%;z-index:3;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;
+  border:2px solid var(--acc);background:rgba(8,4,2,.6);display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 18px rgba(255,138,31,.5);transition:transform .2s}
+.thumb:hover .play{transform:scale(1.12)}
+.play::before{content:'';border-left:15px solid var(--acc);border-top:9px solid transparent;border-bottom:9px solid transparent;margin-left:4px}
+.tag{position:absolute;left:10px;bottom:8px;z-index:3;font-family:'Orbitron',sans-serif;font-size:9px;letter-spacing:.1em;color:var(--gold)}
+.empty{grid-column:1/-1;text-align:center;padding:60px 20px;border:1px dashed var(--line);color:var(--muted);font-size:12px}
+.overlay{position:fixed;inset:0;z-index:100;background:rgba(4,2,1,.85);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:16px;animation:fade .18s}
+.modal{width:min(94vw,520px);background:var(--panel);border:1px solid var(--acc-dim);padding:18px;
+  clip-path:polygon(16px 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,0 100%,0 16px);animation:pop .22s}
+.modal.big{width:min(96vw,1000px)}
+.modal h2{margin:0 0 12px;font-size:13px;letter-spacing:.1em;color:var(--acc)}
+.mh{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:10px}
+.mh h2{margin:0}
+label{display:block;font-size:11px;color:var(--muted);margin:10px 0 4px}
+input{width:100%;padding:9px 10px;background:var(--bg);color:var(--text);border:1px solid var(--line);font:13px 'Share Tech Mono',monospace}
+input:focus{outline:none;border-color:var(--acc)}
+.hint{font-size:10.5px;color:var(--muted);margin-top:6px;line-height:1.5}
+.err{color:var(--red);font-size:11px;min-height:16px;margin-top:6px}
+.row{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+.frame{aspect-ratio:16/10;max-height:72vh;width:100%;background:#000;border:1px solid var(--line)}
+.frame iframe{width:100%;height:100%;border:0;display:block}
+@keyframes pulse{50%{opacity:.45}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}}
+@keyframes fade{from{opacity:0}}
+@keyframes pop{from{opacity:0;transform:scale(.95) translateY(8px)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header><div class="bar">
+  <div class="brand">
+    <svg viewBox="0 0 40 40" fill="none" stroke="#ff8a1f">
+      <circle class="ring" cx="20" cy="20" r="17" stroke-width="1.5" stroke-dasharray="6 4"/>
+      <circle cx="20" cy="20" r="11" stroke-width="1.5"/>
+      <circle class="core" cx="20" cy="20" r="5" fill="#ff8a1f"/>
+    </svg>
+    <div><h1 class="hud">J.A.R.V.I.S. // GALERI 3D</h1><small>SKETCHFAB HOLO-VIEWER</small></div>
+  </div>
+  <button class="btn" id="add">+ TAMBAH MODEL</button>
+</div></header>
+<main><div class="grid" id="grid"></div></main>
+
+<script>
+(function(){
+  var KEY='jarvis-oranye-models', models=[];
+  var grid=document.getElementById('grid');
+  try{ models=JSON.parse(localStorage.getItem(KEY)||'[]'); }catch(e){}
+  function save(){ try{ localStorage.setItem(KEY,JSON.stringify(models)); }catch(e){} }
+  function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  var CUBE='<svg viewBox="0 0 40 40" fill="none" stroke="#ff8a1f" stroke-width="1"><path d="M20 4l14 8v16l-14 8-14-8V12z"/><path d="M6 12l14 8 14-8M20 20v16"/></svg>';
+
+  function render(){
+    if(!models.length){
+      grid.innerHTML='<div class="empty hud">BELUM ADA MODEL<br><br><span style="font-family:Share Tech Mono">Tekan "+ TAMBAH MODEL" lalu tempel link Sketchfab.</span></div>';
+      return;
+    }
+    grid.innerHTML=models.map(function(m,i){
+      return '<div class="card" style="animation-delay:'+(i*60)+'ms"><div class="head"><h3 class="hud">'+esc(m.title||'Model 3D')+'</h3>'+
+        '<button class="x" data-del="'+i+'" title="Hapus">\u00d7</button></div>'+
+        '<button class="thumb" data-open="'+i+'" aria-label="Buka model 3D">'+
+        (m.thumb?'<img src="'+esc(m.thumb)+'" alt="">':'<div class="fallback">'+CUBE+'</div>')+
+        '<span class="play"></span><span class="tag">KLIK UNTUK MEMUAT 3D</span></button></div>';
+    }).join('');
+  }
+
+  function uidFrom(s){ var m=String(s).match(/[0-9a-f]{32}/i); return m?m[0].toLowerCase():null; }
+
+  // ambil judul & thumbnail lewat oEmbed Sketchfab
+  function fetchMeta(m){
+    return fetch('https://sketchfab.com/oembed?url='+encodeURIComponent('https://sketchfab.com/models/'+m.uid))
+      .then(function(r){ if(!r.ok) throw 0; return r.json(); })
+      .then(function(d){ m.thumb=d.thumbnail_url||''; if(!m.title) m.title=d.title||''; })
+      .catch(function(){});
+  }
+
+  function overlay(html){
+    var o=document.createElement('div'); o.className='overlay'; o.innerHTML=html;
+    function close(){ document.removeEventListener('keydown',esc_); o.remove(); }
+    function esc_(e){ if(e.key==='Escape') close(); }
+    o.addEventListener('click',function(e){ if(e.target===o||e.target.hasAttribute('data-close')) close(); });
+    document.addEventListener('keydown',esc_);
+    document.body.appendChild(o); o.close=close; return o;
+  }
+
+  function openViewer(m){
+    overlay('<div class="modal big"><div class="mh"><h2 class="hud">'+esc(m.title||'Model 3D')+'</h2><button class="x" data-close>\u00d7</button></div>'+
+      '<div class="frame"><iframe title="'+esc(m.title||'Model 3D')+'" allow="autoplay; fullscreen; xr-spatial-tracking" allowfullscreen '+
+      'src="https://sketchfab.com/models/'+m.uid+'/embed?autostart=1&ui_theme=dark&dnt=1"></iframe></div></div>');
+  }
+
+  function openAdd(){
+    var o=overlay('<div class="modal"><h2 class="hud">TAMBAH MODEL SKETCHFAB</h2>'+
+      '<label>LINK / ID / KODE EMBED</label><input id="f-url" placeholder="https://sketchfab.com/3d-models/nama-model-xxxxxxxx...">'+
+      '<label>JUDUL (OPSIONAL)</label><input id="f-title" placeholder="Otomatis dari Sketchfab jika kosong">'+
+      '<div class="hint">Model harus publik dan mengizinkan embed. ID model adalah 32 karakter di akhir link.</div>'+
+      '<div class="err" id="f-err"></div>'+
+      '<div class="row"><button class="btn" data-close style="color:var(--muted)">BATAL</button><button class="btn" id="f-ok">TAMBAH</button></div></div>');
+    var url=o.querySelector('#f-url'); url.focus();
+    o.querySelector('#f-ok').addEventListener('click',function(){
+      var uid=uidFrom(url.value);
+      if(!uid){ o.querySelector('#f-err').textContent='ID model (32 karakter) tidak ditemukan di input.'; return; }
+      var btn=this; btn.textContent='MEMUAT...';
+      var m={uid:uid,title:o.querySelector('#f-title').value.trim(),thumb:''};
+      fetchMeta(m).then(function(){ models.unshift(m); save(); render(); o.close(); });
+    });
+  }
+
+  document.getElementById('add').addEventListener('click',openAdd);
+  grid.addEventListener('click',function(e){
+    var d=e.target.closest('[data-del]'), op=e.target.closest('[data-open]');
+    if(d){ models.splice(+d.dataset.del,1); save(); render(); }
+    else if(op){ openViewer(models[+op.dataset.open]); }
+  });
+
+  render();
+  // lengkapi thumbnail yang belum ada
+  models.forEach(function(m){ if(!m.thumb) fetchMeta(m).then(function(){ save(); render(); }); });
+})();
+</script>
+</body>
+</html>
