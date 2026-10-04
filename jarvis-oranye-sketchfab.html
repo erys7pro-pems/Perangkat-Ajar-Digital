@@ -106,6 +106,14 @@ select{width:100%;padding:9px 10px;background:var(--bg);color:var(--text);border
 .w-tips{display:flex;flex-wrap:wrap;gap:8px}
 .w-tips span{font-size:11px;color:var(--muted);border:1px solid var(--line);padding:6px 10px;background:var(--bg)}
 .w-tips b{color:var(--acc);font-weight:400}
+.search{display:flex;align-items:center;gap:10px;margin:0 0 16px;padding:0 12px;background:var(--panel);border:1px solid var(--line);
+  clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)}
+.search:focus-within{border-color:var(--acc);box-shadow:0 0 12px rgba(255,138,31,.2)}
+.search svg{width:16px;height:16px;flex-shrink:0;stroke:var(--acc);fill:none;stroke-width:2}
+.search input{border:0;background:transparent;padding:12px 0;flex:1;min-width:0;font-size:13px}
+.search input:focus{outline:none}
+.search input::-webkit-search-cancel-button{filter:invert(60%) sepia(90%) saturate(900%) hue-rotate(350deg)}
+#qc{font-family:'Orbitron',sans-serif;font-size:9px;letter-spacing:.1em;color:var(--muted);white-space:nowrap}
 </style>
 </head>
 <body>
@@ -116,7 +124,7 @@ select{width:100%;padding:9px 10px;background:var(--bg);color:var(--text);border
   </div>
   <div class="right" id="top"></div>
 </div><div class="tabs" id="tabs"></div></header>
-<main><div id="welcome"></div><div class="grid" id="grid"></div></main>
+<main><div id="welcome"></div><div class="search" id="sw" style="display:none"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="q" type="search" placeholder="Cari model di menu ini..." autocomplete="off" aria-label="Cari model"><span id="qc"></span></div><div class="grid" id="grid"></div></main>
 <script>
 (function(){
   var DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbyAXXsjlClNhjhSPuy6hmR_k_Oy2mmbx8WoTKa_SvoJlPDsKUYy-E2F7B3ZYt5mHFqN/exec'; // URL Web App Apps Script (murid otomatis terhubung)
@@ -137,6 +145,7 @@ select{width:100%;padding:9px 10px;background:var(--bg);color:var(--text);border
   function jp(k,d){ try{ var r=localStorage.getItem(k); return r?JSON.parse(r):d; }catch(e){ return d; } }
   function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
   function uid(){ return Math.random().toString(36).slice(2,10)+Date.now().toString(36); }
+  var sq={}; // kata kunci pencarian per menu (tidak disimpan)
   function isG(){ return role==='guru'; }
   function apiUrl(){ return (config.apiUrl||'').trim()||DEFAULT_API_URL.trim(); }
   function hasApi(){ return !!apiUrl(); }
@@ -240,18 +249,23 @@ select{width:100%;padding:9px 10px;background:var(--bg);color:var(--text);border
         '<button class="c" data-a="vismenu" data-i="'+m.id+'" title="Tampilkan/sembunyikan dari murid">'+(m.hidden?'\u25cc':'\u25c9')+'</button>'+
         '<button class="c" data-a="renmenu" data-i="'+m.id+'" title="Ubah nama">\u270e</button><button class="c d" data-a="delmenu" data-i="'+m.id+'" title="Hapus">\u00d7</button></span>':'')+'</div>';
     }).join('')+(g?'<button class="add2" data-a="addmenu">+ MENU</button>':'');
-    var ps=state.panels.filter(function(p){return p.menuId===state.activeMenu&&(g||!p.hidden);});
+    var all=state.panels.filter(function(p){return p.menuId===state.activeMenu&&(g||!p.hidden);});
+    var qraw=sq[state.activeMenu]||'', q=qraw.trim().toLowerCase();
+    var ps=q?all.filter(function(p){return (p.title||'Model 3D').toLowerCase().indexOf(q)!==-1;}):all;
+    var qi=$('q'); if(qi.value!==qraw) qi.value=qraw;
+    $('sw').style.display=all.length?'':'none';
+    $('qc').textContent=q?ps.length+' / '+all.length+' MODEL':all.length+' MODEL';
     var am=byId(state.menus,state.activeMenu), showW=!!am&&am.name.trim().toLowerCase()===WELCOME_MENU;
     $('welcome').innerHTML=showW?'<div class="welcome"><div class="w-hi hud">'+greet().toUpperCase()+' // SISTEM AKTIF</div><h2 class="hud">'+esc(WELCOME.title)+'</h2><p>'+esc(WELCOME.text)+'</p><div class="w-tips">'+
       WELCOME.tips.map(function(t){return '<span><b>'+esc(t[0])+'</b> '+esc(t[1])+'</span>';}).join('')+'</div></div>':'';
-    $('grid').innerHTML=(showW&&!ps.length&&!g)?'':ps.length?ps.map(function(p,i){
+    $('grid').innerHTML=(showW&&!all.length&&!g)?'':ps.length?ps.map(function(p,i){
       return '<div class="card'+(p.hidden?' off':'')+'" style="animation-delay:'+(i*50)+'ms"><div class="head"><h3 class="hud">'+esc(p.title||'Model 3D')+'</h3>'+
         (g?'<span class="ctl"><button class="c" data-a="mvpanel" data-i="'+p.id+'" data-d="-1">\u2039</button><button class="c" data-a="mvpanel" data-i="'+p.id+'" data-d="1">\u203a</button>'+
         '<button class="c" data-a="vispanel" data-i="'+p.id+'">'+(p.hidden?'\u25cc':'\u25c9')+'</button><button class="c" data-a="editpanel" data-i="'+p.id+'">\u270e</button><button class="c d" data-a="delpanel" data-i="'+p.id+'">\u00d7</button></span>':'')+'</div>'+
         (p.hidden?'<span class="hid">TERSEMBUNYI</span>':'')+
         '<button class="thumb" data-a="open" data-i="'+p.id+'" aria-label="Buka model 3D">'+(p.thumb?'<img src="'+esc(p.thumb)+'" alt="">':'<div class="fallback">'+CUBE+'</div>')+
         '<span class="play"></span><span class="tag">KLIK UNTUK MEMUAT 3D</span></button></div>';
-    }).join(''):'<div class="empty hud">'+(ms.length?'MENU INI BELUM ADA MODEL':'BELUM ADA MENU')+(g?'<br><br><span style="font-family:Share Tech Mono">Gunakan + '+(ms.length?'MODEL':'MENU')+' di atas.</span>':'')+'</div>';
+    }).join(''):all.length?'<div class="empty hud">TIDAK ADA HASIL UNTUK \u201c'+esc(qraw.trim())+'\u201d</div>':'<div class="empty hud">'+(ms.length?'MENU INI BELUM ADA MODEL':'BELUM ADA MENU')+(g?'<br><br><span style="font-family:Share Tech Mono">Gunakan + '+(ms.length?'MODEL':'MENU')+' di atas.</span>':'')+'</div>';
   }
 
   // ---------- aksi ----------
@@ -301,6 +315,8 @@ select{width:100%;padding:9px 10px;background:var(--bg);color:var(--text);border
     else if(a==='vispanel'&&p){ p.hidden=!p.hidden; save(); }
   });
 
+  $('q').addEventListener('input',function(){ sq[state.activeMenu]=this.value; render(); });
+  $('q').addEventListener('keydown',function(e){ if(e.key==='Escape'){ this.value=''; sq[state.activeMenu]=''; render(); } });
   loadApi();
 })();
 </script>
