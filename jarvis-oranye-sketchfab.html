@@ -97,6 +97,15 @@ select{width:100%;padding:9px 10px;background:var(--bg);color:var(--text);border
 .add2{border:1px dashed var(--line);background:none;color:var(--muted);padding:8px 12px;cursor:pointer;font-family:'Orbitron',sans-serif;font-size:11px;flex-shrink:0}
 .add2:hover{color:var(--acc);border-color:var(--acc-dim)}
 .hid{position:absolute;top:44px;left:10px;z-index:4;font-family:'Orbitron',sans-serif;font-size:9px;letter-spacing:.08em;color:#1a0d00;background:var(--gold);padding:3px 7px}
+.welcome{position:relative;margin:0 0 20px;padding:22px 22px 20px;background:linear-gradient(135deg,rgba(255,138,31,.12),var(--panel) 55%);border:1px solid var(--acc-dim);
+  clip-path:polygon(18px 0,100% 0,100% calc(100% - 18px),calc(100% - 18px) 100%,0 100%,0 18px);animation:rise .5s ease both}
+.welcome::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--acc),transparent 70%)}
+.w-hi{font-size:10px;letter-spacing:.2em;color:var(--gold);margin-bottom:8px}
+.welcome h2{margin:0 0 10px;font-size:clamp(17px,3.4vw,24px);letter-spacing:.08em;color:var(--acc);text-shadow:0 0 14px rgba(255,138,31,.5)}
+.welcome p{margin:0 0 14px;font-size:13px;line-height:1.7;max-width:720px}
+.w-tips{display:flex;flex-wrap:wrap;gap:8px}
+.w-tips span{font-size:11px;color:var(--muted);border:1px solid var(--line);padding:6px 10px;background:var(--bg)}
+.w-tips b{color:var(--acc);font-weight:400}
 </style>
 </head>
 <body>
@@ -107,10 +116,18 @@ select{width:100%;padding:9px 10px;background:var(--bg);color:var(--text);border
   </div>
   <div class="right" id="top"></div>
 </div><div class="tabs" id="tabs"></div></header>
-<main><div class="grid" id="grid"></div></main>
+<main><div id="welcome"></div><div class="grid" id="grid"></div></main>
 <script>
 (function(){
   var DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbyAXXsjlClNhjhSPuy6hmR_k_Oy2mmbx8WoTKa_SvoJlPDsKUYy-E2F7B3ZYt5mHFqN/exec'; // URL Web App Apps Script (murid otomatis terhubung)
+  // Teks sambutan di menu "Umum" (ubah sesuai keinginan)
+  var WELCOME_MENU = 'umum';
+  var WELCOME = {
+    title: 'Selamat datang di Galeri 3D',
+    text: 'Senang sekali kamu hadir di sini! Ini ruang kita untuk menjelajahi model-model 3D secara interaktif. Luangkan waktu, lihat dari berbagai sudut, dan jangan ragu untuk penasaran. Selamat belajar dan selamat menjelajah!',
+    tips: [['Pilih','menu di bagian atas untuk berpindah topik'],['Klik','panel untuk memuat model 3D'],['Geser','untuk memutar, scroll untuk zoom']]
+  };
+  function greet(){ var h=new Date().getHours(); return h<11?'Selamat pagi':h<15?'Selamat siang':h<18?'Selamat sore':'Selamat malam'; }
   var KEY='jarvis3d-state', CK='jarvis3d-config', SK='jarvis3d-session';
   var state=jp(KEY,{menus:[{id:'m1',name:'Umum'}],activeMenu:'m1',panels:[]});
   var config=jp(CK,{apiUrl:''}), role='murid', pw='', full=false, sync='local', timer=null;
@@ -224,7 +241,10 @@ select{width:100%;padding:9px 10px;background:var(--bg);color:var(--text);border
         '<button class="c" data-a="renmenu" data-i="'+m.id+'" title="Ubah nama">\u270e</button><button class="c d" data-a="delmenu" data-i="'+m.id+'" title="Hapus">\u00d7</button></span>':'')+'</div>';
     }).join('')+(g?'<button class="add2" data-a="addmenu">+ MENU</button>':'');
     var ps=state.panels.filter(function(p){return p.menuId===state.activeMenu&&(g||!p.hidden);});
-    $('grid').innerHTML=ps.length?ps.map(function(p,i){
+    var am=byId(state.menus,state.activeMenu), showW=!!am&&am.name.trim().toLowerCase()===WELCOME_MENU;
+    $('welcome').innerHTML=showW?'<div class="welcome"><div class="w-hi hud">'+greet().toUpperCase()+' // SISTEM AKTIF</div><h2 class="hud">'+esc(WELCOME.title)+'</h2><p>'+esc(WELCOME.text)+'</p><div class="w-tips">'+
+      WELCOME.tips.map(function(t){return '<span><b>'+esc(t[0])+'</b> '+esc(t[1])+'</span>';}).join('')+'</div></div>':'';
+    $('grid').innerHTML=(showW&&!ps.length&&!g)?'':ps.length?ps.map(function(p,i){
       return '<div class="card'+(p.hidden?' off':'')+'" style="animation-delay:'+(i*50)+'ms"><div class="head"><h3 class="hud">'+esc(p.title||'Model 3D')+'</h3>'+
         (g?'<span class="ctl"><button class="c" data-a="mvpanel" data-i="'+p.id+'" data-d="-1">\u2039</button><button class="c" data-a="mvpanel" data-i="'+p.id+'" data-d="1">\u203a</button>'+
         '<button class="c" data-a="vispanel" data-i="'+p.id+'">'+(p.hidden?'\u25cc':'\u25c9')+'</button><button class="c" data-a="editpanel" data-i="'+p.id+'">\u270e</button><button class="c d" data-a="delpanel" data-i="'+p.id+'">\u00d7</button></span>':'')+'</div>'+
