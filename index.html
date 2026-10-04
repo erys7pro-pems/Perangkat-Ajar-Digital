@@ -155,6 +155,13 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
 }
 .ann-body{font-size:12.5px;line-height:1.6;color:var(--text);white-space:pre-wrap;}
 .ann-meta{display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);font-size:10.5px;letter-spacing:.03em;}
+.hf-row{display:flex;align-items:center;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);}
+.hf-btn{font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:.06em;color:var(--amber);background:transparent;border:1px solid var(--amber);padding:7px 14px;cursor:pointer;}
+.hf-btn:hover:not(:disabled){background:rgba(255,176,32,.1);box-shadow:0 0 10px rgba(255,176,32,.2);}
+.hf-btn:disabled{cursor:default;}
+.hf-btn.done{color:var(--cyan);border-color:var(--cyan-dim);}
+.hf-count{font-size:11px;color:var(--muted);letter-spacing:.03em;}
+.hf-admin-btn.active{color:var(--amber);}
 .status-pill{font-family:'Orbitron',sans-serif;font-size:9px;letter-spacing:.07em;padding:3px 8px;border:1px solid var(--cyan-dim);color:var(--cyan);}
 .status-pill.expired{border-color:var(--line);color:var(--muted);}
 .ann-deadline{color:var(--muted);}
@@ -672,9 +679,9 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
               '<polygon points="26,6 29,4.5 32,6 32,8.5 29,10 26,8.5" fill="none" stroke="#9fb7c4" stroke-width="0.7" opacity="0.75"/>'+
               '<path d="M10 9 L15 5.5 L18 9" fill="none" stroke="#ffb020" stroke-width="1" opacity="0.85"/>'+
               '<path d="M22 9 L25 5.5 L30 9" fill="none" stroke="#ffb020" stroke-width="1" opacity="0.85"/>'+
-              '<polygon points="6,9 34,9 20,36" fill="none" stroke="#2be3ff" stroke-width="1.3" opacity="0.85"/>'+
-              '<polygon class="reactor-core" points="12,13.5 28,13.5 20,29" fill="url(#reactorGrad)"/>'+
-              '<polygon points="12,13.5 28,13.5 20,29" fill="none" stroke="#eafdff" stroke-width="0.6" opacity="0.6"/>'+
+              '<polygon points="9,9 31,9 32.6,11.7 21.4,33.3 18.6,33.3 7.4,11.7" fill="none" stroke="#2be3ff" stroke-width="1.3" opacity="0.85"/>'+
+              '<polygon class="reactor-core" points="14,13.5 26,13.5 27.1,15.3 20.9,27.2 19.1,27.2 12.9,15.3" fill="url(#reactorGrad)"/>'+
+              '<polygon points="14,13.5 26,13.5 27.1,15.3 20.9,27.2 19.1,27.2 12.9,15.3" fill="none" stroke="#eafdff" stroke-width="0.6" opacity="0.6"/>'+
             '</svg></div>'+
             '<div><h1 class="hud-font">J.A.R.V.I.S.I.C.E.R.Y</h1><small>PAPAN PANEL — ANTARMUKA KONTROL</small></div>'+
           '</div>'+
@@ -719,6 +726,8 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     app.querySelectorAll('[data-movepanel]').forEach(function(el){ el.addEventListener('click', function(){ movePanelPosition(el.getAttribute('data-pid'), el.getAttribute('data-movepanel')==='up'?-1:1); }); });
     app.querySelectorAll('[data-viewsubs]').forEach(function(el){ el.addEventListener('click', function(){ openPanelDetail(el.getAttribute('data-viewsubs')); }); });
     app.querySelectorAll('[data-editpanel]').forEach(function(el){ el.addEventListener('click', function(){ editPanelModal(el.getAttribute('data-editpanel')); }); });
+    app.querySelectorAll('[data-hftoggle]').forEach(function(el){ el.addEventListener('click', function(){ toggleHighfive(el.getAttribute('data-hftoggle')); }); });
+    app.querySelectorAll('[data-highfive]').forEach(function(el){ el.addEventListener('click', function(){ doHighfive(el.getAttribute('data-highfive'), el); }); });
     app.querySelectorAll('.sub-card img').forEach(function(im){ im.addEventListener('click', function(){ openImageLightbox(im.getAttribute('src')); }); });
     var st = document.getElementById('status-toggle'); if(st) st.addEventListener('click', settingsModal);
     var tt = document.getElementById('theme-toggle'); if(tt) tt.addEventListener('click', toggleTheme);
@@ -876,15 +885,20 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     var expired = isExpired(p);
     var fresh = isFresh(p) && !expired && panelEff(p);
     var annAcc = itemAccess(p);
+    var hfOn = !!p.highfiveEnabled;
+    var hfDone = hfOn && hfAlreadyDone(p.id);
     return '<div class="panel-card type-announcement'+(expired?' expired':'')+(isGuru()&&annAcc==='teacher'?' teacher-only':'')+(isGuru()&&annAcc==='staff'?' staff-only':'')+'">'+
       (fresh?'<div class="new-badge">BARU!</div>':'')+
-      '<div class="panel-head"><h3 class="hud-font">'+esc(p.title)+'</h3>'+(isGuru()?'<div class="panel-head-right">'+visToggle('panel',p.id,annAcc)+'<button class="icon-btn" data-editpanel="'+p.id+'" title="Edit pengumuman">\u270e</button><button class="icon-btn" data-delpanel="'+p.id+'">\u00d7</button></div>':'')+'</div>'+
+      '<div class="panel-head"><h3 class="hud-font">'+esc(p.title)+'</h3>'+(isGuru()?'<div class="panel-head-right">'+visToggle('panel',p.id,annAcc)+
+        '<button class="icon-btn hf-admin-btn'+(hfOn?' active':'')+'" data-hftoggle="'+p.id+'" title="'+(hfOn?'Matikan tombol Highfive untuk pengumuman ini':'Aktifkan tombol Highfive untuk pengumuman ini')+'">\u270b</button>'+
+        '<button class="icon-btn" data-editpanel="'+p.id+'" title="Edit pengumuman">\u270e</button><button class="icon-btn" data-delpanel="'+p.id+'">\u00d7</button></div>':'')+'</div>'+
       '<div class="panel-body">'+
         '<div class="ann-body">'+esc(p.body)+'</div>'+
         '<div class="ann-meta">'+
           '<span class="status-pill'+(expired?' expired':'')+'">'+(expired?'SUDAH DIUMUMKAN':'AKTIF')+'</span>'+
           (p.deadline?'<span class="ann-deadline">Batas waktu: '+formatDate(p.deadline)+'</span>':'')+
         '</div>'+
+        (hfOn?('<div class="hf-row"><button class="hf-btn'+(hfDone?' done':'')+'" data-highfive="'+p.id+'"'+(hfDone?' disabled':'')+'>'+(hfDone?'\u270b SUDAH HIGHFIVE':'\u270b HIGHFIVE')+'</button><span class="hf-count">'+(p.highfiveCount||0)+' highfive</span></div>'):'')+
       '</div>'+
     '</div>';
   }
@@ -1022,10 +1036,80 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
       {name:'deadline', label:'Batas waktu', type:'date'}
     ], function(v){
       if(!v.title) return;
-      state.panels.push({id:uid(), menuId:state.activeMenu, type:'announcement', title:v.title, body:v.body, deadline:v.deadline||null, createdAt:Date.now(), newAt:Date.now(), subpanels:[]});
+      state.panels.push({id:uid(), menuId:state.activeMenu, type:'announcement', title:v.title, body:v.body, deadline:v.deadline||null, createdAt:Date.now(), newAt:Date.now(), subpanels:[], highfiveEnabled:false, highfiveCount:0});
       save();
     });
   }
+  // ---- Highfive: tombol "colek" tanpa login, satu kali per pengguna per panel pengumuman ----
+  var CLIENT_ID_KEY = 'papan-panel-clientid';
+  var HF_DONE_KEY = 'papan-panel-hf-done';
+  function clientId(){
+    try{
+      var id = localStorage.getItem(CLIENT_ID_KEY);
+      if(!id){ id = uid()+uid(); localStorage.setItem(CLIENT_ID_KEY, id); }
+      return id;
+    }catch(e){ return 'anon-'+Date.now(); }
+  }
+  function hfDoneSet(){
+    try{ return JSON.parse(localStorage.getItem(HF_DONE_KEY)||'[]'); }catch(e){ return []; }
+  }
+  function hfAlreadyDone(panelId){ return hfDoneSet().indexOf(panelId)!==-1; }
+  function hfMarkDone(panelId){
+    try{
+      var arr = hfDoneSet();
+      if(arr.indexOf(panelId)===-1){ arr.push(panelId); localStorage.setItem(HF_DONE_KEY, JSON.stringify(arr)); }
+    }catch(e){}
+  }
+  function toggleHighfive(panelId){
+    if(!isGuru()) return;
+    var p = state.panels.find(function(x){ return x.id===panelId; });
+    if(!p || p.type!=='announcement') return;
+    p.highfiveEnabled = !p.highfiveEnabled;
+    save();
+  }
+  function doHighfive(panelId, btn){
+    if(hfAlreadyDone(panelId)) return;
+    var p = state.panels.find(function(x){ return x.id===panelId; });
+    if(!p || !p.highfiveEnabled) return;
+    if(btn) btn.disabled = true;
+    if(!hasApi()){
+      // tanpa mainframe: hitung di perangkat ini saja supaya fitur tetap berfungsi
+      p.highfiveCount = (p.highfiveCount||0) + 1;
+      hfMarkDone(panelId);
+      persistLocal();
+      render();
+      return;
+    }
+    fetch(apiUrl(), {method:'POST', headers:JSON_HDR, body:JSON.stringify({action:'highfive', panelId:panelId, clientId:clientId()})})
+      .then(function(r){ return r.json(); })
+      .then(function(res){
+        if(res && res.ok){
+          p.highfiveCount = res.count;
+          hfMarkDone(panelId);
+          persistLocal();
+        }
+        render();
+      })
+      .catch(function(){ if(btn) btn.disabled = false; });
+  }
+  function fetchHighfiveCounts(){
+    if(!hasApi()) return;
+    fetch(apiUrl()+(apiUrl().indexOf('?')===-1?'?':'&')+'counts=1', {method:'GET'})
+      .then(function(r){ return r.json(); })
+      .then(function(counts){
+        if(!counts || typeof counts!=='object') return;
+        var changed = false;
+        state.panels.forEach(function(p){
+          if(p.type==='announcement'){
+            var c = counts[p.id]||0;
+            if(p.highfiveCount!==c){ p.highfiveCount=c; changed=true; }
+          }
+        });
+        if(changed){ persistLocal(); render(); }
+      })
+      .catch(function(){});
+  }
+
   function editPanelModal(panelId){
     if(!isGuru()) return;
     var p = state.panels.find(function(x){ return x.id===panelId; });
@@ -1393,9 +1477,11 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
 
   render();
   loadFromApi();
+  fetchHighfiveCounts();
   setInterval(function(){
     // murid: ambil data terbaru dari mainframe secara berkala; guru: cukup segarkan tampilan
     if(!isGuru() && hasApi()) loadFromApi(true); else render();
+    fetchHighfiveCounts();
   }, 60 * 1000);
 })();
 </script>
