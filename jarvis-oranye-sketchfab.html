@@ -76,97 +76,212 @@ input:focus{outline:none;border-color:var(--acc)}
 @keyframes fade{from{opacity:0}}
 @keyframes pop{from{opacity:0;transform:scale(.95) translateY(8px)}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+select{width:100%;padding:9px 10px;background:var(--bg);color:var(--text);border:1px solid var(--line);font:13px 'Share Tech Mono',monospace}
+.right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.status{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted);cursor:pointer;padding:7px 10px;border:1px solid var(--line);background:var(--panel)}
+.status:hover{border-color:var(--acc-dim)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}
+.dot.online{background:var(--acc);box-shadow:0 0 8px var(--acc);animation:pulse 2s infinite}
+.dot.local{background:var(--gold)}.dot.error{background:var(--red)}.dot.sync{background:var(--acc);animation:pulse 1s infinite}
+.pill{font-family:'Orbitron',sans-serif;font-size:9px;letter-spacing:.07em;padding:6px 9px;border:1px solid var(--line);color:var(--muted)}
+.pill.on{color:var(--acc);border-color:var(--acc-dim)}
+.tabs{display:flex;gap:8px;overflow-x:auto;max-width:1100px;margin:10px auto 0;padding-bottom:2px}
+.tab{display:flex;align-items:center;gap:4px;padding:8px 12px;border:1px solid var(--line);background:var(--panel);color:var(--muted);
+  white-space:nowrap;cursor:pointer;font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:.08em;flex-shrink:0;
+  clip-path:polygon(8px 0,100% 0,100% 100%,0 100%,0 8px)}
+.tab.active{color:var(--acc);border-color:var(--acc-dim);background:var(--panel-2);box-shadow:inset 0 0 12px rgba(255,138,31,.12)}
+.tab.off,.card.off{opacity:.55}
+.c{background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:2px 3px;line-height:1}
+.c:hover{color:var(--acc)}.c.d:hover{color:var(--red)}
+.ctl{display:flex;gap:1px;align-items:center;flex-shrink:0}
+.add2{border:1px dashed var(--line);background:none;color:var(--muted);padding:8px 12px;cursor:pointer;font-family:'Orbitron',sans-serif;font-size:11px;flex-shrink:0}
+.add2:hover{color:var(--acc);border-color:var(--acc-dim)}
+.hid{position:absolute;top:44px;left:10px;z-index:4;font-family:'Orbitron',sans-serif;font-size:9px;letter-spacing:.08em;color:#1a0d00;background:var(--gold);padding:3px 7px}
 </style>
 </head>
 <body>
 <header><div class="bar">
   <div class="brand">
-    <svg viewBox="0 0 40 40" fill="none" stroke="#ff8a1f">
-      <circle class="ring" cx="20" cy="20" r="17" stroke-width="1.5" stroke-dasharray="6 4"/>
-      <circle cx="20" cy="20" r="11" stroke-width="1.5"/>
-      <circle class="core" cx="20" cy="20" r="5" fill="#ff8a1f"/>
-    </svg>
+    <svg viewBox="0 0 40 40" fill="none" stroke="#ff8a1f"><circle class="ring" cx="20" cy="20" r="17" stroke-width="1.5" stroke-dasharray="6 4"/><circle cx="20" cy="20" r="11" stroke-width="1.5"/><circle class="core" cx="20" cy="20" r="5" fill="#ff8a1f"/></svg>
     <div><h1 class="hud">J.A.R.V.I.S. // GALERI 3D</h1><small>SKETCHFAB HOLO-VIEWER</small></div>
   </div>
-  <button class="btn" id="add">+ TAMBAH MODEL</button>
-</div></header>
+  <div class="right" id="top"></div>
+</div><div class="tabs" id="tabs"></div></header>
 <main><div class="grid" id="grid"></div></main>
-
 <script>
 (function(){
-  var KEY='jarvis-oranye-models', models=[];
-  var grid=document.getElementById('grid');
-  try{ models=JSON.parse(localStorage.getItem(KEY)||'[]'); }catch(e){}
-  function save(){ try{ localStorage.setItem(KEY,JSON.stringify(models)); }catch(e){} }
-  function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  var DEFAULT_API_URL = ''; // Guru: isi URL Web App Apps Script agar murid otomatis terhubung
+  var KEY='jarvis3d-state', CK='jarvis3d-config', SK='jarvis3d-session';
+  var state=jp(KEY,{menus:[{id:'m1',name:'Umum'}],activeMenu:'m1',panels:[]});
+  var config=jp(CK,{apiUrl:''}), role='murid', pw='', full=false, sync='local', timer=null;
+  try{ var ses=JSON.parse(sessionStorage.getItem(SK)||'null'); if(ses&&ses.pw){ role='guru'; pw=ses.pw; } }catch(e){}
   var CUBE='<svg viewBox="0 0 40 40" fill="none" stroke="#ff8a1f" stroke-width="1"><path d="M20 4l14 8v16l-14 8-14-8V12z"/><path d="M6 12l14 8 14-8M20 20v16"/></svg>';
+  var $=function(i){return document.getElementById(i);};
+  function jp(k,d){ try{ var r=localStorage.getItem(k); return r?JSON.parse(r):d; }catch(e){ return d; } }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+  function uid(){ return Math.random().toString(36).slice(2,10)+Date.now().toString(36); }
+  function isG(){ return role==='guru'; }
+  function apiUrl(){ return (config.apiUrl||'').trim()||DEFAULT_API_URL.trim(); }
+  function hasApi(){ return !!apiUrl(); }
+  function hashPw(s){ var h=5381; for(var i=0;i<s.length;i++) h=((h<<5)+h+s.charCodeAt(i))|0; return String(h); }
 
-  function render(){
-    if(!models.length){
-      grid.innerHTML='<div class="empty hud">BELUM ADA MODEL<br><br><span style="font-family:Share Tech Mono">Tekan "+ TAMBAH MODEL" lalu tempel link Sketchfab.</span></div>';
-      return;
-    }
-    grid.innerHTML=models.map(function(m,i){
-      return '<div class="card" style="animation-delay:'+(i*60)+'ms"><div class="head"><h3 class="hud">'+esc(m.title||'Model 3D')+'</h3>'+
-        '<button class="x" data-del="'+i+'" title="Hapus">\u00d7</button></div>'+
-        '<button class="thumb" data-open="'+i+'" aria-label="Buka model 3D">'+
-        (m.thumb?'<img src="'+esc(m.thumb)+'" alt="">':'<div class="fallback">'+CUBE+'</div>')+
-        '<span class="play"></span><span class="tag">KLIK UNTUK MEMUAT 3D</span></button></div>';
-    }).join('');
+  // ---------- sinkronisasi Google Sheets ----------
+  function post(b){ return fetch(apiUrl(),{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)}).then(function(r){return r.json();}); }
+  function persist(){ try{ localStorage.setItem(KEY,JSON.stringify(state)); }catch(e){} }
+  function save(){
+    persist(); render();
+    if(!hasApi()||!isG()||!full) return;
+    clearTimeout(timer); timer=setTimeout(function(){
+      sync='sync'; status();
+      post({action:'save',password:pw,state:state}).then(function(r){
+        if(r&&r.error==='unauthorized'){ alert('Sesi guru ditolak server. Kembali ke mode murid.'); logout(); return; }
+        sync=(r&&r.ok)?'online':'error'; status();
+      }).catch(function(){ sync='error'; status(); });
+    },500);
   }
+  function loadApi(){
+    if(!hasApi()){ sync='local'; full=isG(); render(); return; }
+    sync='sync'; render();
+    var req=isG()?post({action:'load',password:pw}).then(function(r){
+        if(r&&r.error==='unauthorized') throw {bad:1};
+        if(r&&r.ok&&r.state) return r.state; throw 0; })
+      :fetch(apiUrl()).then(function(r){return r.json();});
+    req.then(function(d){
+      if(d&&d.menus){ var keep=state.activeMenu; state=d; if(!state.panels) state.panels=[];
+        if(state.menus.some(function(m){return m.id===keep;})) state.activeMenu=keep; persist(); full=isG(); }
+      sync='online'; render();
+    }).catch(function(e){
+      if(e&&e.bad){ alert('Sesi guru ditolak server. Kembali ke mode murid.'); logout(); return; }
+      sync='error'; render();
+    });
+  }
+  function login(p){
+    if(!hasApi()){
+      if(!config.lpw){ config.lpw=hashPw(p); try{localStorage.setItem(CK,JSON.stringify(config));}catch(e){} }
+      else if(config.lpw!==hashPw(p)) return Promise.resolve('Kata sandi salah.');
+      setRole(p); return Promise.resolve('');
+    }
+    return post({action:'login',password:p}).then(function(r){
+      if(!r||!r.ok) return 'Kata sandi salah.';
+      setRole(p); return '';
+    }).catch(function(){ return 'Tidak dapat terhubung ke URL Apps Script.'; });
+  }
+  function setRole(p){ role='guru'; pw=p; try{sessionStorage.setItem(SK,JSON.stringify({pw:p}));}catch(e){} loadApi(); }
+  function logout(){ role='murid'; pw=''; full=false; try{sessionStorage.removeItem(SK);}catch(e){} loadApi(); }
 
+  // ---------- 3D / Sketchfab ----------
   function uidFrom(s){ var m=String(s).match(/[0-9a-f]{32}/i); return m?m[0].toLowerCase():null; }
-
-  // ambil judul & thumbnail lewat oEmbed Sketchfab
   function fetchMeta(m){
     return fetch('https://sketchfab.com/oembed?url='+encodeURIComponent('https://sketchfab.com/models/'+m.uid))
       .then(function(r){ if(!r.ok) throw 0; return r.json(); })
-      .then(function(d){ m.thumb=d.thumbnail_url||''; if(!m.title) m.title=d.title||''; })
-      .catch(function(){});
+      .then(function(d){ m.thumb=d.thumbnail_url||''; if(!m.title) m.title=d.title||''; }).catch(function(){});
   }
 
+  // ---------- modal ----------
   function overlay(html){
     var o=document.createElement('div'); o.className='overlay'; o.innerHTML=html;
-    function close(){ document.removeEventListener('keydown',esc_); o.remove(); }
-    function esc_(e){ if(e.key==='Escape') close(); }
+    function close(){ document.removeEventListener('keydown',k); o.remove(); }
+    function k(e){ if(e.key==='Escape') close(); }
     o.addEventListener('click',function(e){ if(e.target===o||e.target.hasAttribute('data-close')) close(); });
-    document.addEventListener('keydown',esc_);
-    document.body.appendChild(o); o.close=close; return o;
+    document.addEventListener('keydown',k); document.body.appendChild(o); o.close=close; return o;
+  }
+  function form(title,fields,ok,hint,label){
+    var o=overlay('<div class="modal"><h2 class="hud">'+title+'</h2>'+fields.map(function(f){
+      return '<label>'+f.label+'</label>'+(f.options?'<select name="'+f.name+'">'+f.options.map(function(op){
+        return '<option value="'+esc(op[0])+'"'+(op[0]===f.value?' selected':'')+'>'+esc(op[1])+'</option>'; }).join('')+'</select>'
+        :'<input name="'+f.name+'" type="'+(f.type||'text')+'" value="'+esc(f.value)+'" placeholder="'+esc(f.ph)+'" autocomplete="off">');
+    }).join('')+(hint?'<div class="hint">'+hint+'</div>':'')+'<div class="err"></div><div class="row"><button class="btn" data-close style="color:var(--muted)">BATAL</button><button class="btn" data-ok>'+(label||'SIMPAN')+'</button></div></div>');
+    var first=o.querySelector('input'); if(first) first.focus();
+    function go(){
+      var v={}; [].forEach.call(o.querySelectorAll('input,select'),function(el){ v[el.name]=el.value.trim(); });
+      var b=o.querySelector('[data-ok]'); b.disabled=true;
+      Promise.resolve(ok(v)).then(function(err){ b.disabled=false; if(err) o.querySelector('.err').textContent=err; else o.close(); });
+    }
+    o.querySelector('[data-ok]').addEventListener('click',go);
+    o.addEventListener('keydown',function(e){ if(e.key==='Enter'&&e.target.tagName==='INPUT') go(); });
+  }
+  function openViewer(p){
+    overlay('<div class="modal big"><div class="mh"><h2 class="hud">'+esc(p.title||'Model 3D')+'</h2><button class="x" data-close>\u00d7</button></div><div class="frame"><iframe title="'+esc(p.title||'Model 3D')+'" allow="autoplay; fullscreen; xr-spatial-tracking" allowfullscreen src="https://sketchfab.com/models/'+p.uid+'/embed?autostart=1&ui_theme=dark&dnt=1"></iframe></div></div>');
   }
 
-  function openViewer(m){
-    overlay('<div class="modal big"><div class="mh"><h2 class="hud">'+esc(m.title||'Model 3D')+'</h2><button class="x" data-close>\u00d7</button></div>'+
-      '<div class="frame"><iframe title="'+esc(m.title||'Model 3D')+'" allow="autoplay; fullscreen; xr-spatial-tracking" allowfullscreen '+
-      'src="https://sketchfab.com/models/'+m.uid+'/embed?autostart=1&ui_theme=dark&dnt=1"></iframe></div></div>');
+  // ---------- render ----------
+  function status(){
+    var el=$('st-dot'), lb=$('st-lbl'); if(!el) return;
+    var m={sync:['sync','SYNCING...'],online:['online','MAINFRAME ONLINE'],error:['error','SYNC GAGAL'],local:['local',hasApi()?'MENGHUBUNGKAN...':(isG()?'MODE LOKAL':'HUBUNGKAN SPREADSHEET')]}[sync];
+    el.className='dot '+m[0]; lb.textContent=m[1];
+  }
+  function render(){
+    var g=isG(), ms=state.menus.filter(function(m){return g||!m.hidden;});
+    if(!ms.some(function(m){return m.id===state.activeMenu;})) state.activeMenu=ms[0]?ms[0].id:'';
+    $('top').innerHTML='<div class="status" data-a="cfg"><span class="dot" id="st-dot"></span><span id="st-lbl"></span></div>'+
+      '<span class="pill'+(g?' on':'')+'">'+(g?'MODE GURU':'MODE MURID')+'</span>'+
+      (g?'<button class="btn" data-a="addpanel">+ MODEL</button><button class="btn" data-a="logout">KELUAR</button>':'<button class="btn" data-a="login">MASUK GURU</button>');
+    status();
+    $('tabs').innerHTML=ms.map(function(m,i){
+      return '<div class="tab'+(m.id===state.activeMenu?' active':'')+(m.hidden?' off':'')+'" data-a="menu" data-i="'+m.id+'">'+esc(m.name)+
+        (g?'<span class="ctl"><button class="c" data-a="mvmenu" data-i="'+m.id+'" data-d="-1" title="Geser kiri">\u2039</button><button class="c" data-a="mvmenu" data-i="'+m.id+'" data-d="1" title="Geser kanan">\u203a</button>'+
+        '<button class="c" data-a="vismenu" data-i="'+m.id+'" title="Tampilkan/sembunyikan dari murid">'+(m.hidden?'\u25cc':'\u25c9')+'</button>'+
+        '<button class="c" data-a="renmenu" data-i="'+m.id+'" title="Ubah nama">\u270e</button><button class="c d" data-a="delmenu" data-i="'+m.id+'" title="Hapus">\u00d7</button></span>':'')+'</div>';
+    }).join('')+(g?'<button class="add2" data-a="addmenu">+ MENU</button>':'');
+    var ps=state.panels.filter(function(p){return p.menuId===state.activeMenu&&(g||!p.hidden);});
+    $('grid').innerHTML=ps.length?ps.map(function(p,i){
+      return '<div class="card'+(p.hidden?' off':'')+'" style="animation-delay:'+(i*50)+'ms"><div class="head"><h3 class="hud">'+esc(p.title||'Model 3D')+'</h3>'+
+        (g?'<span class="ctl"><button class="c" data-a="mvpanel" data-i="'+p.id+'" data-d="-1">\u2039</button><button class="c" data-a="mvpanel" data-i="'+p.id+'" data-d="1">\u203a</button>'+
+        '<button class="c" data-a="vispanel" data-i="'+p.id+'">'+(p.hidden?'\u25cc':'\u25c9')+'</button><button class="c" data-a="editpanel" data-i="'+p.id+'">\u270e</button><button class="c d" data-a="delpanel" data-i="'+p.id+'">\u00d7</button></span>':'')+'</div>'+
+        (p.hidden?'<span class="hid">TERSEMBUNYI</span>':'')+
+        '<button class="thumb" data-a="open" data-i="'+p.id+'" aria-label="Buka model 3D">'+(p.thumb?'<img src="'+esc(p.thumb)+'" alt="">':'<div class="fallback">'+CUBE+'</div>')+
+        '<span class="play"></span><span class="tag">KLIK UNTUK MEMUAT 3D</span></button></div>';
+    }).join(''):'<div class="empty hud">'+(ms.length?'MENU INI BELUM ADA MODEL':'BELUM ADA MENU')+(g?'<br><br><span style="font-family:Share Tech Mono">Gunakan + '+(ms.length?'MODEL':'MENU')+' di atas.</span>':'')+'</div>';
   }
 
-  function openAdd(){
-    var o=overlay('<div class="modal"><h2 class="hud">TAMBAH MODEL SKETCHFAB</h2>'+
-      '<label>LINK / ID / KODE EMBED</label><input id="f-url" placeholder="https://sketchfab.com/3d-models/nama-model-xxxxxxxx...">'+
-      '<label>JUDUL (OPSIONAL)</label><input id="f-title" placeholder="Otomatis dari Sketchfab jika kosong">'+
-      '<div class="hint">Model harus publik dan mengizinkan embed. ID model adalah 32 karakter di akhir link.</div>'+
-      '<div class="err" id="f-err"></div>'+
-      '<div class="row"><button class="btn" data-close style="color:var(--muted)">BATAL</button><button class="btn" id="f-ok">TAMBAH</button></div></div>');
-    var url=o.querySelector('#f-url'); url.focus();
-    o.querySelector('#f-ok').addEventListener('click',function(){
-      var uid=uidFrom(url.value);
-      if(!uid){ o.querySelector('#f-err').textContent='ID model (32 karakter) tidak ditemukan di input.'; return; }
-      var btn=this; btn.textContent='MEMUAT...';
-      var m={uid:uid,title:o.querySelector('#f-title').value.trim(),thumb:''};
-      fetchMeta(m).then(function(){ models.unshift(m); save(); render(); o.close(); });
-    });
+  // ---------- aksi ----------
+  function byId(a,id){ return a.filter(function(x){return x.id===id;})[0]; }
+  function swap(arr,item,d,same){
+    var sib=arr.filter(same), i=sib.indexOf(item), j=i+d; if(j<0||j>=sib.length) return;
+    var a=arr.indexOf(item), b=arr.indexOf(sib[j]); arr[a]=sib[j]; arr[b]=item;
   }
-
-  document.getElementById('add').addEventListener('click',openAdd);
-  grid.addEventListener('click',function(e){
-    var d=e.target.closest('[data-del]'), op=e.target.closest('[data-open]');
-    if(d){ models.splice(+d.dataset.del,1); save(); render(); }
-    else if(op){ openViewer(models[+op.dataset.open]); }
+  function panelForm(p){
+    var isNew=!p;
+    var opts=state.menus.map(function(m){return [m.id,m.name];});
+    form(isNew?'TAMBAH MODEL':'UBAH MODEL',[
+      {name:'url',label:'LINK / ID / KODE EMBED SKETCHFAB',value:p?'https://sketchfab.com/models/'+p.uid:'',ph:'https://sketchfab.com/3d-models/nama-model-xxxx'},
+      {name:'title',label:'JUDUL (OPSIONAL)',value:p?p.title:'',ph:'Otomatis dari Sketchfab jika kosong'},
+      {name:'menu',label:'MENU',value:p?p.menuId:state.activeMenu,options:opts}
+    ],function(v){
+      var u=uidFrom(v.url); if(!u) return 'ID model (32 karakter) tidak ditemukan.';
+      var m=p||{id:uid(),hidden:false};
+      var changed=m.uid!==u; m.uid=u; m.title=v.title; m.menuId=v.menu;
+      if(changed||!m.thumb){ m.thumb=''; return fetchMeta(m).then(fin); } return fin();
+      function fin(){ if(isNew) state.panels.push(m); state.activeMenu=m.menuId; save(); return ''; }
+    },'Model harus publik dan mengizinkan embed.');
+  }
+  document.addEventListener('click',function(e){
+    var t=e.target.closest('[data-a]'); if(!t||t.closest('.overlay')) return;
+    var a=t.dataset.a, id=t.dataset.i, d=+t.dataset.d, m=byId(state.menus,id), p=byId(state.panels,id);
+    if(a==='menu'){ state.activeMenu=id; persist(); render(); }
+    else if(a==='login') form('MASUK GURU',[{name:'pw',label:'KATA SANDI GURU',type:'password'}],function(v){ return login(v.pw); },
+      'Belum pernah login? Kata sandi yang kamu isi pertama kali akan menjadi kata sandi guru.','MASUK');
+    else if(a==='logout') logout();
+    else if(a==='cfg'){
+      if(isG()||!hasApi()) form('HUBUNGKAN SPREADSHEET',[{name:'url',label:'URL WEB APP APPS SCRIPT',value:config.apiUrl,ph:'https://script.google.com/macros/s/.../exec'}],function(v){
+        config.apiUrl=v.url; try{localStorage.setItem(CK,JSON.stringify(config));}catch(e){} full=false; loadApi(); return ''; },
+        'Tempel URL hasil deployment Code.gs. Kosongkan untuk mode lokal (hanya di browser ini).');
+    }
+    else if(!isG()&&a!=='open') return;
+    else if(a==='open'&&p) openViewer(p);
+    else if(a==='addmenu') form('MENU BARU',[{name:'n',label:'NAMA MENU'}],function(v){ if(!v.n) return 'Nama wajib diisi.'; var x={id:uid(),name:v.n}; state.menus.push(x); state.activeMenu=x.id; save(); return ''; },'','BUAT');
+    else if(a==='renmenu'&&m) form('UBAH NAMA MENU',[{name:'n',label:'NAMA MENU',value:m.name}],function(v){ if(!v.n) return 'Nama wajib diisi.'; m.name=v.n; save(); return ''; });
+    else if(a==='delmenu'&&m){ if(confirm('Hapus menu "'+m.name+'" beserta semua modelnya?')){ state.menus=state.menus.filter(function(x){return x!==m;}); state.panels=state.panels.filter(function(x){return x.menuId!==id;}); save(); } }
+    else if(a==='mvmenu'&&m){ swap(state.menus,m,d,function(){return true;}); save(); }
+    else if(a==='vismenu'&&m){ m.hidden=!m.hidden; save(); }
+    else if(a==='addpanel'){ if(!state.menus.length) alert('Buat menu terlebih dahulu.'); else panelForm(null); }
+    else if(a==='editpanel'&&p) panelForm(p);
+    else if(a==='delpanel'&&p){ if(confirm('Hapus panel ini?')){ state.panels=state.panels.filter(function(x){return x!==p;}); save(); } }
+    else if(a==='mvpanel'&&p){ swap(state.panels,p,d,function(x){return x.menuId===p.menuId;}); save(); }
+    else if(a==='vispanel'&&p){ p.hidden=!p.hidden; save(); }
   });
 
-  render();
-  // lengkapi thumbnail yang belum ada
-  models.forEach(function(m){ if(!m.thumb) fetchMeta(m).then(function(){ save(); render(); }); });
+  loadApi();
 })();
 </script>
 </body>
