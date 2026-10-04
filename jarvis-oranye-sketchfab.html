@@ -114,6 +114,19 @@ select{width:100%;padding:9px 10px;background:var(--bg);color:var(--text);border
 .search input:focus{outline:none}
 .search input::-webkit-search-cancel-button{filter:invert(60%) sepia(90%) saturate(900%) hue-rotate(350deg)}
 #qc{font-family:'Orbitron',sans-serif;font-size:9px;letter-spacing:.1em;color:var(--muted);white-space:nowrap}
+input[type=date]{color-scheme:dark}
+.feat{margin:0 0 24px}
+.feat.off{opacity:.6}
+.feat-h{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.feat-t{color:var(--acc);font-size:13px;letter-spacing:.08em;margin-right:10px}
+.feat-d{font-size:11px;color:var(--muted);display:flex;gap:8px;align-items:center}
+.feat-add{margin:0 0 18px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cklist{max-height:230px;overflow:auto;border:1px solid var(--line);padding:4px 10px 8px;background:var(--bg)}
+.ck{display:flex;align-items:center;gap:8px;margin:0;padding:5px 0;font-size:12.5px;color:var(--text);cursor:pointer}
+.ck input{width:auto}
+.ck em{color:var(--gold);font-size:10px;font-style:normal;margin-left:auto}
+.ck-menu{font-size:10px;color:var(--acc);letter-spacing:.1em;margin-top:8px}
 </style>
 </head>
 <body>
@@ -124,7 +137,7 @@ select{width:100%;padding:9px 10px;background:var(--bg);color:var(--text);border
   </div>
   <div class="right" id="top"></div>
 </div><div class="tabs" id="tabs"></div></header>
-<main><div id="welcome"></div><div class="search" id="sw" style="display:none"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="q" type="search" placeholder="Cari model di menu ini..." autocomplete="off" aria-label="Cari model"><span id="qc"></span></div><div class="grid" id="grid"></div></main>
+<main><div id="welcome"></div><div id="feat"></div><div class="search" id="sw" style="display:none"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="q" type="search" placeholder="Cari model di menu ini..." autocomplete="off" aria-label="Cari model"><span id="qc"></span></div><div class="grid" id="grid"></div></main>
 <script>
 (function(){
   var DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbyAXXsjlClNhjhSPuy6hmR_k_Oy2mmbx8WoTKa_SvoJlPDsKUYy-E2F7B3ZYt5mHFqN/exec'; // URL Web App Apps Script (murid otomatis terhubung)
@@ -137,7 +150,8 @@ select{width:100%;padding:9px 10px;background:var(--bg);color:var(--text);border
   };
   function greet(){ var h=new Date().getHours(); return h<11?'Selamat pagi':h<15?'Selamat siang':h<18?'Selamat sore':'Selamat malam'; }
   var KEY='jarvis3d-state', CK='jarvis3d-config', SK='jarvis3d-session';
-  var state=jp(KEY,{menus:[{id:'m1',name:'Umum'}],activeMenu:'m1',panels:[]});
+  var state=jp(KEY,{menus:[{id:'m1',name:'Umum'}],activeMenu:'m1',panels:[],featured:[]});
+  if(!state.featured) state.featured=[];
   var config=jp(CK,{apiUrl:''}), role='murid', pw='', full=false, sync='local', timer=null;
   try{ var ses=JSON.parse(sessionStorage.getItem(SK)||'null'); if(ses&&ses.pw){ role='guru'; pw=ses.pw; } }catch(e){}
   var CUBE='<svg viewBox="0 0 40 40" fill="none" stroke="#ff8a1f" stroke-width="1"><path d="M20 4l14 8v16l-14 8-14-8V12z"/><path d="M6 12l14 8 14-8M20 20v16"/></svg>';
@@ -155,7 +169,7 @@ select{width:100%;padding:9px 10px;background:var(--bg);color:var(--text);border
   function post(b){ return fetch(apiUrl(),{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)}).then(function(r){return r.json();}); }
   function persist(){ try{ localStorage.setItem(KEY,JSON.stringify(state)); }catch(e){} }
   function save(){
-    persist(); render();
+    cleanFeat(); persist(); render();
     if(!hasApi()||!isG()||!full) return;
     clearTimeout(timer); timer=setTimeout(function(){
       sync='sync'; status();
@@ -173,7 +187,7 @@ select{width:100%;padding:9px 10px;background:var(--bg);color:var(--text);border
         if(r&&r.ok&&r.state) return r.state; throw 0; })
       :fetch(apiUrl()).then(function(r){return r.json();});
     req.then(function(d){
-      if(d&&d.menus){ var keep=state.activeMenu; state=d; if(!state.panels) state.panels=[];
+      if(d&&d.menus){ var keep=state.activeMenu; state=d; if(!state.panels) state.panels=[]; if(!state.featured) state.featured=[];
         if(state.menus.some(function(m){return m.id===keep;})) state.activeMenu=keep; persist(); full=isG(); }
       sync='online'; render();
     }).catch(function(e){
@@ -258,6 +272,8 @@ select{width:100%;padding:9px 10px;background:var(--bg);color:var(--text);border
     var am=byId(state.menus,state.activeMenu), showW=!!am&&am.name.trim().toLowerCase()===WELCOME_MENU;
     $('welcome').innerHTML=showW?'<div class="welcome"><div class="w-hi hud">'+greet().toUpperCase()+' // SISTEM AKTIF</div><h2 class="hud">'+esc(WELCOME.title)+'</h2><p>'+esc(WELCOME.text)+'</p><div class="w-tips">'+
       WELCOME.tips.map(function(t){return '<span><b>'+esc(t[0])+'</b> '+esc(t[1])+'</span>';}).join('')+'</div></div>':'';
+    $('feat').innerHTML=showW?featHtml(g,q):'';
+    if(showW&&(state.featured||[]).length) $('sw').style.display='';
     $('grid').innerHTML=(showW&&!all.length&&!g)?'':ps.length?ps.map(function(p,i){
       return '<div class="card'+(p.hidden?' off':'')+'" style="animation-delay:'+(i*50)+'ms"><div class="head"><h3 class="hud">'+esc(p.title||'Model 3D')+'</h3>'+
         (g?'<span class="ctl"><button class="c" data-a="mvpanel" data-i="'+p.id+'" data-d="-1">\u2039</button><button class="c" data-a="mvpanel" data-i="'+p.id+'" data-d="1">\u203a</button>'+
@@ -266,6 +282,61 @@ select{width:100%;padding:9px 10px;background:var(--bg);color:var(--text);border
         '<button class="thumb" data-a="open" data-i="'+p.id+'" aria-label="Buka model 3D">'+(p.thumb?'<img src="'+esc(p.thumb)+'" alt="">':'<div class="fallback">'+CUBE+'</div>')+
         '<span class="play"></span><span class="tag">KLIK UNTUK MEMUAT 3D</span></button></div>';
     }).join(''):all.length?'<div class="empty hud">TIDAK ADA HASIL UNTUK \u201c'+esc(qraw.trim())+'\u201d</div>':'<div class="empty hud">'+(ms.length?'MENU INI BELUM ADA MODEL':'BELUM ADA MENU')+(g?'<br><br><span style="font-family:Share Tech Mono">Gunakan + '+(ms.length?'MODEL':'MENU')+' di atas.</span>':'')+'</div>';
+  }
+
+  // ---------- koleksi pekan (tampil sementara di menu Umum) ----------
+  function pad(n){ return ('0'+n).slice(-2); }
+  function ymd(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+  function today(){ return ymd(new Date()); }
+  function fd(s){ var a=s.split('-'); return +a[2]+' '+['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][+a[1]-1]+' '+a[0]; }
+  function cleanFeat(){ (state.featured||[]).forEach(function(f){ f.ids=(f.ids||[]).filter(function(i){return byId(state.panels,i);}); }); }
+  function findP(id){
+    var p=byId(state.panels,id); if(p) return p;
+    (state.featured||[]).forEach(function(f){ (f.panels||[]).forEach(function(x){ if(x.id===id) p=x; }); });
+    return p;
+  }
+  function miniCard(p){
+    return '<div class="card"><div class="head"><h3 class="hud">'+esc(p.title||'Model 3D')+'</h3></div><button class="thumb" data-a="open" data-i="'+p.id+'" aria-label="Buka model 3D">'+
+      (p.thumb?'<img src="'+esc(p.thumb)+'" alt="">':'<div class="fallback">'+CUBE+'</div>')+'<span class="play"></span><span class="tag">KLIK UNTUK MEMUAT 3D</span></button></div>';
+  }
+  function featHtml(g,q){
+    var t=today();
+    var out=(state.featured||[]).filter(function(f){ return g||f.panels||(f.start<=t&&t<=f.end); }).map(function(f){
+      var st=f.start>t?['AKAN DATANG',0]:f.end<t?['BERAKHIR',0]:['AKTIF',1];
+      var ps=(f.panels||(f.ids||[]).map(function(i){return byId(state.panels,i);})).filter(Boolean);
+      if(q) ps=ps.filter(function(p){return (p.title||'Model 3D').toLowerCase().indexOf(q)!==-1;});
+      if(q&&!ps.length) return '';
+      return '<section class="feat'+(g&&!st[1]?' off':'')+'"><div class="feat-h"><div><span class="hud feat-t">\u25c6 '+esc(f.title)+'</span>'+(g?'<span class="pill'+(st[1]?' on':'')+'">'+st[0]+'</span>':'')+'</div>'+
+        '<div class="feat-d">'+fd(f.start)+' \u2013 '+fd(f.end)+(g?'<span class="ctl"><button class="c" data-a="editcoll" data-i="'+f.id+'" title="Ubah">\u270e</button><button class="c d" data-a="delcoll" data-i="'+f.id+'" title="Hapus">\u00d7</button></span>':'')+'</div></div>'+
+        (ps.length?'<div class="grid">'+ps.map(miniCard).join('')+'</div>':'<div class="empty">Semua model di koleksi ini sudah dihapus.</div>')+'</section>';
+    }).join('');
+    return (g?'<button class="add2 feat-add" data-a="addcoll">+ KOLEKSI PEKAN (TAMPIL SEMENTARA)</button>':'')+out;
+  }
+  function collForm(f){
+    var isNew=!f; f=f||{id:uid(),title:'',start:today(),end:ymd(new Date(Date.now()+6*864e5)),ids:[]};
+    var list=state.menus.map(function(m){
+      var ps=state.panels.filter(function(p){return p.menuId===m.id;}); if(!ps.length) return '';
+      return '<div class="ck-menu hud">'+esc(m.name)+'</div>'+ps.map(function(p){
+        return '<label class="ck"><input type="checkbox" value="'+p.id+'"'+(f.ids.indexOf(p.id)!==-1?' checked':'')+'><span>'+esc(p.title||'Model 3D')+'</span>'+((p.hidden||m.hidden)?'<em>tersembunyi</em>':'')+'</label>';
+      }).join('');
+    }).join('')||'<div class="hint">Belum ada model. Tambahkan model di menu terlebih dahulu.</div>';
+    var o=overlay('<div class="modal"><h2 class="hud">'+(isNew?'KOLEKSI PEKAN BARU':'UBAH KOLEKSI PEKAN')+'</h2>'+
+      '<label>JUDUL</label><input id="c-t" value="'+esc(f.title)+'" placeholder="mis. Materi Pekan 5" autocomplete="off">'+
+      '<div class="two"><div><label>MULAI</label><input id="c-s" type="date" value="'+f.start+'"></div><div><label>SAMPAI (TERMASUK)</label><input id="c-e" type="date" value="'+f.end+'"></div></div>'+
+      '<label>PILIH MODEL (DARI SEMUA MENU)</label><div class="cklist">'+list+'</div>'+
+      '<div class="hint">Selama rentang tanggal ini, model terpilih tampil di menu Umum untuk murid, termasuk model yang disembunyikan. Setelah lewat, otomatis hilang dari Umum.</div>'+
+      '<div class="err"></div><div class="row"><button class="btn" data-close style="color:var(--muted)">BATAL</button><button class="btn" data-ok>SIMPAN</button></div></div>');
+    o.querySelector('[data-ok]').addEventListener('click',function(){
+      var t=o.querySelector('#c-t').value.trim(), st=o.querySelector('#c-s').value, en=o.querySelector('#c-e').value, err=o.querySelector('.err');
+      var ids=[].map.call(o.querySelectorAll('.ck input:checked'),function(c){return c.value;});
+      if(!t){ err.textContent='Judul wajib diisi.'; return; }
+      if(!st||!en){ err.textContent='Tanggal mulai dan akhir wajib diisi.'; return; }
+      if(en<st){ err.textContent='Tanggal akhir tidak boleh sebelum tanggal mulai.'; return; }
+      if(!ids.length){ err.textContent='Pilih minimal satu model.'; return; }
+      f.title=t; f.start=st; f.end=en; f.ids=ids; if(isNew) state.featured.push(f);
+      state.menus.some(function(m){ if(m.name.trim().toLowerCase()===WELCOME_MENU){ state.activeMenu=m.id; return true; } });
+      save(); o.close();
+    });
   }
 
   // ---------- aksi ----------
@@ -291,7 +362,7 @@ select{width:100%;padding:9px 10px;background:var(--bg);color:var(--text);border
   }
   document.addEventListener('click',function(e){
     var t=e.target.closest('[data-a]'); if(!t||t.closest('.overlay')) return;
-    var a=t.dataset.a, id=t.dataset.i, d=+t.dataset.d, m=byId(state.menus,id), p=byId(state.panels,id);
+    var a=t.dataset.a, id=t.dataset.i, d=+t.dataset.d, m=byId(state.menus,id), p=findP(id);
     if(a==='menu'){ state.activeMenu=id; persist(); render(); }
     else if(a==='login') form('MASUK GURU',[{name:'pw',label:'KATA SANDI GURU',type:'password'}],function(v){ return login(v.pw); },
       'Belum pernah login? Kata sandi yang kamu isi pertama kali akan menjadi kata sandi guru.','MASUK');
@@ -313,6 +384,9 @@ select{width:100%;padding:9px 10px;background:var(--bg);color:var(--text);border
     else if(a==='delpanel'&&p){ if(confirm('Hapus panel ini?')){ state.panels=state.panels.filter(function(x){return x!==p;}); save(); } }
     else if(a==='mvpanel'&&p){ swap(state.panels,p,d,function(x){return x.menuId===p.menuId;}); save(); }
     else if(a==='vispanel'&&p){ p.hidden=!p.hidden; save(); }
+    else if(a==='addcoll') collForm(null);
+    else if(a==='editcoll'){ var cf=byId(state.featured,id); if(cf) collForm(cf); }
+    else if(a==='delcoll'){ var df=byId(state.featured,id); if(df&&confirm('Hapus koleksi "'+df.title+'"? Model aslinya tidak ikut terhapus.')){ state.featured=state.featured.filter(function(x){return x!==df;}); save(); } }
   });
 
   $('q').addEventListener('input',function(){ sq[state.activeMenu]=this.value; render(); });
