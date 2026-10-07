@@ -170,6 +170,8 @@ input[type=date]{color-scheme:dark}
   function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
   function uid(){ return Math.random().toString(36).slice(2,10)+Date.now().toString(36); }
   var sq={}; // kata kunci pencarian per menu (tidak disimpan)
+  var flip=false, rise=false, quietNow=false;
+  var reduce=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);
   function isG(){ return role==='guru'; }
   function apiUrl(){ return (config.apiUrl||'').trim()||DEFAULT_API_URL.trim(); }
   function hasApi(){ return !!apiUrl(); }
@@ -179,7 +181,7 @@ input[type=date]{color-scheme:dark}
   function post(b){ return fetch(apiUrl(),{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)}).then(function(r){return r.json();}); }
   function persist(){ try{ localStorage.setItem(KEY,JSON.stringify(state)); }catch(e){} }
   function save(){
-    cleanFeat(); persist(); render();
+    cleanFeat(); persist(); flip=true; render();
     if(!hasApi()||!isG()||!full) return;
     clearTimeout(timer); timer=setTimeout(function(){
       sync='sync'; status();
@@ -190,6 +192,7 @@ input[type=date]{color-scheme:dark}
     },500);
   }
   function loadApi(){
+    rise=true;
     if(!hasApi()){ sync='local'; full=isG(); render(); return; }
     sync='sync'; render();
     var req=isG()?post({action:'load',password:pw}).then(function(r){
@@ -279,7 +282,27 @@ input[type=date]{color-scheme:dark}
     var m={sync:['sync','SYNCING...'],online:['online','MAINFRAME ONLINE'],error:['error','SYNC GAGAL'],local:['local',hasApi()?'MENGHUBUNGKAN...':(isG()?'MODE LOKAL':'HUBUNGKAN SPREADSHEET')]}[sync];
     el.className='dot '+m[0]; lb.textContent=m[1];
   }
+  // animasi perpindahan halus (teknik FLIP): posisi lama -> posisi baru
+  function snap(sel,attr){ var m={}; [].forEach.call(document.querySelectorAll(sel),function(el){ m[el.getAttribute(attr)]=el.getBoundingClientRect(); }); return m; }
+  function play(sel,attr,before){
+    [].forEach.call(document.querySelectorAll(sel),function(el){
+      var o=before[el.getAttribute(attr)], r=el.getBoundingClientRect(), an;
+      if(!o){ el.animate([{opacity:0,transform:'scale(.9)'},{opacity:1,transform:'none'}],{duration:340,easing:'ease-out'}); return; }
+      var dx=o.left-r.left, dy=o.top-r.top;
+      if(Math.abs(dx)<1&&Math.abs(dy)<1) return;
+      el.style.zIndex=3;
+      an=el.animate([{transform:'translate('+dx+'px,'+dy+'px)'},{transform:'none'}],{duration:450,easing:'cubic-bezier(.22,1,.36,1)'});
+      an.onfinish=an.oncancel=function(){ el.style.zIndex=''; };
+    });
+  }
   function render(){
+    quietNow=!rise; rise=false;
+    var dof=flip&&!reduce, bt=null, bc=null; flip=false;
+    if(dof){ bt=snap('#tabs .tab','data-i'); bc=snap('#grid .card[data-pid]','data-pid'); }
+    renderCore();
+    if(dof){ play('#tabs .tab','data-i',bt); play('#grid .card[data-pid]','data-pid',bc); }
+  }
+  function renderCore(){
     var g=isG(), ms=state.menus.filter(function(m){return g||!m.hidden;});
     if(!ms.some(function(m){return m.id===state.activeMenu;})) state.activeMenu=ms[0]?ms[0].id:'';
     $('top').innerHTML='<div class="status" data-a="cfg"><span class="dot" id="st-dot"></span><span id="st-lbl"></span></div>'+
@@ -304,7 +327,7 @@ input[type=date]{color-scheme:dark}
     $('feat').innerHTML=showW?featHtml(g,q):'';
     if(showW&&(state.featured||[]).length) $('sw').style.display='';
     $('grid').innerHTML=(showW&&!all.length&&!g)?'':ps.length?ps.map(function(p,i){
-      return '<div class="card'+(p.hidden?' off':'')+'" style="animation-delay:'+(i*50)+'ms"><div class="head"><h3 class="hud">'+esc(p.title||'Video')+'</h3>'+
+      return '<div class="card'+(p.hidden?' off':'')+'" data-pid="'+p.id+'" style="'+(quietNow?'animation:none':'animation-delay:'+(i*50)+'ms')+'"><div class="head"><h3 class="hud">'+esc(p.title||'Video')+'</h3>'+
         (g?'<span class="ctl"><button class="c" data-a="mvpanel" data-i="'+p.id+'" data-d="-1">\u2039</button><button class="c" data-a="mvpanel" data-i="'+p.id+'" data-d="1">\u203a</button>'+
         '<button class="c" data-a="vispanel" data-i="'+p.id+'">'+(p.hidden?'\u25cc':'\u25c9')+'</button><button class="c" data-a="editpanel" data-i="'+p.id+'">\u270e</button><button class="c d" data-a="delpanel" data-i="'+p.id+'">\u00d7</button></span>':'')+'</div>'+
         (p.hidden?'<span class="hid">TERSEMBUNYI</span>':'')+
@@ -325,7 +348,7 @@ input[type=date]{color-scheme:dark}
     return p;
   }
   function miniCard(p){
-    return '<div class="card"><div class="head"><h3 class="hud">'+esc(p.title||'Video')+'</h3></div><button class="thumb" data-a="open" data-i="'+p.id+'" aria-label="Putar video">'+
+    return '<div class="card"'+(quietNow?' style="animation:none"':'')+'><div class="head"><h3 class="hud">'+esc(p.title||'Video')+'</h3></div><button class="thumb" data-a="open" data-i="'+p.id+'" aria-label="Putar video">'+
       thumbHtml(p)+'<span class="play"></span><span class="tag">KLIK UNTUK MEMUTAR VIDEO</span></button></div>';
   }
   function featHtml(g,q){
@@ -395,7 +418,7 @@ input[type=date]{color-scheme:dark}
   document.addEventListener('click',function(e){
     var t=e.target.closest('[data-a]'); if(!t||t.closest('.overlay')) return;
     var a=t.dataset.a, id=t.dataset.i, d=+t.dataset.d, m=byId(state.menus,id), p=findP(id);
-    if(a==='menu'){ state.activeMenu=id; persist(); render(); }
+    if(a==='menu'){ state.activeMenu=id; persist(); rise=true; render(); }
     else if(a==='login') form('MASUK GURU',[{name:'pw',label:'KATA SANDI GURU',type:'password'}],function(v){ return login(v.pw); },
       'Belum pernah login? Kata sandi yang kamu isi pertama kali akan menjadi kata sandi guru.','MASUK');
     else if(a==='logout') logout();
