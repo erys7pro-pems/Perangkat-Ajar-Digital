@@ -267,7 +267,7 @@ input[type=date]{color-scheme:dark}
   function openLink(p){ return p.src==='drive'?'https://drive.google.com/file/d/'+p.fid+'/view':(p.link||p.embed||''); }
   function thumbHtml(p){
     return '<div class="fallback">'+FILM+'<span class="src hud">'+(p.src==='drive'?'GOOGLE DRIVE':'4SHARED')+'</span></div>'+
-      (p.thumb?'<img src="'+esc(p.thumb)+'" alt="" referrerpolicy="no-referrer" onerror="this.style.display=\'none\'">':'');
+      (p.thumb?'<img src="'+esc(p.thumb)+'" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display=\'none\'">':'');
   }
 
   // ---------- modal ----------
@@ -447,6 +447,16 @@ input[type=date]{color-scheme:dark}
     var m=t.match(/folders\/([\w-]{10,})/)||t.match(/[?&]id=([\w-]{10,})/);
     return m?m[1]:(/^[\w-]{15,}$/.test(t)?t:null);
   }
+  // membaca folder bertahap sampai habis (server mengembalikan token lanjutan)
+  function fetchAll(fid,token,acc,name){
+    return post({action:'listfolder',password:pw,folderId:fid,token:token}).then(function(r){
+      if(!r||!r.ok) throw (r||{});
+      acc=acc.concat(r.folder.files||[]); name=r.folder.name;
+      var er=document.querySelector('.overlay .err'); if(er) er.textContent='Membaca folder... '+acc.length+' video ditemukan';
+      if(r.folder.token&&acc.length<3000) return fetchAll(fid,r.folder.token,acc,name);
+      return {name:name,files:acc,more:!!r.folder.token};
+    });
+  }
   function impForm(){
     if(!hasApi()){ alert('Impor folder membutuhkan koneksi ke Apps Script (Google Drive).'); return; }
     if(!state.menus.length){ alert('Buat menu terlebih dahulu.'); return; }
@@ -455,10 +465,8 @@ input[type=date]{color-scheme:dark}
       {name:'menu',label:'MASUKKAN KE MENU',value:state.activeMenu,options:state.menus.map(function(m){return [m.id,m.name];})}
     ],function(v){
       var fid=folderId(v.url); if(!fid) return 'Link atau ID folder tidak dikenali.';
-      return post({action:'listfolder',password:pw,folderId:fid}).then(function(r){
-        if(r&&r.error==='unauthorized') return 'Sesi guru ditolak server.';
-        if(!r||!r.ok) return 'Gagal membaca folder: '+String((r&&r.error)||'tidak ada respons').slice(0,160);
-        var files=r.folder.files||[]; if(!files.length) return 'Tidak ada file video di folder itu (isi subfolder tidak ikut dibaca).';
+      return fetchAll(fid,'',[],'').then(function(r){
+        var files=r.files; if(!files.length) return 'Tidak ada file video di folder itu (isi subfolder tidak ikut dibaca).';
         var have={}, add=0; state.panels.forEach(function(p){ if(p.src==='drive') have[p.fid]=1; });
         files.forEach(function(f){
           if(have[f.id]) return;
@@ -467,9 +475,11 @@ input[type=date]{color-scheme:dark}
           add++;
         });
         state.activeMenu=v.menu; if(add) save(); else render();
-        alert(add+' video ditambahkan dari folder "'+r.folder.name+'"'+(files.length-add?' ('+(files.length-add)+' sudah ada, dilewati).':'.'));
+        alert(add+' video ditambahkan dari folder "'+r.name+'"'+(files.length-add?' ('+(files.length-add)+' sudah ada, dilewati).':'.')+(r.more?' Folder masih berisi lebih banyak file daripada batas 3000 per impor.':''));
         return '';
-      }).catch(function(){ return 'Tidak dapat terhubung ke Apps Script.'; });
+      }).catch(function(e){
+        return e&&e.error==='unauthorized'?'Sesi guru ditolak server.':(e&&e.error)?'Gagal membaca folder: '+String(e.error).slice(0,160):'Tidak dapat terhubung ke Apps Script.';
+      });
     },'Folder harus dapat diakses akun yang memasang Apps Script. Agar murid bisa menonton, bagikan folder dengan akses "Siapa saja yang memiliki link".','IMPOR');
   }
 
