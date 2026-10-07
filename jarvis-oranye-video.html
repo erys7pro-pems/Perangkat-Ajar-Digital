@@ -155,6 +155,7 @@ input[type=date]{color-scheme:dark}
 .list .play{width:34px;height:34px;margin:-17px 0 0 -17px}
 .list .play::before{border-left-width:10px;border-top-width:6px;border-bottom-width:6px;margin-left:3px}
 @media (max-width:520px){.list .card{grid-template-columns:110px 1fr}.list .thumb{width:110px}}
+.frame video{width:100%;height:100%;display:block;background:#000}
 </style>
 </head>
 <body>
@@ -249,12 +250,16 @@ input[type=date]{color-scheme:dark}
     var d=t.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:[^"'\s]*&)?id=)([\w-]{15,})/i)||t.match(/drive\.google\.com\/[^"'\s]*[?&]id=([\w-]{15,})/i);
     if(d) return {src:'drive',fid:d[1],link:'https://drive.google.com/file/d/'+d[1]+'/view'};
     if(/^[\w-]{25,}$/.test(t)) return {src:'drive',fid:t,link:'https://drive.google.com/file/d/'+t+'/view'};
-    if(/4shared\.com/i.test(t)){
-      var f=t.match(/<iframe[^>]+src\s*=\s*["']([^"']+)["']/i), u=f?f[1]:(t.match(/(?:https?:)?\/\/[\w.-]*4shared\.com[^\s"'<>]*/i)||[''])[0];
+    if(/4shared\.com|4s\.io/i.test(t)){
+      var f=t.match(/<iframe[^>]+src\s*=\s*["']([^"']+)["']/i), u=f?f[1]:(t.match(/(?:https?:)?\/\/[\w.-]*(?:4shared\.com|4s\.io)[^\s"'<>]*/i)||[''])[0];
       if(u.indexOf('//')===0) u='https:'+u;
-      var h; try{ h=new URL(u).hostname; }catch(e){ return null; }
-      if(!/^https:/i.test(u)||!/(^|\.)4shared\.com$/i.test(h)) return null;
-      return {src:'4shared',embed:f?u:'',link:f?'':u};
+      var h,path; try{ var o=new URL(u); h=o.hostname; path=o.pathname; }catch(e){ return null; }
+      if(!/^https:/i.test(u)||!/(^|\.)(4shared\.com|4s\.io)$/i.test(h)) return null;
+      if(f) return {src:'4shared',embed:u,link:''};                        // kode embed
+      if(/\.(mp4|webm|ogv|m4v|mov)$/i.test(path)||/\/download\//i.test(path)) return {src:'4shared',direct:u,link:u}; // link langsung
+      var id=path.match(/\/(?:web\/embed\/file|video|file|mp3|mp4|audio|music|play)\/([\w-]{5,})/i);       // link halaman file
+      if(id) return {src:'4shared',embed:'https://www.4shared.com/web/embed/file/'+id[1],link:u};
+      return {src:'4shared',embed:'',link:u};
     }
     return null;
   }
@@ -291,8 +296,8 @@ input[type=date]{color-scheme:dark}
   function openViewer(p){
     var e=embedUrl(p), l=openLink(p), nm=p.src==='drive'?'GOOGLE DRIVE':'4SHARED';
     overlay('<div class="modal big"><div class="mh"><h2 class="hud">'+esc(p.title||'Video')+'</h2><button class="x" data-close>\u00d7</button></div><div class="frame">'+
-      (e?'<iframe title="'+esc(p.title||'Video')+'" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen referrerpolicy="no-referrer" src="'+esc(e)+'"></iframe>'
-        :'<div class="noembed hud">VIDEO INI TIDAK DAPAT DISEMATKAN<span>Guru perlu memakai kode embed dari 4shared. Sementara itu, buka lewat tautan di bawah.</span></div>')+
+      (p.direct?'<video controls playsinline preload="metadata" src="'+esc(p.direct)+'"></video>':e?'<iframe title="'+esc(p.title||'Video')+'" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen referrerpolicy="no-referrer" src="'+esc(e)+'"></iframe>'
+        :'<div class="noembed hud">VIDEO INI TIDAK DAPAT DISEMATKAN<span>Link ini tidak dapat diputar di dalam halaman. Buka lewat tautan di bawah.</span></div>')+
       '</div><div class="vlink">'+(l?'<a href="'+esc(l)+'" target="_blank" rel="noopener noreferrer">BUKA DI '+nm+' \u2197</a>':'')+'</div></div>');
   }
 
@@ -349,7 +354,7 @@ input[type=date]{color-scheme:dark}
     if(!ms.some(function(m){return m.id===state.activeMenu;})) state.activeMenu=ms[0]?ms[0].id:'';
     $('top').innerHTML='<div class="status" data-a="cfg"><span class="dot" id="st-dot"></span><span id="st-lbl"></span></div>'+
       '<span class="pill'+(g?' on':'')+'">'+(g?'MODE GURU':'MODE MURID')+'</span>'+
-      (g?'<button class="btn" data-a="addpanel">+ VIDEO</button><button class="btn" data-a="logout">KELUAR</button>':'<button class="btn" data-a="login">MASUK GURU</button>');
+      (g?'<button class="btn" data-a="addpanel">+ VIDEO</button><button class="btn" data-a="impfolder">IMPOR FOLDER</button><button class="btn" data-a="logout">KELUAR</button>':'<button class="btn" data-a="login">MASUK GURU</button>');
     status();
     $('tabs').innerHTML=ms.map(function(m,i){
       return '<div class="tab'+(m.id===state.activeMenu?' active':'')+(m.hidden?' off':'')+'" data-a="menu" data-i="'+m.id+'">'+esc(m.name)+
@@ -436,6 +441,38 @@ input[type=date]{color-scheme:dark}
     });
   }
 
+  // ---------- impor otomatis isi folder Google Drive ----------
+  function folderId(t){
+    t=String(t||'').trim();
+    var m=t.match(/folders\/([\w-]{10,})/)||t.match(/[?&]id=([\w-]{10,})/);
+    return m?m[1]:(/^[\w-]{15,}$/.test(t)?t:null);
+  }
+  function impForm(){
+    if(!hasApi()){ alert('Impor folder membutuhkan koneksi ke Apps Script (Google Drive).'); return; }
+    if(!state.menus.length){ alert('Buat menu terlebih dahulu.'); return; }
+    form('IMPOR FOLDER GOOGLE DRIVE',[
+      {name:'url',label:'LINK / ID FOLDER DRIVE',ph:'https://drive.google.com/drive/folders/...'},
+      {name:'menu',label:'MASUKKAN KE MENU',value:state.activeMenu,options:state.menus.map(function(m){return [m.id,m.name];})}
+    ],function(v){
+      var fid=folderId(v.url); if(!fid) return 'Link atau ID folder tidak dikenali.';
+      return post({action:'listfolder',password:pw,folderId:fid}).then(function(r){
+        if(r&&r.error==='unauthorized') return 'Sesi guru ditolak server.';
+        if(!r||!r.ok) return 'Gagal membaca folder: '+String((r&&r.error)||'tidak ada respons').slice(0,160);
+        var files=r.folder.files||[]; if(!files.length) return 'Tidak ada file video di folder itu (isi subfolder tidak ikut dibaca).';
+        var have={}, add=0; state.panels.forEach(function(p){ if(p.src==='drive') have[p.fid]=1; });
+        files.forEach(function(f){
+          if(have[f.id]) return;
+          state.panels.push({id:uid(),menuId:v.menu,hidden:false,src:'drive',fid:f.id,embed:'',direct:'',cover:'',
+            link:'https://drive.google.com/file/d/'+f.id+'/view',title:f.name.replace(/\.[^.]+$/,''),thumb:'https://drive.google.com/thumbnail?id='+f.id+'&sz=w640'});
+          add++;
+        });
+        state.activeMenu=v.menu; if(add) save(); else render();
+        alert(add+' video ditambahkan dari folder "'+r.folder.name+'"'+(files.length-add?' ('+(files.length-add)+' sudah ada, dilewati).':'.'));
+        return '';
+      }).catch(function(){ return 'Tidak dapat terhubung ke Apps Script.'; });
+    },'Folder harus dapat diakses akun yang memasang Apps Script. Agar murid bisa menonton, bagikan folder dengan akses "Siapa saja yang memiliki link".','IMPOR');
+  }
+
   // ---------- aksi ----------
   function byId(a,id){ return a.filter(function(x){return x.id===id;})[0]; }
   function swap(arr,item,d,same){
@@ -445,20 +482,20 @@ input[type=date]{color-scheme:dark}
   function panelForm(p){
     var isNew=!p;
     var opts=state.menus.map(function(m){return [m.id,m.name];});
-    var cur=p?(p.src==='drive'?p.link:(p.embed?'<iframe src="'+p.embed+'"></iframe>':p.link)):'';
+    var cur=p?(p.src==='drive'?p.link:(p.direct||p.link||(p.embed?'<iframe src="'+p.embed+'"></iframe>':''))):'';
     form(isNew?'TAMBAH VIDEO':'UBAH VIDEO',[
-      {name:'url',label:'LINK GOOGLE DRIVE / KODE EMBED 4SHARED',value:cur,ph:'https://drive.google.com/file/d/... atau <iframe src=...>'},
+      {name:'url',label:'LINK GOOGLE DRIVE / LINK 4SHARED / KODE EMBED',value:cur,ph:'https://drive.google.com/file/d/... atau https://www.4shared.com/video/...'},
       {name:'title',label:'JUDUL',value:p?p.title:'',ph:'mis. Pengantar Fotosintesis'},
       {name:'cover',label:'LINK GAMBAR SAMPUL (OPSIONAL)',value:p?p.cover:'',ph:'https://... (otomatis untuk Google Drive)'},
       {name:'menu',label:'MENU',value:p?p.menuId:state.activeMenu,options:opts}
     ],function(v){
       var r=parseSrc(v.url); if(!r) return 'Link tidak dikenali. Tempel link Google Drive atau kode embed dari 4shared.';
       var m=p||{id:uid(),hidden:false};
-      m.src=r.src; m.fid=r.fid||''; m.embed=r.embed||''; m.link=r.link||''; m.title=v.title||'Video'; m.menuId=v.menu;
+      m.src=r.src; m.fid=r.fid||''; m.embed=r.embed||''; m.direct=r.direct||''; m.link=r.link||''; m.title=v.title||'Video'; m.menuId=v.menu;
       m.cover=/^https:\/\//i.test(v.cover)?v.cover:'';
       m.thumb=m.cover||(r.src==='drive'?'https://drive.google.com/thumbnail?id='+r.fid+'&sz=w640':'');
       if(isNew) state.panels.push(m); state.activeMenu=m.menuId; save(); return '';
-    },'Google Drive: bagikan file dengan akses "Siapa saja yang memiliki link". 4shared: ambil kode HTML/embed dari menu bagikan, lalu tempel seluruh kode &lt;iframe&gt;.');
+    },'Google Drive: bagikan file dengan akses "Siapa saja yang memiliki link". 4shared: tempel link file (halaman video), link langsung (direct link), atau kode &lt;iframe&gt; dari menu bagikan.');
   }
   document.addEventListener('click',function(e){
     var t=e.target.closest('[data-a]'); if(!t||t.closest('.overlay')) return;
@@ -482,6 +519,7 @@ input[type=date]{color-scheme:dark}
     else if(a==='delmenu'&&m){ if(confirm('Hapus menu "'+m.name+'" beserta semua videonya?')){ state.menus=state.menus.filter(function(x){return x!==m;}); state.panels=state.panels.filter(function(x){return x.menuId!==id;}); save(); } }
     else if(a==='mvmenu'&&m){ swap(state.menus,m,d,function(){return true;}); save(); }
     else if(a==='vismenu'&&m){ m.hidden=!m.hidden; save(); }
+    else if(a==='impfolder') impForm();
     else if(a==='addpanel'){ if(!state.menus.length) alert('Buat menu terlebih dahulu.'); else panelForm(null); }
     else if(a==='editpanel'&&p) panelForm(p);
     else if(a==='delpanel'&&p){ if(confirm('Hapus panel ini?')){ state.panels=state.panels.filter(function(x){return x!==p;}); save(); } }
