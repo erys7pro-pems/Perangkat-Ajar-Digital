@@ -217,6 +217,55 @@ input[type=date]{color-scheme:dark}
       .then(function(d){ m.thumb=d.thumbnail_url||''; if(!m.title) m.title=d.title||''; }).catch(function(){});
   }
 
+  // ---------- impor koleksi Sketchfab ----------
+  function sfThumb(x){
+    var im=(x.thumbnails&&x.thumbnails.images)||[]; if(!im.length) return '';
+    var s=im.slice().sort(function(a,b){return a.width-b.width;});
+    return (s.filter(function(i){return i.width>=400;})[0]||s[s.length-1]).url;
+  }
+  function sfFetch(cuid){
+    var all=[], url='https://api.sketchfab.com/v3/collections/'+cuid+'/models', n=0;
+    function step(){
+      return fetch(url).then(function(r){
+        if(r.status===401||r.status===403||r.status===404) throw 'Koleksi tidak ditemukan atau tidak publik.';
+        if(!r.ok) throw 'Sketchfab menolak permintaan ('+r.status+').';
+        return r.json();
+      }).then(function(d){
+        (d.results||[]).forEach(function(x){ all.push(x); });
+        if(d.next&&++n<20){ url=d.next; return step(); }
+        return all;
+      });
+    }
+    return step().catch(function(e){ throw typeof e==='string'?e:'Tidak dapat terhubung ke Sketchfab.'; });
+  }
+  // menambah hanya model yang belum pernah diimpor ke menu ini (model yang sudah kamu hapus tidak muncul lagi)
+  function sfMerge(menu,items){
+    menu.sfSeen=menu.sfSeen||[]; var added=0;
+    items.forEach(function(x){
+      if(menu.sfSeen.indexOf(x.uid)!==-1) return;
+      menu.sfSeen.push(x.uid);
+      if(state.panels.some(function(p){return p.menuId===menu.id&&p.uid===x.uid;})) return;
+      state.panels.push({id:uid(),uid:x.uid,title:x.name||'',thumb:sfThumb(x),menuId:menu.id,hidden:false}); added++;
+    });
+    return added;
+  }
+  function importForm(){
+    var opts=state.menus.map(function(m){return [m.id,m.name];}); opts.push(['__new','+ Menu baru (isi nama di bawah)']);
+    form('IMPOR KOLEKSI SKETCHFAB',[
+      {name:'url',label:'LINK / ID KOLEKSI SKETCHFAB',ph:'https://sketchfab.com/namaanda/collections/nama-koleksi-xxxx'},
+      {name:'menu',label:'MASUKKAN KE MENU',value:state.activeMenu,options:opts},
+      {name:'nn',label:'NAMA MENU BARU (HANYA JIKA MEMILIH MENU BARU)',ph:'mis. Sel dan Organel'}
+    ],function(v){
+      var c=uidFrom(v.url); if(!c) return 'ID koleksi (32 karakter) tidak ditemukan di link.';
+      if(v.menu==='__new'&&!v.nn) return 'Isi nama menu baru.';
+      return sfFetch(c).then(function(items){
+        if(!items.length) return 'Koleksi ini kosong.';
+        var m; if(v.menu==='__new'){ m={id:uid(),name:v.nn}; state.menus.push(m); } else m=byId(state.menus,v.menu);
+        m.sfc=c; sfMerge(m,items); state.activeMenu=m.id; save(); return '';
+      }).catch(function(e){ return String(e); });
+    },'Koleksi harus publik. Setelah diimpor, tiap model bisa kamu ubah, urutkan, atau sembunyikan seperti biasa. Tombol \u21bb di tab menu akan menarik model baru dari koleksi yang sama.','IMPOR');
+  }
+
   // ---------- modal ----------
   function overlay(html){
     var o=document.createElement('div'); o.className='overlay'; o.innerHTML=html;
@@ -255,12 +304,12 @@ input[type=date]{color-scheme:dark}
     if(!ms.some(function(m){return m.id===state.activeMenu;})) state.activeMenu=ms[0]?ms[0].id:'';
     $('top').innerHTML='<div class="status" data-a="cfg"><span class="dot" id="st-dot"></span><span id="st-lbl"></span></div>'+
       '<span class="pill'+(g?' on':'')+'">'+(g?'MODE GURU':'MODE MURID')+'</span>'+
-      (g?'<button class="btn" data-a="addpanel">+ MODEL</button><button class="btn" data-a="logout">KELUAR</button>':'<button class="btn" data-a="login">MASUK GURU</button>');
+      (g?'<button class="btn" data-a="addpanel">+ MODEL</button><button class="btn" data-a="import">IMPOR KOLEKSI</button><button class="btn" data-a="logout">KELUAR</button>':'<button class="btn" data-a="login">MASUK GURU</button>');
     status();
     $('tabs').innerHTML=ms.map(function(m,i){
       return '<div class="tab'+(m.id===state.activeMenu?' active':'')+(m.hidden?' off':'')+'" data-a="menu" data-i="'+m.id+'">'+esc(m.name)+
         (g?'<span class="ctl"><button class="c" data-a="mvmenu" data-i="'+m.id+'" data-d="-1" title="Geser kiri">\u2039</button><button class="c" data-a="mvmenu" data-i="'+m.id+'" data-d="1" title="Geser kanan">\u203a</button>'+
-        '<button class="c" data-a="vismenu" data-i="'+m.id+'" title="Tampilkan/sembunyikan dari murid">'+(m.hidden?'\u25cc':'\u25c9')+'</button>'+
+        (m.sfc?'<button class="c" data-a="syncmenu" data-i="'+m.id+'" title="Sinkron ulang dari koleksi Sketchfab">\u21bb</button>':'')+'<button class="c" data-a="vismenu" data-i="'+m.id+'" title="Tampilkan/sembunyikan dari murid">'+(m.hidden?'\u25cc':'\u25c9')+'</button>'+
         '<button class="c" data-a="renmenu" data-i="'+m.id+'" title="Ubah nama">\u270e</button><button class="c d" data-a="delmenu" data-i="'+m.id+'" title="Hapus">\u00d7</button></span>':'')+'</div>';
     }).join('')+(g?'<button class="add2" data-a="addmenu">+ MENU</button>':'');
     var all=state.panels.filter(function(p){return p.menuId===state.activeMenu&&(g||!p.hidden);});
@@ -379,6 +428,8 @@ input[type=date]{color-scheme:dark}
     else if(a==='delmenu'&&m){ if(confirm('Hapus menu "'+m.name+'" beserta semua modelnya?')){ state.menus=state.menus.filter(function(x){return x!==m;}); state.panels=state.panels.filter(function(x){return x.menuId!==id;}); save(); } }
     else if(a==='mvmenu'&&m){ swap(state.menus,m,d,function(){return true;}); save(); }
     else if(a==='vismenu'&&m){ m.hidden=!m.hidden; save(); }
+    else if(a==='import') importForm();
+    else if(a==='syncmenu'&&m&&m.sfc) sfFetch(m.sfc).then(function(items){ var n=sfMerge(m,items); save(); alert(n?n+' model baru ditambahkan.':'Tidak ada model baru di koleksi.'); }).catch(function(e){ alert(e); });
     else if(a==='addpanel'){ if(!state.menus.length) alert('Buat menu terlebih dahulu.'); else panelForm(null); }
     else if(a==='editpanel'&&p) panelForm(p);
     else if(a==='delpanel'&&p){ if(confirm('Hapus panel ini?')){ state.panels=state.panels.filter(function(x){return x!==p;}); save(); } }
