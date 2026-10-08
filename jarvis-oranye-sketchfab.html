@@ -161,7 +161,7 @@ input[type=date]{color-scheme:dark}
   function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
   function uid(){ return Math.random().toString(36).slice(2,10)+Date.now().toString(36); }
   var sq={}; // kata kunci pencarian per menu (tidak disimpan)
-  var flip=null; // posisi kartu sebelum dipindah (untuk animasi geser)
+  var flip=null, flipT=null; // posisi kartu / tab sebelum dipindah (untuk animasi geser)
   function isG(){ return role==='guru'; }
   function apiUrl(){ return (config.apiUrl||'').trim()||DEFAULT_API_URL.trim(); }
   function hasApi(){ return !!apiUrl(); }
@@ -302,6 +302,7 @@ input[type=date]{color-scheme:dark}
     el.className='dot '+m[0]; lb.textContent=m[1];
   }
   function render(){
+    var still=!!(flip||flipT);
     var g=isG(), ms=state.menus.filter(function(m){return g||!m.hidden;});
     if(!ms.some(function(m){return m.id===state.activeMenu;})) state.activeMenu=ms[0]?ms[0].id:'';
     $('top').innerHTML='<div class="status" data-a="cfg"><span class="dot" id="st-dot"></span><span id="st-lbl"></span></div>'+
@@ -309,11 +310,12 @@ input[type=date]{color-scheme:dark}
       (g?'<button class="btn" data-a="addpanel">+ MODEL</button><button class="btn" data-a="import">IMPOR KOLEKSI</button><button class="btn" data-a="logout">KELUAR</button>':'<button class="btn" data-a="login">MASUK GURU</button>');
     status();
     $('tabs').innerHTML=ms.map(function(m,i){
-      return '<div class="tab'+(m.id===state.activeMenu?' active':'')+(m.hidden?' off':'')+'" data-a="menu" data-i="'+m.id+'">'+esc(m.name)+
+      return '<div class="tab'+(m.id===state.activeMenu?' active':'')+(m.hidden?' off':'')+'" data-a="menu" data-i="'+m.id+'" data-mid="'+m.id+'">'+esc(m.name)+
         (g?'<span class="ctl"><button class="c" data-a="mvmenu" data-i="'+m.id+'" data-d="-1" title="Geser kiri">\u2039</button><button class="c" data-a="mvmenu" data-i="'+m.id+'" data-d="1" title="Geser kanan">\u203a</button>'+
         (m.sfc?'<button class="c" data-a="syncmenu" data-i="'+m.id+'" title="Sinkron ulang dari koleksi Sketchfab">\u21bb</button>':'')+'<button class="c" data-a="vismenu" data-i="'+m.id+'" title="Tampilkan/sembunyikan dari murid">'+(m.hidden?'\u25cc':'\u25c9')+'</button>'+
         '<button class="c" data-a="renmenu" data-i="'+m.id+'" title="Ubah nama">\u270e</button><button class="c d" data-a="delmenu" data-i="'+m.id+'" title="Hapus">\u00d7</button></span>':'')+'</div>';
     }).join('')+(g?'<button class="add2" data-a="addmenu">+ MENU</button>':'');
+    if(flipT){ playFlip('tabs','.tab[data-mid]','mid',flipT); flipT=null; }
     var all=state.panels.filter(function(p){return p.menuId===state.activeMenu&&(g||!p.hidden);});
     var qraw=sq[state.activeMenu]||'', q=qraw.trim().toLowerCase();
     var ps=q?all.filter(function(p){return (p.title||'Model 3D').toLowerCase().indexOf(q)!==-1;}):all;
@@ -325,7 +327,6 @@ input[type=date]{color-scheme:dark}
       WELCOME.tips.map(function(t){return '<span><b>'+esc(t[0])+'</b> '+esc(t[1])+'</span>';}).join('')+'</div></div>':'';
     $('feat').innerHTML=showW?featHtml(g,q):'';
     if(showW&&(state.featured||[]).length) $('sw').style.display='';
-    var still=!!flip;
     $('grid').innerHTML=(showW&&!all.length&&!g)?'':ps.length?ps.map(function(p,i){
       return '<div class="card'+(p.hidden?' off':'')+(still?' still':'')+'" data-pid="'+p.id+'" style="animation-delay:'+(i*50)+'ms"><div class="head"><h3 class="hud">'+esc(p.title||'Model 3D')+'</h3>'+
         (g?'<span class="ctl"><button class="c" data-a="mvpanel" data-i="'+p.id+'" data-d="-1">\u2039</button><button class="c" data-a="mvpanel" data-i="'+p.id+'" data-d="1">\u203a</button>'+
@@ -334,23 +335,23 @@ input[type=date]{color-scheme:dark}
         '<button class="thumb" data-a="open" data-i="'+p.id+'" aria-label="Buka model 3D">'+(p.thumb?'<img src="'+esc(p.thumb)+'" alt="">':'<div class="fallback">'+CUBE+'</div>')+
         '<span class="play"></span><span class="tag">KLIK UNTUK MEMUAT 3D</span></button></div>';
     }).join(''):all.length?'<div class="empty hud">TIDAK ADA HASIL UNTUK \u201c'+esc(qraw.trim())+'\u201d</div>':'<div class="empty hud">'+(ms.length?'MENU INI BELUM ADA MODEL':'BELUM ADA MENU')+(g?'<br><br><span style="font-family:Share Tech Mono">Gunakan + '+(ms.length?'MODEL':'MENU')+' di atas.</span>':'')+'</div>';
-    if(flip){ playFlip(flip); flip=null; }
+    if(flip){ playFlip('grid','.card[data-pid]','pid',flip); flip=null; }
   }
   // animasi geser halus (FLIP): kartu dari posisi lama meluncur ke posisi baru
-  function snap(){
-    var o={}; [].forEach.call($('grid').querySelectorAll('.card[data-pid]'),function(c){ var r=c.getBoundingClientRect(); o[c.dataset.pid]={x:r.left,y:r.top}; });
+  function snap(cid,sel,attr){
+    var o={}; [].forEach.call($(cid).querySelectorAll(sel),function(c){ var r=c.getBoundingClientRect(); o[c.dataset[attr]]={x:r.left,y:r.top}; });
     return o;
   }
-  function playFlip(old){
+  function playFlip(cid,sel,attr,old){
     var moved=[];
-    [].forEach.call($('grid').querySelectorAll('.card[data-pid]'),function(c){
-      var b=old[c.dataset.pid]; if(!b) return;
+    [].forEach.call($(cid).querySelectorAll(sel),function(c){
+      var b=old[c.dataset[attr]]; if(!b) return;
       var r=c.getBoundingClientRect(), dx=b.x-r.left, dy=b.y-r.top;
       if(!dx&&!dy) return;
       c.style.transition='none'; c.style.transform='translate('+dx+'px,'+dy+'px)'; c.style.position='relative'; c.style.zIndex='5'; moved.push(c);
     });
     if(!moved.length) return;
-    $('grid').offsetWidth; // paksa reflow
+    $(cid).offsetWidth; // paksa reflow
     requestAnimationFrame(function(){
       moved.forEach(function(c){ c.style.transition='transform .45s cubic-bezier(.22,.8,.24,1)'; c.style.transform=''; });
       setTimeout(function(){ moved.forEach(function(c){ c.style.transition=''; c.style.position=''; c.style.zIndex=''; }); },500);
@@ -450,14 +451,14 @@ input[type=date]{color-scheme:dark}
     else if(a==='addmenu') form('MENU BARU',[{name:'n',label:'NAMA MENU'}],function(v){ if(!v.n) return 'Nama wajib diisi.'; var x={id:uid(),name:v.n}; state.menus.push(x); state.activeMenu=x.id; save(); return ''; },'','BUAT');
     else if(a==='renmenu'&&m) form('UBAH NAMA MENU',[{name:'n',label:'NAMA MENU',value:m.name}],function(v){ if(!v.n) return 'Nama wajib diisi.'; m.name=v.n; save(); return ''; });
     else if(a==='delmenu'&&m){ if(confirm('Hapus menu "'+m.name+'" beserta semua modelnya?')){ state.menus=state.menus.filter(function(x){return x!==m;}); state.panels=state.panels.filter(function(x){return x.menuId!==id;}); save(); } }
-    else if(a==='mvmenu'&&m){ swap(state.menus,m,d,function(){return true;}); save(); }
+    else if(a==='mvmenu'&&m){ flipT=snap('tabs','.tab[data-mid]','mid'); swap(state.menus,m,d,function(){return true;}); save(); }
     else if(a==='vismenu'&&m){ m.hidden=!m.hidden; save(); }
     else if(a==='import') importForm();
     else if(a==='syncmenu'&&m&&m.sfc) sfFetch(m.sfc).then(function(items){ var n=sfMerge(m,items); save(); alert(n?n+' model baru ditambahkan.':'Tidak ada model baru di koleksi.'); }).catch(function(e){ alert(e); });
     else if(a==='addpanel'){ if(!state.menus.length) alert('Buat menu terlebih dahulu.'); else panelForm(null); }
     else if(a==='editpanel'&&p) panelForm(p);
     else if(a==='delpanel'&&p){ if(confirm('Hapus panel ini?')){ state.panels=state.panels.filter(function(x){return x!==p;}); save(); } }
-    else if(a==='mvpanel'&&p){ flip=snap(); swap(state.panels,p,d,function(x){return x.menuId===p.menuId;}); save(); }
+    else if(a==='mvpanel'&&p){ flip=snap('grid','.card[data-pid]','pid'); swap(state.panels,p,d,function(x){return x.menuId===p.menuId;}); save(); }
     else if(a==='vispanel'&&p){ p.hidden=!p.hidden; save(); }
     else if(a==='addcoll') collForm(null);
     else if(a==='editcoll'){ var cf=byId(state.featured,id); if(cf) collForm(cf); }
