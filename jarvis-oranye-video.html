@@ -156,6 +156,11 @@ input[type=date]{color-scheme:dark}
 .list .play::before{border-left-width:10px;border-top-width:6px;border-bottom-width:6px;margin-left:3px}
 @media (max-width:520px){.list .card{grid-template-columns:110px 1fr}.list .thumb{width:110px}}
 .frame video{width:100%;height:100%;display:block;background:#000}
+
+.pgsw{display:flex;border:1px solid var(--line);background:var(--panel);clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px)}
+.pgsw a,.pgsw span{font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:.1em;padding:10px 14px;text-decoration:none;color:var(--muted);white-space:nowrap}
+.pgsw a:hover{color:var(--acc);background:rgba(255,138,31,.07)}
+.pgsw span{color:var(--acc);background:rgba(255,138,31,.12);box-shadow:inset 0 -2px var(--acc)}
 </style>
 </head>
 <body>
@@ -164,7 +169,7 @@ input[type=date]{color-scheme:dark}
     <svg viewBox="0 0 40 40" fill="none" stroke="#ff8a1f"><circle class="ring" cx="20" cy="20" r="17" stroke-width="1.5" stroke-dasharray="6 4"/><circle cx="20" cy="20" r="11" stroke-width="1.5"/><circle class="core" cx="20" cy="20" r="5" fill="#ff8a1f"/></svg>
     <div><h1 class="hud">J.A.R.V.I.S. // GALERI VIDEO</h1><small>HOLO-VIDEO PLAYER</small></div>
   </div>
-  <div class="right" id="top"></div>
+  <nav class="pgsw" aria-label="Pindah halaman"><span aria-current="page">&#9654; VIDEO</span><a href="https://erys7pro-pems.github.io/Perangkat-Ajar-Digital/jarvis-oranye-sketchfab.html">&#9672; MODEL 3D</a></nav><div class="right" id="top"></div>
 </div><div class="tabs" id="tabs"></div></header>
 <main><div id="welcome"></div><div id="feat"></div><div class="search" id="sw" style="display:none"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="q" type="search" placeholder="Cari video di menu ini..." autocomplete="off" aria-label="Cari video"><span id="qc"></span><button class="vbtn" id="vg" data-a="viewgrid" title="Tampilan panel" aria-label="Tampilan panel">&#9638;</button><button class="vbtn" id="vl" data-a="viewlist" title="Tampilan daftar" aria-label="Tampilan daftar">&#9776;</button><button class="vbtn txt" id="vd" data-a="resetorder" title="Kembali ke urutan berdasarkan nomor video">URUTAN DEFAULT</button></div><div class="grid" id="grid"></div></main>
 <script>
