@@ -91,7 +91,6 @@ select{width:100%;padding:9px 10px;background:var(--bg);color:var(--text);border
   clip-path:polygon(8px 0,100% 0,100% 100%,0 100%,0 8px)}
 .tab.active{color:var(--acc);border-color:var(--acc-dim);background:var(--panel-2);box-shadow:inset 0 0 12px rgba(255,138,31,.12)}
 .tab.off,.card.off{opacity:.55}
-.card.still{animation:none}
 .c{background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:2px 3px;line-height:1}
 .c:hover{color:var(--acc)}.c.d:hover{color:var(--red)}
 .ctl{display:flex;gap:1px;align-items:center;flex-shrink:0}
@@ -128,6 +127,11 @@ input[type=date]{color-scheme:dark}
 .ck input{width:auto}
 .ck em{color:var(--gold);font-size:10px;font-style:normal;margin-left:auto}
 .ck-menu{font-size:10px;color:var(--acc);letter-spacing:.1em;margin-top:8px}
+
+.pgsw{display:flex;border:1px solid var(--line);background:var(--panel);clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px)}
+.pgsw a,.pgsw span{font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:.1em;padding:10px 14px;text-decoration:none;color:var(--muted);white-space:nowrap}
+.pgsw a:hover{color:var(--acc);background:rgba(255,138,31,.07)}
+.pgsw span{color:var(--acc);background:rgba(255,138,31,.12);box-shadow:inset 0 -2px var(--acc)}
 </style>
 </head>
 <body>
@@ -136,7 +140,7 @@ input[type=date]{color-scheme:dark}
     <svg viewBox="0 0 40 40" fill="none" stroke="#ff8a1f"><circle class="ring" cx="20" cy="20" r="17" stroke-width="1.5" stroke-dasharray="6 4"/><circle cx="20" cy="20" r="11" stroke-width="1.5"/><circle class="core" cx="20" cy="20" r="5" fill="#ff8a1f"/></svg>
     <div><h1 class="hud">J.A.R.V.I.S. // GALERI 3D</h1><small>SKETCHFAB HOLO-VIEWER</small></div>
   </div>
-  <div class="right" id="top"></div>
+  <nav class="pgsw" aria-label="Pindah halaman"><a href="https://erys7pro-pems.github.io/Perangkat-Ajar-Digital/jarvis-oranye-video.html">&#9654; VIDEO</a><span aria-current="page">&#9672; MODEL 3D</span></nav><div class="right" id="top"></div>
 </div><div class="tabs" id="tabs"></div></header>
 <main><div id="welcome"></div><div id="feat"></div><div class="search" id="sw" style="display:none"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="q" type="search" placeholder="Cari model di menu ini..." autocomplete="off" aria-label="Cari model"><span id="qc"></span></div><div class="grid" id="grid"></div></main>
 <script>
@@ -161,7 +165,8 @@ input[type=date]{color-scheme:dark}
   function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
   function uid(){ return Math.random().toString(36).slice(2,10)+Date.now().toString(36); }
   var sq={}; // kata kunci pencarian per menu (tidak disimpan)
-  var flip=null, flipT=null; // posisi kartu / tab sebelum dipindah (untuk animasi geser)
+  var flip=false, rise=false, quietNow=false;
+  var reduce=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);
   function isG(){ return role==='guru'; }
   function apiUrl(){ return (config.apiUrl||'').trim()||DEFAULT_API_URL.trim(); }
   function hasApi(){ return !!apiUrl(); }
@@ -171,7 +176,7 @@ input[type=date]{color-scheme:dark}
   function post(b){ return fetch(apiUrl(),{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)}).then(function(r){return r.json();}); }
   function persist(){ try{ localStorage.setItem(KEY,JSON.stringify(state)); }catch(e){} }
   function save(){
-    cleanFeat(); persist(); render();
+    cleanFeat(); persist(); flip=true; render();
     if(!hasApi()||!isG()||!full) return;
     clearTimeout(timer); timer=setTimeout(function(){
       sync='sync'; status();
@@ -182,6 +187,7 @@ input[type=date]{color-scheme:dark}
     },500);
   }
   function loadApi(){
+    rise=true;
     if(!hasApi()){ sync='local'; full=isG(); render(); return; }
     sync='sync'; render();
     var req=isG()?post({action:'load',password:pw}).then(function(r){
@@ -219,55 +225,6 @@ input[type=date]{color-scheme:dark}
       .then(function(d){ m.thumb=d.thumbnail_url||''; if(!m.title) m.title=d.title||''; }).catch(function(){});
   }
 
-  // ---------- impor koleksi Sketchfab ----------
-  function sfThumb(x){
-    var im=(x.thumbnails&&x.thumbnails.images)||[]; if(!im.length) return '';
-    var s=im.slice().sort(function(a,b){return a.width-b.width;});
-    return (s.filter(function(i){return i.width>=400;})[0]||s[s.length-1]).url;
-  }
-  function sfFetch(cuid){
-    var all=[], url='https://api.sketchfab.com/v3/collections/'+cuid+'/models', n=0;
-    function step(){
-      return fetch(url).then(function(r){
-        if(r.status===401||r.status===403||r.status===404) throw 'Koleksi tidak ditemukan atau tidak publik.';
-        if(!r.ok) throw 'Sketchfab menolak permintaan ('+r.status+').';
-        return r.json();
-      }).then(function(d){
-        (d.results||[]).forEach(function(x){ all.push(x); });
-        if(d.next&&++n<20){ url=d.next; return step(); }
-        return all;
-      });
-    }
-    return step().catch(function(e){ throw typeof e==='string'?e:'Tidak dapat terhubung ke Sketchfab.'; });
-  }
-  // menambah hanya model yang belum pernah diimpor ke menu ini (model yang sudah kamu hapus tidak muncul lagi)
-  function sfMerge(menu,items){
-    menu.sfSeen=menu.sfSeen||[]; var added=0;
-    items.forEach(function(x){
-      if(menu.sfSeen.indexOf(x.uid)!==-1) return;
-      menu.sfSeen.push(x.uid);
-      if(state.panels.some(function(p){return p.menuId===menu.id&&p.uid===x.uid;})) return;
-      state.panels.push({id:uid(),uid:x.uid,title:x.name||'',thumb:sfThumb(x),menuId:menu.id,hidden:false}); added++;
-    });
-    return added;
-  }
-  function importForm(){
-    var opts=state.menus.map(function(m){return [m.id,m.name];}); opts.push(['__new','+ Menu baru (isi nama di bawah)']);
-    form('IMPOR KOLEKSI SKETCHFAB',[
-      {name:'url',label:'LINK / ID KOLEKSI SKETCHFAB',ph:'https://sketchfab.com/namaanda/collections/nama-koleksi-xxxx'},
-      {name:'menu',label:'MASUKKAN KE MENU',value:state.activeMenu,options:opts},
-      {name:'nn',label:'NAMA MENU BARU (HANYA JIKA MEMILIH MENU BARU)',ph:'mis. Sel dan Organel'}
-    ],function(v){
-      var c=uidFrom(v.url); if(!c) return 'ID koleksi (32 karakter) tidak ditemukan di link.';
-      if(v.menu==='__new'&&!v.nn) return 'Isi nama menu baru.';
-      return sfFetch(c).then(function(items){
-        if(!items.length) return 'Koleksi ini kosong.';
-        var m; if(v.menu==='__new'){ m={id:uid(),name:v.nn}; state.menus.push(m); } else m=byId(state.menus,v.menu);
-        m.sfc=c; sfMerge(m,items); state.activeMenu=m.id; save(); return '';
-      }).catch(function(e){ return String(e); });
-    },'Koleksi harus publik. Setelah diimpor, tiap model bisa kamu ubah, urutkan, atau sembunyikan seperti biasa. Tombol \u21bb di tab menu akan menarik model baru dari koleksi yang sama.','IMPOR');
-  }
-
   // ---------- modal ----------
   function overlay(html){
     var o=document.createElement('div'); o.className='overlay'; o.innerHTML=html;
@@ -301,21 +258,39 @@ input[type=date]{color-scheme:dark}
     var m={sync:['sync','SYNCING...'],online:['online','MAINFRAME ONLINE'],error:['error','SYNC GAGAL'],local:['local',hasApi()?'MENGHUBUNGKAN...':(isG()?'MODE LOKAL':'HUBUNGKAN SPREADSHEET')]}[sync];
     el.className='dot '+m[0]; lb.textContent=m[1];
   }
+  // animasi perpindahan halus (teknik FLIP): posisi lama -> posisi baru
+  function snap(sel,attr){ var m={}; [].forEach.call(document.querySelectorAll(sel),function(el){ m[el.getAttribute(attr)]=el.getBoundingClientRect(); }); return m; }
+  function play(sel,attr,before){
+    [].forEach.call(document.querySelectorAll(sel),function(el){
+      var o=before[el.getAttribute(attr)], r=el.getBoundingClientRect(), an;
+      if(!o){ el.animate([{opacity:0,transform:'scale(.9)'},{opacity:1,transform:'none'}],{duration:340,easing:'ease-out'}); return; }
+      var dx=o.left-r.left, dy=o.top-r.top;
+      if(Math.abs(dx)<1&&Math.abs(dy)<1) return;
+      el.style.zIndex=3;
+      an=el.animate([{transform:'translate('+dx+'px,'+dy+'px)'},{transform:'none'}],{duration:450,easing:'cubic-bezier(.22,1,.36,1)'});
+      an.onfinish=an.oncancel=function(){ el.style.zIndex=''; };
+    });
+  }
   function render(){
-    var still=!!(flip||flipT);
+    quietNow=!rise; rise=false;
+    var dof=flip&&!reduce, bt=null, bc=null; flip=false;
+    if(dof){ bt=snap('#tabs .tab','data-i'); bc=snap('#grid .card[data-pid]','data-pid'); }
+    renderCore();
+    if(dof){ play('#tabs .tab','data-i',bt); play('#grid .card[data-pid]','data-pid',bc); }
+  }
+  function renderCore(){
     var g=isG(), ms=state.menus.filter(function(m){return g||!m.hidden;});
     if(!ms.some(function(m){return m.id===state.activeMenu;})) state.activeMenu=ms[0]?ms[0].id:'';
     $('top').innerHTML='<div class="status" data-a="cfg"><span class="dot" id="st-dot"></span><span id="st-lbl"></span></div>'+
       '<span class="pill'+(g?' on':'')+'">'+(g?'MODE GURU':'MODE MURID')+'</span>'+
-      (g?'<button class="btn" data-a="addpanel">+ MODEL</button><button class="btn" data-a="import">IMPOR KOLEKSI</button><button class="btn" data-a="logout">KELUAR</button>':'<button class="btn" data-a="login">MASUK GURU</button>');
+      (g?'<button class="btn" data-a="addpanel">+ MODEL</button><button class="btn" data-a="logout">KELUAR</button>':'<button class="btn" data-a="login">MASUK GURU</button>');
     status();
     $('tabs').innerHTML=ms.map(function(m,i){
-      return '<div class="tab'+(m.id===state.activeMenu?' active':'')+(m.hidden?' off':'')+'" data-a="menu" data-i="'+m.id+'" data-mid="'+m.id+'">'+esc(m.name)+
+      return '<div class="tab'+(m.id===state.activeMenu?' active':'')+(m.hidden?' off':'')+'" data-a="menu" data-i="'+m.id+'">'+esc(m.name)+
         (g?'<span class="ctl"><button class="c" data-a="mvmenu" data-i="'+m.id+'" data-d="-1" title="Geser kiri">\u2039</button><button class="c" data-a="mvmenu" data-i="'+m.id+'" data-d="1" title="Geser kanan">\u203a</button>'+
-        (m.sfc?'<button class="c" data-a="syncmenu" data-i="'+m.id+'" title="Sinkron ulang dari koleksi Sketchfab">\u21bb</button>':'')+'<button class="c" data-a="vismenu" data-i="'+m.id+'" title="Tampilkan/sembunyikan dari murid">'+(m.hidden?'\u25cc':'\u25c9')+'</button>'+
+        '<button class="c" data-a="vismenu" data-i="'+m.id+'" title="Tampilkan/sembunyikan dari murid">'+(m.hidden?'\u25cc':'\u25c9')+'</button>'+
         '<button class="c" data-a="renmenu" data-i="'+m.id+'" title="Ubah nama">\u270e</button><button class="c d" data-a="delmenu" data-i="'+m.id+'" title="Hapus">\u00d7</button></span>':'')+'</div>';
     }).join('')+(g?'<button class="add2" data-a="addmenu">+ MENU</button>':'');
-    if(flipT){ playFlip('tabs','.tab[data-mid]','mid',flipT); flipT=null; }
     var all=state.panels.filter(function(p){return p.menuId===state.activeMenu&&(g||!p.hidden);});
     var qraw=sq[state.activeMenu]||'', q=qraw.trim().toLowerCase();
     var ps=q?all.filter(function(p){return (p.title||'Model 3D').toLowerCase().indexOf(q)!==-1;}):all;
@@ -328,34 +303,13 @@ input[type=date]{color-scheme:dark}
     $('feat').innerHTML=showW?featHtml(g,q):'';
     if(showW&&(state.featured||[]).length) $('sw').style.display='';
     $('grid').innerHTML=(showW&&!all.length&&!g)?'':ps.length?ps.map(function(p,i){
-      return '<div class="card'+(p.hidden?' off':'')+(still?' still':'')+'" data-pid="'+p.id+'" style="animation-delay:'+(i*50)+'ms"><div class="head"><h3 class="hud">'+esc(p.title||'Model 3D')+'</h3>'+
+      return '<div class="card'+(p.hidden?' off':'')+'" data-pid="'+p.id+'" style="'+(quietNow?'animation:none':'animation-delay:'+(i*50)+'ms')+'"><div class="head"><h3 class="hud">'+esc(p.title||'Model 3D')+'</h3>'+
         (g?'<span class="ctl"><button class="c" data-a="mvpanel" data-i="'+p.id+'" data-d="-1">\u2039</button><button class="c" data-a="mvpanel" data-i="'+p.id+'" data-d="1">\u203a</button>'+
         '<button class="c" data-a="vispanel" data-i="'+p.id+'">'+(p.hidden?'\u25cc':'\u25c9')+'</button><button class="c" data-a="editpanel" data-i="'+p.id+'">\u270e</button><button class="c d" data-a="delpanel" data-i="'+p.id+'">\u00d7</button></span>':'')+'</div>'+
         (p.hidden?'<span class="hid">TERSEMBUNYI</span>':'')+
         '<button class="thumb" data-a="open" data-i="'+p.id+'" aria-label="Buka model 3D">'+(p.thumb?'<img src="'+esc(p.thumb)+'" alt="">':'<div class="fallback">'+CUBE+'</div>')+
         '<span class="play"></span><span class="tag">KLIK UNTUK MEMUAT 3D</span></button></div>';
     }).join(''):all.length?'<div class="empty hud">TIDAK ADA HASIL UNTUK \u201c'+esc(qraw.trim())+'\u201d</div>':'<div class="empty hud">'+(ms.length?'MENU INI BELUM ADA MODEL':'BELUM ADA MENU')+(g?'<br><br><span style="font-family:Share Tech Mono">Gunakan + '+(ms.length?'MODEL':'MENU')+' di atas.</span>':'')+'</div>';
-    if(flip){ playFlip('grid','.card[data-pid]','pid',flip); flip=null; }
-  }
-  // animasi geser halus (FLIP): kartu dari posisi lama meluncur ke posisi baru
-  function snap(cid,sel,attr){
-    var o={}; [].forEach.call($(cid).querySelectorAll(sel),function(c){ var r=c.getBoundingClientRect(); o[c.dataset[attr]]={x:r.left,y:r.top}; });
-    return o;
-  }
-  function playFlip(cid,sel,attr,old){
-    var moved=[];
-    [].forEach.call($(cid).querySelectorAll(sel),function(c){
-      var b=old[c.dataset[attr]]; if(!b) return;
-      var r=c.getBoundingClientRect(), dx=b.x-r.left, dy=b.y-r.top;
-      if(!dx&&!dy) return;
-      c.style.transition='none'; c.style.transform='translate('+dx+'px,'+dy+'px)'; c.style.position='relative'; c.style.zIndex='5'; moved.push(c);
-    });
-    if(!moved.length) return;
-    $(cid).offsetWidth; // paksa reflow
-    requestAnimationFrame(function(){
-      moved.forEach(function(c){ c.style.transition='transform .45s cubic-bezier(.22,.8,.24,1)'; c.style.transform=''; });
-      setTimeout(function(){ moved.forEach(function(c){ c.style.transition=''; c.style.position=''; c.style.zIndex=''; }); },500);
-    });
   }
 
   // ---------- koleksi pekan (tampil sementara di menu Umum) ----------
@@ -370,7 +324,7 @@ input[type=date]{color-scheme:dark}
     return p;
   }
   function miniCard(p){
-    return '<div class="card"><div class="head"><h3 class="hud">'+esc(p.title||'Model 3D')+'</h3></div><button class="thumb" data-a="open" data-i="'+p.id+'" aria-label="Buka model 3D">'+
+    return '<div class="card"'+(quietNow?' style="animation:none"':'')+'><div class="head"><h3 class="hud">'+esc(p.title||'Model 3D')+'</h3></div><button class="thumb" data-a="open" data-i="'+p.id+'" aria-label="Buka model 3D">'+
       (p.thumb?'<img src="'+esc(p.thumb)+'" alt="">':'<div class="fallback">'+CUBE+'</div>')+'<span class="play"></span><span class="tag">KLIK UNTUK MEMUAT 3D</span></button></div>';
   }
   function featHtml(g,q){
@@ -437,7 +391,7 @@ input[type=date]{color-scheme:dark}
   document.addEventListener('click',function(e){
     var t=e.target.closest('[data-a]'); if(!t||t.closest('.overlay')) return;
     var a=t.dataset.a, id=t.dataset.i, d=+t.dataset.d, m=byId(state.menus,id), p=findP(id);
-    if(a==='menu'){ state.activeMenu=id; persist(); render(); }
+    if(a==='menu'){ state.activeMenu=id; persist(); rise=true; render(); }
     else if(a==='login') form('MASUK GURU',[{name:'pw',label:'KATA SANDI GURU',type:'password'}],function(v){ return login(v.pw); },
       'Belum pernah login? Kata sandi yang kamu isi pertama kali akan menjadi kata sandi guru.','MASUK');
     else if(a==='logout') logout();
@@ -451,14 +405,12 @@ input[type=date]{color-scheme:dark}
     else if(a==='addmenu') form('MENU BARU',[{name:'n',label:'NAMA MENU'}],function(v){ if(!v.n) return 'Nama wajib diisi.'; var x={id:uid(),name:v.n}; state.menus.push(x); state.activeMenu=x.id; save(); return ''; },'','BUAT');
     else if(a==='renmenu'&&m) form('UBAH NAMA MENU',[{name:'n',label:'NAMA MENU',value:m.name}],function(v){ if(!v.n) return 'Nama wajib diisi.'; m.name=v.n; save(); return ''; });
     else if(a==='delmenu'&&m){ if(confirm('Hapus menu "'+m.name+'" beserta semua modelnya?')){ state.menus=state.menus.filter(function(x){return x!==m;}); state.panels=state.panels.filter(function(x){return x.menuId!==id;}); save(); } }
-    else if(a==='mvmenu'&&m){ flipT=snap('tabs','.tab[data-mid]','mid'); swap(state.menus,m,d,function(){return true;}); save(); }
+    else if(a==='mvmenu'&&m){ swap(state.menus,m,d,function(){return true;}); save(); }
     else if(a==='vismenu'&&m){ m.hidden=!m.hidden; save(); }
-    else if(a==='import') importForm();
-    else if(a==='syncmenu'&&m&&m.sfc) sfFetch(m.sfc).then(function(items){ var n=sfMerge(m,items); save(); alert(n?n+' model baru ditambahkan.':'Tidak ada model baru di koleksi.'); }).catch(function(e){ alert(e); });
     else if(a==='addpanel'){ if(!state.menus.length) alert('Buat menu terlebih dahulu.'); else panelForm(null); }
     else if(a==='editpanel'&&p) panelForm(p);
     else if(a==='delpanel'&&p){ if(confirm('Hapus panel ini?')){ state.panels=state.panels.filter(function(x){return x!==p;}); save(); } }
-    else if(a==='mvpanel'&&p){ flip=snap('grid','.card[data-pid]','pid'); swap(state.panels,p,d,function(x){return x.menuId===p.menuId;}); save(); }
+    else if(a==='mvpanel'&&p){ swap(state.panels,p,d,function(x){return x.menuId===p.menuId;}); save(); }
     else if(a==='vispanel'&&p){ p.hidden=!p.hidden; save(); }
     else if(a==='addcoll') collForm(null);
     else if(a==='editcoll'){ var cf=byId(state.featured,id); if(cf) collForm(cf); }
