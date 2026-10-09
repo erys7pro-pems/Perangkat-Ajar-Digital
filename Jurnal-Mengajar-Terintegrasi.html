@@ -478,6 +478,113 @@
     .roster table{ min-width: 480px; }
     .kuis-row{ grid-template-columns: 1fr; }
   }
+
+/* ══ LOGIN OVERLAY ══ */
+#login-overlay{
+  position:fixed; inset:0; z-index:99999;
+  background:
+    radial-gradient(ellipse at 20% -10%, rgba(30,100,150,.22), transparent 55%),
+    radial-gradient(ellipse at 100% 10%, rgba(255,120,60,.07), transparent 45%),
+    #03070f;
+  display:flex; align-items:center; justify-content:center;
+  flex-direction:column;
+  font-family:'Rajdhani',sans-serif;
+  transition: opacity .4s ease;
+}
+#login-overlay.fade-out{ opacity:0; pointer-events:none; }
+#login-overlay::before{
+  content:""; position:fixed; inset:0;
+  background-image:
+    linear-gradient(rgba(79,230,255,.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(79,230,255,.035) 1px, transparent 1px);
+  background-size:42px 42px; pointer-events:none;
+  mask-image:radial-gradient(ellipse at 50% 0%, black 0%, transparent 75%);
+}
+.login-box{
+  position:relative; z-index:1;
+  background:rgba(8,22,40,.7);
+  border:1px solid rgba(79,230,255,.32);
+  border-radius:10px;
+  padding:40px 36px 36px;
+  width:100%; max-width:360px;
+  box-shadow:0 0 40px rgba(79,230,255,.1), 0 8px 40px rgba(0,0,0,.7);
+  text-align:center;
+}
+.login-logo{
+  font-family:'Orbitron',sans-serif;
+  font-size:13px; font-weight:700;
+  letter-spacing:.2em; color:#4fe6ff;
+  text-transform:uppercase; margin-bottom:6px;
+}
+.login-logo span{ color:#5f84a8; }
+.login-title{
+  font-family:'Orbitron',sans-serif;
+  font-size:17px; font-weight:700;
+  color:#d3edff; letter-spacing:.05em;
+  margin-bottom:4px;
+}
+.login-sub{
+  font-size:13px; color:#5f84a8;
+  letter-spacing:.04em; margin-bottom:28px;
+}
+.login-label{
+  display:block; text-align:left;
+  font-family:'Share Tech Mono',monospace;
+  font-size:11px; letter-spacing:.15em;
+  color:#3a6a88; text-transform:uppercase;
+  margin-bottom:7px;
+}
+.login-input{
+  width:100%; padding:11px 14px;
+  background:rgba(4,14,28,.8);
+  border:1px solid rgba(79,230,255,.25);
+  border-radius:5px; color:#d3edff;
+  font-family:'Share Tech Mono',monospace;
+  font-size:15px; letter-spacing:.12em;
+  outline:none;
+  transition:border-color .2s, box-shadow .2s;
+  margin-bottom:6px;
+}
+.login-input:focus{
+  border-color:rgba(79,230,255,.65);
+  box-shadow:0 0 14px rgba(79,230,255,.18);
+}
+.login-error{
+  font-family:'Share Tech Mono',monospace;
+  font-size:11.5px; color:#ff4d6a;
+  min-height:18px; margin-bottom:14px;
+  letter-spacing:.05em;
+  display:none;
+}
+.login-error.show{ display:block; }
+.login-btn{
+  width:100%; padding:13px;
+  background:#4fe6ff; color:#03070f;
+  font-family:'Orbitron',sans-serif;
+  font-weight:700; font-size:12px;
+  letter-spacing:.15em; text-transform:uppercase;
+  border:none; border-radius:5px;
+  cursor:pointer;
+  box-shadow:0 0 18px rgba(79,230,255,.45);
+  transition:background .15s, box-shadow .15s, transform .1s;
+}
+.login-btn:hover{ background:#8fefff; box-shadow:0 0 26px rgba(79,230,255,.65); }
+.login-btn:active{ transform:translateY(1px); }
+.login-hint{
+  margin-top:18px;
+  font-size:11.5px; color:#3a5470;
+  font-family:'Share Tech Mono',monospace;
+  letter-spacing:.07em;
+}
+.login-dot{
+  display:inline-block; width:7px; height:7px;
+  border-radius:50%; background:#4fe6ff;
+  box-shadow:0 0 8px #4fe6ff;
+  animation:pulse 1.8s ease-in-out infinite;
+  margin-right:8px; vertical-align:middle;
+}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+
 </style>
 
 <!-- ══ J.A.R.V.I.S. NAVIGATION BAR ══ -->
@@ -524,6 +631,21 @@
 </style>
 </head>
 <body>
+
+<!-- ══ LOGIN OVERLAY ══ -->
+<div id="login-overlay">
+  <div class="login-box">
+    <div class="login-logo">J.A.R.V.I.S. <span>// SYSTEM</span></div>
+    <div class="login-title">AKSES TERBATAS</div>
+    <div class="login-sub">Jurnal Mengajar Biologi</div>
+    <label class="login-label" for="pwd-input"><span class="login-dot"></span>Masukkan Password</label>
+    <input class="login-input" type="password" id="pwd-input" placeholder="••••••••" autocomplete="current-password" />
+    <div class="login-error" id="login-error">⚠ Password salah. Coba lagi.</div>
+    <button class="login-btn" id="login-btn" onclick="doLogin()">MASUK →</button>
+    <div class="login-hint">Hanya pengguna terotorisasi yang dapat mengakses halaman ini.</div>
+  </div>
+</div>
+
   <div class="page">
     <header>
       <span class="tag">
@@ -1055,5 +1177,42 @@
   <a href="https://erys7pro-pems.github.io/Perangkat-Ajar-Digital/kegiatan-akan-datang.html">◈ <span class="nav-label">Agenda</span></a>
   <a href="https://erys7pro-pems.github.io/Perangkat-Ajar-Digital/PROMES_XI_BIO.html">◉ <span class="nav-label">Promes XI</span></a>
 </nav>
+
+<script>
+  // ══ LOGIN GUARD ══
+  // Ganti nilai di bawah ini dengan password pilihan Anda
+  const CORRECT_PASSWORD = "SAYAGURUICLT";
+
+  const SESSION_KEY = "jarvis_auth_jurnal";
+
+  function doLogin() {
+    const input = document.getElementById('pwd-input');
+    const errEl = document.getElementById('login-error');
+    if (input.value === CORRECT_PASSWORD) {
+      errEl.classList.remove('show');
+      sessionStorage.setItem(SESSION_KEY, "1");
+      const overlay = document.getElementById('login-overlay');
+      overlay.classList.add('fade-out');
+      setTimeout(() => overlay.remove(), 420);
+    } else {
+      errEl.classList.add('show');
+      input.value = '';
+      input.focus();
+      input.style.borderColor = 'rgba(255,77,106,.7)';
+      setTimeout(() => input.style.borderColor = '', 1000);
+    }
+  }
+
+  // Enter key support
+  document.getElementById('pwd-input').addEventListener('keydown', function(e){
+    if (e.key === 'Enter') doLogin();
+  });
+
+  // Skip overlay if already authenticated this session
+  if (sessionStorage.getItem(SESSION_KEY) === "1") {
+    document.getElementById('login-overlay').remove();
+  }
+</script>
+
 </body>
 </html>
