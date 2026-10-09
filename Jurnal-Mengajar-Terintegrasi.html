@@ -1243,34 +1243,10 @@
 <script>
   // ══ LOGIN GUARD ══
   // Ganti nilai di bawah ini dengan password pilihan Anda
-  const CORRECT_PASSWORD = "SAYAGURUICLT";
-
+  const CORRECT_PASSWORD = "Biologi2025";
   const SESSION_KEY = "jarvis_auth_jurnal";
 
-  function doLogin() {
-    const input = document.getElementById('pwd-input');
-    const errEl = document.getElementById('login-error');
-    if (input.value === CORRECT_PASSWORD) {
-      errEl.classList.remove('show');
-      sessionStorage.setItem(SESSION_KEY, "1");
-      const overlay = document.getElementById('login-overlay');
-      overlay.classList.add('fade-out');
-      setTimeout(() => { overlay.remove(); tampilkanStatusLogin(); }, 420);
-    } else {
-      errEl.classList.add('show');
-      input.value = '';
-      input.focus();
-      input.style.borderColor = 'rgba(255,77,106,.7)';
-      setTimeout(() => input.style.borderColor = '', 1000);
-    }
-  }
-
-  // Enter key support
-  document.getElementById('pwd-input').addEventListener('keydown', function(e){
-    if (e.key === 'Enter') doLogin();
-  });
-
-  // Catat waktu login
+  // Catat waktu login ke sessionStorage
   function catatWaktuLogin() {
     const now = new Date();
     const teks = 'Login: ' + now.toLocaleDateString('id-ID', {weekday:'short', day:'numeric', month:'short'})
@@ -1286,7 +1262,27 @@
     el.textContent = waktu || 'Sesi aktif';
   }
 
-  // Logout
+  // Proses login saat tombol diklik atau Enter ditekan
+  function doLogin() {
+    const input = document.getElementById('pwd-input');
+    const errEl = document.getElementById('login-error');
+    if (input.value === CORRECT_PASSWORD) {
+      errEl.classList.remove('show');
+      catatWaktuLogin();
+      sessionStorage.setItem(SESSION_KEY, "1");
+      const overlay = document.getElementById('login-overlay');
+      overlay.classList.add('fade-out');
+      setTimeout(() => { overlay.remove(); tampilkanStatusLogin(); }, 420);
+    } else {
+      errEl.classList.add('show');
+      input.value = '';
+      input.focus();
+      input.style.borderColor = 'rgba(255,77,106,.7)';
+      setTimeout(() => input.style.borderColor = '', 1000);
+    }
+  }
+
+  // Logout — hapus sesi dan kembali ke layar login
   function doLogout() {
     if (!confirm('Keluar dari sesi ini?')) return;
     sessionStorage.removeItem(SESSION_KEY);
@@ -1294,17 +1290,12 @@
     location.reload();
   }
 
-  // Override doLogin untuk catat waktu
-  const _doLoginAsli = doLogin;
-  function doLogin() {
-    const input = document.getElementById('pwd-input');
-    if (input.value === CORRECT_PASSWORD) {
-      catatWaktuLogin();
-    }
-    _doLoginAsli();
-  }
+  // Dukung tekan Enter di input password
+  document.getElementById('pwd-input').addEventListener('keydown', function(e){
+    if (e.key === 'Enter') doLogin();
+  });
 
-  // Skip overlay jika sudah login sesi ini
+  // Lewati overlay jika sudah login di sesi ini
   if (sessionStorage.getItem(SESSION_KEY) === "1") {
     document.getElementById('login-overlay').remove();
     tampilkanStatusLogin();
