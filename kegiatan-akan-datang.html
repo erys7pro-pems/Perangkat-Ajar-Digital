@@ -192,6 +192,49 @@
   ::-webkit-scrollbar-track{ background: rgba(255,255,255,.03); }
   ::-webkit-scrollbar-thumb{ background: var(--cyan-dim); border-radius: 4px; }
 </style>
+
+<!-- ══ J.A.R.V.I.S. NAVIGATION BAR ══ -->
+<style>
+  .jarvis-nav{
+    position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+    z-index:9999;
+    display:flex; gap:8px;
+    background:rgba(4,14,28,.85);
+    border:1px solid rgba(79,230,255,.38);
+    border-radius:999px;
+    padding:8px 14px;
+    backdrop-filter:blur(16px);
+    box-shadow:0 0 28px rgba(79,230,255,.14), 0 6px 32px rgba(0,0,0,.7);
+  }
+  .jarvis-nav a{
+    display:flex; align-items:center; gap:7px;
+    font-family:'Share Tech Mono','Courier New',monospace;
+    font-size:11.5px; letter-spacing:.12em; text-transform:uppercase;
+    color:#4a7fa0; text-decoration:none;
+    padding:7px 16px; border-radius:999px;
+    border:1px solid transparent;
+    transition:color .2s, border-color .2s, background .2s, box-shadow .2s;
+    white-space:nowrap;
+  }
+  .jarvis-nav a:hover{
+    color:#4fe6ff;
+    border-color:rgba(79,230,255,.45);
+    background:rgba(79,230,255,.08);
+  }
+  .jarvis-nav a.nav-active{
+    color:#03070f;
+    background:#4fe6ff;
+    border-color:#4fe6ff;
+    box-shadow:0 0 16px rgba(79,230,255,.6);
+    font-weight:700;
+  }
+  body{ padding-bottom: 80px !important; }
+  @media(max-width:520px){
+    .jarvis-nav{bottom:12px;padding:6px 8px;gap:4px;}
+    .jarvis-nav a{padding:6px 10px;font-size:10px;gap:5px;}
+    .jarvis-nav a .nav-label{display:none;}
+  }
+</style>
 </head>
 <body>
   <div class="page">
@@ -402,5 +445,11 @@
     hasil.innerHTML = html;
   }
 </script>
+
+<nav class="jarvis-nav">
+    <a href="https://erys7pro-pems.github.io/Perangkat-Ajar-Digital/dashboard.html">⬡ <span class="nav-label">Dashboard</span></a>
+    <a href="https://erys7pro-pems.github.io/Perangkat-Ajar-Digital/kegiatan-akan-datang.html" class="nav-active">◈ <span class="nav-label">Agenda</span></a>
+    <a href="https://erys7pro-pems.github.io/Perangkat-Ajar-Digital/PROMES_XI_BIO.html">◉ <span class="nav-label">Promes XI</span></a>
+</nav>
 </body>
 </html>
