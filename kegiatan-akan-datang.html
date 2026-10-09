@@ -149,6 +149,19 @@
   .kk-terakhir-tanggal{ font-family: 'Share Tech Mono', monospace; font-weight: 400; color: var(--text-dim); text-transform: none; letter-spacing: 0; }
   .kk-terakhir-tp{ font-size: 13.5px; line-height: 1.4; color: var(--text); margin-bottom: 3px; }
   .kk-terakhir-materi{ font-size: 12.5px; line-height: 1.4; color: var(--text-dim); }
+  .kk-terakhir-keterangan{
+    font-size: 12.5px; line-height: 1.45; margin-top: 6px;
+    padding: 6px 10px;
+    background: rgba(255,176,32,.07);
+    border-left: 2px solid rgba(255,176,32,.5);
+    border-radius: 0 3px 3px 0;
+    color: var(--amber);
+    font-style: italic;
+  }
+  .kk-terakhir-keterangan::before{
+    content: "📝 ";
+    font-style: normal;
+  }
   .kk-terakhir.kosong{ color: var(--text-faint); font-family: 'Share Tech Mono', monospace; font-size: 12px; }
 
   .kk-lanjutan{
@@ -394,6 +407,7 @@
             <div class="kk-terakhir-label">🕐 Pertemuan Terakhir <span class="kk-terakhir-tanggal">${tglTeks}</span></div>
             <div class="kk-terakhir-tp">${j.terakhirTujuan}</div>
             ${j.terakhirMateri ? `<div class="kk-terakhir-materi">Materi: ${j.terakhirMateri}</div>` : ''}
+            ${j.terakhirKeterangan ? `<div class="kk-terakhir-keterangan">${j.terakhirKeterangan}</div>` : ''}
             ${lanjutanHtml}
           </div>
         `;
