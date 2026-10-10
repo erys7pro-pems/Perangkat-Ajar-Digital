@@ -132,6 +132,34 @@ input[type=date]{color-scheme:dark}
 .pgsw a,.pgsw span{font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:.1em;padding:10px 14px;text-decoration:none;color:var(--muted);white-space:nowrap}
 .pgsw a:hover{color:var(--acc);background:rgba(255,138,31,.07)}
 .pgsw span{color:var(--acc);background:rgba(255,138,31,.12);box-shadow:inset 0 -2px var(--acc)}
+.abtn{font-family:'Orbitron',sans-serif;font-size:9px;letter-spacing:.07em;color:var(--acc);background:var(--panel);border:1px solid var(--acc-dim);padding:9px 11px;cursor:pointer}
+.abtn:hover{background:rgba(255,138,31,.12)}
+.abtn.on{background:var(--acc);color:#1a0d00;border-color:var(--acc)}
+.arb{position:absolute;top:44px;right:10px;z-index:4;font-size:9px;letter-spacing:.08em;color:#1a0d00;background:var(--acc);padding:3px 7px}
+.list .arb{top:6px;right:auto;left:6px}
+.list .hid+.arb{top:26px}
+.vfoot{margin-top:10px}
+.modal.arch{width:min(96vw,760px)}
+.abody{max-height:70vh;overflow:auto;padding-right:6px}
+.ab-note{font-size:10.5px;color:var(--muted);margin-bottom:12px;line-height:1.5}
+.ab{margin-bottom:10px}
+.ab-h{display:flex;justify-content:space-between;gap:10px;font-size:11px;margin-bottom:5px}
+.ab-h span:last-child{color:var(--acc);white-space:nowrap}
+.ab-t{height:10px;background:var(--bg);border:1px solid var(--line);overflow:hidden}
+.ab.big .ab-t{height:18px}.ab.big .ab-h{font-size:13px}
+.ab-f{height:100%;width:0;background:linear-gradient(90deg,var(--acc-dim),var(--acc));box-shadow:0 0 10px rgba(255,138,31,.5);transition:width .7s cubic-bezier(.22,1,.36,1)}
+.ab-menus{margin:14px 0 4px;padding:12px 12px 2px;border:1px solid var(--line);background:var(--panel-2)}
+.ab-filter{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 6px}
+.ar-g{font-size:10px;letter-spacing:.12em;color:var(--acc);margin:14px 0 6px}
+.ar-r{display:flex;align-items:center;gap:10px;padding:8px;border:1px solid var(--line);margin-bottom:6px;background:var(--panel)}
+.ar-r.done{border-color:var(--acc-dim)}
+.ar-n{flex:1;min-width:0;font-size:12.5px;line-height:1.4;overflow-wrap:anywhere}
+.ar-n small{display:block;color:var(--muted);font-size:10px;margin-top:2px}
+.ar-t{position:relative;width:96px;aspect-ratio:16/9;background:var(--panel-2);border:0;padding:0;overflow:hidden;cursor:pointer;flex-shrink:0}
+.ar-t img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.ar-t .fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.ar-t svg{width:28px;height:28px}.ar-t .src{display:none}
+@media (max-width:560px){.ar-r{flex-wrap:wrap}.ar-r .abtn{flex:1 0 100%}}
 </style>
 </head>
 <body>
@@ -229,7 +257,7 @@ input[type=date]{color-scheme:dark}
   function overlay(html){
     var o=document.createElement('div'); o.className='overlay'; o.innerHTML=html;
     function close(){ document.removeEventListener('keydown',k); o.remove(); }
-    function k(e){ if(e.key==='Escape') close(); }
+    function k(e){ if(e.key==='Escape'){ var all=document.querySelectorAll('.overlay'); if(all[all.length-1]===o) close(); } }
     o.addEventListener('click',function(e){ if(e.target===o||e.target.hasAttribute('data-close')) close(); });
     document.addEventListener('keydown',k); document.body.appendChild(o); o.close=close; return o;
   }
@@ -249,7 +277,7 @@ input[type=date]{color-scheme:dark}
     o.addEventListener('keydown',function(e){ if(e.key==='Enter'&&e.target.tagName==='INPUT') go(); });
   }
   function openViewer(p){
-    overlay('<div class="modal big"><div class="mh"><h2 class="hud">'+esc(p.title||'Model 3D')+'</h2><button class="x" data-close>\u00d7</button></div><div class="frame"><iframe title="'+esc(p.title||'Model 3D')+'" allow="autoplay; fullscreen; xr-spatial-tracking" allowfullscreen src="https://sketchfab.com/models/'+p.uid+'/embed?autostart=1&ui_theme=dark&dnt=1"></iframe></div></div>');
+    overlay('<div class="modal big"><div class="mh"><h2 class="hud">'+esc(p.title||'Model 3D')+'</h2><button class="x" data-close>\u00d7</button></div><div class="frame"><iframe title="'+esc(p.title||'Model 3D')+'" allow="autoplay; fullscreen; xr-spatial-tracking" allowfullscreen src="https://sketchfab.com/models/'+p.uid+'/embed?autostart=1&ui_theme=dark&dnt=1"></iframe></div><div class="vfoot">'+archBtn(p)+'</div></div>');
   }
 
   // ---------- render ----------
@@ -282,7 +310,7 @@ input[type=date]{color-scheme:dark}
     var g=isG(), ms=state.menus.filter(function(m){return g||!m.hidden;});
     if(!ms.some(function(m){return m.id===state.activeMenu;})) state.activeMenu=ms[0]?ms[0].id:'';
     $('top').innerHTML='<div class="status" data-a="cfg"><span class="dot" id="st-dot"></span><span id="st-lbl"></span></div>'+
-      '<span class="pill'+(g?' on':'')+'">'+(g?'MODE GURU':'MODE MURID')+'</span>'+
+      '<button class="btn" data-a="arsip" title="Arsip belajar">ARSIP '+topCount()+'</button><span class="pill'+(g?' on':'')+'">'+(g?'MODE GURU':'MODE MURID')+'</span>'+
       (g?'<button class="btn" data-a="addpanel">+ MODEL</button><button class="btn" data-a="logout">KELUAR</button>':'<button class="btn" data-a="login">MASUK GURU</button>');
     status();
     $('tabs').innerHTML=ms.map(function(m,i){
@@ -306,7 +334,7 @@ input[type=date]{color-scheme:dark}
       return '<div class="card'+(p.hidden?' off':'')+'" data-pid="'+p.id+'" style="'+(quietNow?'animation:none':'animation-delay:'+(i*50)+'ms')+'"><div class="head"><h3 class="hud">'+esc(p.title||'Model 3D')+'</h3>'+
         (g?'<span class="ctl"><button class="c" data-a="mvpanel" data-i="'+p.id+'" data-d="-1">\u2039</button><button class="c" data-a="mvpanel" data-i="'+p.id+'" data-d="1">\u203a</button>'+
         '<button class="c" data-a="vispanel" data-i="'+p.id+'">'+(p.hidden?'\u25cc':'\u25c9')+'</button><button class="c" data-a="editpanel" data-i="'+p.id+'">\u270e</button><button class="c d" data-a="delpanel" data-i="'+p.id+'">\u00d7</button></span>':'')+'</div>'+
-        (p.hidden?'<span class="hid">TERSEMBUNYI</span>':'')+
+        (p.hidden?'<span class="hid">TERSEMBUNYI</span>':'')+(arch[p.id]?'<span class="arb hud">\u2713 DIPELAJARI</span>':'')+
         '<button class="thumb" data-a="open" data-i="'+p.id+'" aria-label="Buka model 3D">'+(p.thumb?'<img src="'+esc(p.thumb)+'" alt="">':'<div class="fallback">'+CUBE+'</div>')+
         '<span class="play"></span><span class="tag">KLIK UNTUK MEMUAT 3D</span></button></div>';
     }).join(''):all.length?'<div class="empty hud">TIDAK ADA HASIL UNTUK \u201c'+esc(qraw.trim())+'\u201d</div>':'<div class="empty hud">'+(ms.length?'MENU INI BELUM ADA MODEL':'BELUM ADA MENU')+(g?'<br><br><span style="font-family:Share Tech Mono">Gunakan + '+(ms.length?'MODEL':'MENU')+' di atas.</span>':'')+'</div>';
@@ -324,7 +352,7 @@ input[type=date]{color-scheme:dark}
     return p;
   }
   function miniCard(p){
-    return '<div class="card"'+(quietNow?' style="animation:none"':'')+'><div class="head"><h3 class="hud">'+esc(p.title||'Model 3D')+'</h3></div><button class="thumb" data-a="open" data-i="'+p.id+'" aria-label="Buka model 3D">'+
+    return '<div class="card"'+(quietNow?' style="animation:none"':'')+'><div class="head"><h3 class="hud">'+esc(p.title||'Model 3D')+'</h3></div>'+(arch[p.id]?'<span class="arb hud">\u2713 DIPELAJARI</span>':'')+'<button class="thumb" data-a="open" data-i="'+p.id+'" aria-label="Buka model 3D">'+
       (p.thumb?'<img src="'+esc(p.thumb)+'" alt="">':'<div class="fallback">'+CUBE+'</div>')+'<span class="play"></span><span class="tag">KLIK UNTUK MEMUAT 3D</span></button></div>';
   }
   function featHtml(g,q){
@@ -367,6 +395,81 @@ input[type=date]{color-scheme:dark}
     });
   }
 
+  // ---------- ARSIP: tanda "sudah dipelajari" (disimpan lokal di browser ini) ----------
+  var ARK='jarvis3d-archive', arch=jp(ARK,{}), archFilter='all', NOUN='Model 3D';
+  function saveArch(){ try{ localStorage.setItem(ARK,JSON.stringify(arch)); }catch(e){} }
+  function aSort(l){ return l; }
+  function thumbMini(p){ return p.thumb?'<img src="'+esc(p.thumb)+'" alt="">':'<div class="fallback">'+CUBE+'</div>'; }
+  function fdate(t){ try{ return new Date(t).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}); }catch(e){ return ''; } }
+  function universe(){
+    var groups=[], seen={};
+    state.menus.forEach(function(m){
+      if(m.hidden) return;
+      var ps=aSort(state.panels.filter(function(p){return p.menuId===m.id&&!p.hidden;}));
+      ps.forEach(function(p){ seen[p.id]=1; });
+      if(ps.length) groups.push({name:m.name,panels:ps});
+    });
+    if(!isG()){
+      var fp=[]; (state.featured||[]).forEach(function(f){ (f.panels||[]).forEach(function(p){ if(!seen[p.id]){ seen[p.id]=1; fp.push(p); } }); });
+      if(fp.length) groups.push({name:'Koleksi Pekan',panels:aSort(fp)});
+    }
+    return groups;
+  }
+  function archStats(groups){
+    var tot=0, done=0;
+    groups.forEach(function(g){ g.done=0; g.panels.forEach(function(p){ tot++; if(arch[p.id]){ done++; g.done++; } }); });
+    return {tot:tot,done:done,pct:tot?Math.round(done/tot*100):0};
+  }
+  function topCount(){ var st=archStats(universe()); return st.done+'/'+st.tot+' \u00b7 '+st.pct+'%'; }
+  function toggleArch(id){ if(arch[id]) delete arch[id]; else arch[id]=Date.now(); saveArch(); }
+  function archBtn(p){ return '<button class="abtn'+(arch[p.id]?' on':'')+'" data-vt="'+p.id+'" title="Klik lagi untuk membatalkan">'+(arch[p.id]?'\u2713 ':'')+'SUDAH DIPELAJARI DENGAN SEKSAMA</button>'; }
+  function bar(label,done,tot,big){
+    var pct=tot?Math.round(done/tot*100):0;
+    return '<div class="ab'+(big?' big':'')+'"><div class="ab-h"><span>'+esc(label)+'</span><span>'+done+' / '+tot+' \u00b7 '+pct+'%</span></div><div class="ab-t"><div class="ab-f" style="width:0" data-w="'+pct+'"></div></div></div>';
+  }
+  function openArchive(){
+    var o=overlay('<div class="modal big arch"><div class="mh"><h2 class="hud">ARSIP BELAJAR</h2><button class="x" data-close>\u00d7</button></div><div class="abody"></div></div>');
+    var body=o.querySelector('.abody');
+    function draw(){
+      var groups=universe(), st=archStats(groups), sc=body.scrollTop;
+      var h='<div class="ab-note">Progres dihitung otomatis dari total '+NOUN.toLowerCase()+' yang tersedia di halaman ini. Tanda "sudah dipelajari" hanya tersimpan di browser komputer ini.</div>'+
+        bar('TOTAL PROGRES BELAJAR',st.done,st.tot,true)+
+        (groups.length>1?'<div class="ab-menus">'+groups.map(function(g){return bar(g.name,g.done,g.panels.length);}).join('')+'</div>':'')+
+        '<div class="ab-filter">'+[['all','SEMUA'],['todo','BELUM'],['done','SUDAH']].map(function(f){
+          return '<button class="abtn'+(archFilter===f[0]?' on':'')+'" data-ar="filter" data-i="'+f[0]+'">'+f[1]+'</button>'; }).join('')+
+        '<button class="abtn" data-ar="clear">HAPUS SEMUA TANDA</button></div>';
+      if(!groups.length) h+='<div class="empty hud">BELUM ADA '+NOUN.toUpperCase()+' DI HALAMAN INI</div>';
+      groups.forEach(function(g){
+        var rows=g.panels.filter(function(p){ return archFilter==='all'||(archFilter==='done')===!!arch[p.id]; });
+        if(!rows.length) return;
+        h+='<div class="ar-g hud">'+esc(g.name)+'</div>'+rows.map(function(p){
+          return '<div class="ar-r'+(arch[p.id]?' done':'')+'"><button class="ar-t" data-ar="open" data-i="'+p.id+'" aria-label="Buka">'+thumbMini(p)+'</button>'+
+            '<div class="ar-n">'+esc(p.title||NOUN)+(arch[p.id]?'<small>Diarsipkan '+fdate(arch[p.id])+'</small>':'')+'</div>'+
+            '<button class="abtn'+(arch[p.id]?' on':'')+'" data-ar="toggle" data-i="'+p.id+'" title="Klik lagi untuk membatalkan">'+(arch[p.id]?'\u2713 ':'')+'SUDAH DIPELAJARI DENGAN SEKSAMA</button></div>';
+        }).join('');
+      });
+      body.innerHTML=h; body.scrollTop=sc;
+      requestAnimationFrame(function(){ requestAnimationFrame(function(){
+        [].forEach.call(body.querySelectorAll('.ab-f'),function(el){ el.style.width=el.dataset.w+'%'; });
+      }); });
+    }
+    o.addEventListener('click',function(e){
+      var t=e.target.closest('[data-ar]'); if(!t) return;
+      var a=t.dataset.ar, id=t.dataset.i;
+      if(a==='open'){ var p=findP(id); if(p) openViewer(p); return; }
+      if(a==='toggle') toggleArch(id);
+      else if(a==='filter') archFilter=id;
+      else if(a==='clear'){ if(!confirm('Hapus semua tanda "sudah dipelajari" di komputer ini?')) return; arch={}; saveArch(); }
+      render(); draw();
+    });
+    draw();
+  }
+  document.addEventListener('click',function(e){ // tombol di jendela pemutar
+    var t=e.target.closest('[data-vt]'); if(!t) return;
+    var p=findP(t.dataset.vt); if(!p) return;
+    toggleArch(p.id); t.outerHTML=archBtn(p); render();
+  });
+
   // ---------- aksi ----------
   function byId(a,id){ return a.filter(function(x){return x.id===id;})[0]; }
   function swap(arr,item,d,same){
@@ -392,6 +495,7 @@ input[type=date]{color-scheme:dark}
     var t=e.target.closest('[data-a]'); if(!t||t.closest('.overlay')) return;
     var a=t.dataset.a, id=t.dataset.i, d=+t.dataset.d, m=byId(state.menus,id), p=findP(id);
     if(a==='menu'){ state.activeMenu=id; persist(); rise=true; render(); }
+    else if(a==='arsip') openArchive();
     else if(a==='login') form('MASUK GURU',[{name:'pw',label:'KATA SANDI GURU',type:'password'}],function(v){ return login(v.pw); },
       'Belum pernah login? Kata sandi yang kamu isi pertama kali akan menjadi kata sandi guru.','MASUK');
     else if(a==='logout') logout();
