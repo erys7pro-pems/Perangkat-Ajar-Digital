@@ -189,6 +189,19 @@ input[type=date]{color-scheme:dark}
 .ar-t .fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
 .ar-t svg{width:28px;height:28px}.ar-t .src{display:none}
 @media (max-width:560px){.ar-r{flex-wrap:wrap}.ar-r .abtn{flex:1 0 100%}}
+.ab-share{margin:14px 0 4px;padding:12px;border:1px solid var(--acc-dim);background:var(--panel-2)}
+.ab-sh{font-size:10px;letter-spacing:.12em;color:var(--acc);margin-bottom:8px}
+.ab-sf{display:flex;gap:6px;flex-wrap:wrap}
+.ab-sf input{flex:1 1 150px;width:auto}
+.ab-sf input:disabled{opacity:.6}
+.ab-share .ab-note{margin:8px 0 0}
+.mr{border:1px solid var(--line);background:var(--panel);padding:8px 10px;margin-bottom:6px}
+.mr-h{display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:6px;flex-wrap:wrap}
+.mr-h em{color:var(--muted);font-style:normal;font-size:11px}
+.mr-t{margin-left:auto;color:var(--muted);font-size:10.5px}
+.mr-d{margin-top:8px;font-size:11.5px;color:var(--muted);line-height:1.6;columns:2;column-gap:18px}
+.mr-d div{break-inside:avoid;margin-bottom:2px}
+@media (max-width:560px){.mr-d{columns:1}}
 </style>
 </head>
 <body>
@@ -256,7 +269,7 @@ input[type=date]{color-scheme:dark}
     req.then(function(d){
       if(d&&d.menus){ var keep=state.activeMenu; state=d; if(!state.panels) state.panels=[]; if(!state.featured) state.featured=[];
         if(state.menus.some(function(m){return m.id===keep;})) state.activeMenu=keep; persist(); full=isG(); }
-      sync='online'; render();
+      sync='online'; render(); syncProgress();
     }).catch(function(e){
       if(e&&e.bad){ alert('Sesi guru ditolak server. Kembali ke mode murid.'); logout(); return; }
       sync='error'; render();
@@ -386,7 +399,7 @@ input[type=date]{color-scheme:dark}
     var g=isG(), ms=state.menus.filter(function(m){return g||!m.hidden;});
     if(!ms.some(function(m){return m.id===state.activeMenu;})) state.activeMenu=ms[0]?ms[0].id:'';
     $('top').innerHTML='<div class="status" data-a="cfg"><span class="dot" id="st-dot"></span><span id="st-lbl"></span></div>'+
-      '<button class="btn" data-a="arsip" title="Arsip belajar">ARSIP '+topCount()+'</button><span class="pill'+(g?' on':'')+'">'+(g?'MODE GURU':'MODE MURID')+'</span>'+
+      (g?'<button class="btn" data-a="pantau" title="Pantau progres murid">PANTAU MURID</button>':'')+'<button class="btn" data-a="arsip" title="Arsip belajar">ARSIP '+topCount()+'</button><span class="pill'+(g?' on':'')+'">'+(g?'MODE GURU':'MODE MURID')+'</span>'+
       (g?'<button class="btn" data-a="addpanel">+ VIDEO</button><button class="btn" data-a="impfolder">IMPOR FOLDER</button><button class="btn" data-a="logout">KELUAR</button>':'<button class="btn" data-a="login">MASUK GURU</button>');
     status();
     $('tabs').innerHTML=ms.map(function(m,i){
@@ -542,7 +555,7 @@ input[type=date]{color-scheme:dark}
     return {tot:tot,done:done,pct:tot?Math.round(done/tot*100):0};
   }
   function topCount(){ var st=archStats(universe()); return st.done+'/'+st.tot+' \u00b7 '+st.pct+'%'; }
-  function toggleArch(id){ if(arch[id]) delete arch[id]; else arch[id]=Date.now(); saveArch(); }
+  function toggleArch(id){ if(arch[id]) delete arch[id]; else arch[id]=Date.now(); saveArch(); syncProgress(); }
   function archBtn(p){ return '<button class="abtn'+(arch[p.id]?' on':'')+'" data-vt="'+p.id+'" title="Klik lagi untuk membatalkan">'+(arch[p.id]?'\u2713 ':'')+'SUDAH DIPELAJARI DENGAN SEKSAMA</button>'; }
   function bar(label,done,tot,big){
     var pct=tot?Math.round(done/tot*100):0;
@@ -556,7 +569,7 @@ input[type=date]{color-scheme:dark}
       var h='<div class="ab-note">Progres dihitung otomatis dari total '+NOUN.toLowerCase()+' yang tersedia di halaman ini. Tanda "sudah dipelajari" hanya tersimpan di browser komputer ini.</div>'+
         bar('TOTAL PROGRES BELAJAR',st.done,st.tot,true)+
         (groups.length>1?'<div class="ab-menus">'+groups.map(function(g){return bar(g.name,g.done,g.panels.length);}).join('')+'</div>':'')+
-        '<div class="ab-filter">'+[['all','SEMUA'],['todo','BELUM'],['done','SUDAH']].map(function(f){
+        shareBlock()+'<div class="ab-filter">'+[['all','SEMUA'],['todo','BELUM'],['done','SUDAH']].map(function(f){
           return '<button class="abtn'+(archFilter===f[0]?' on':'')+'" data-ar="filter" data-i="'+f[0]+'">'+f[1]+'</button>'; }).join('')+
         '<button class="abtn" data-ar="clear">HAPUS SEMUA TANDA</button></div>';
       if(!groups.length) h+='<div class="empty hud">BELUM ADA '+NOUN.toUpperCase()+' DI HALAMAN INI</div>';
@@ -578,10 +591,16 @@ input[type=date]{color-scheme:dark}
       var t=e.target.closest('[data-ar]'); if(!t) return;
       var a=t.dataset.ar, id=t.dataset.i;
       if(a==='open'){ var p=findP(id); if(p) openViewer(p); return; }
-      if(a==='toggle') toggleArch(id);
+      if(a==='pon') togglePid(o);
+      else if(a==='toggle') toggleArch(id);
       else if(a==='filter') archFilter=id;
-      else if(a==='clear'){ if(!confirm('Hapus semua tanda "sudah dipelajari" di komputer ini?')) return; arch={}; saveArch(); }
+      else if(a==='clear'){ if(!confirm('Hapus semua tanda "sudah dipelajari" di komputer ini?')) return; arch={}; saveArch(); syncProgress(); }
       render(); draw();
+    });
+    o.addEventListener('input',function(e){
+      if(e.target.id==='pn') pid.name=e.target.value.trim();
+      else if(e.target.id==='pk') pid.kelas=e.target.value.trim();
+      else return; savePid();
     });
     draw();
   }
@@ -590,6 +609,92 @@ input[type=date]{color-scheme:dark}
     var p=findP(t.dataset.vt); if(!p) return;
     toggleArch(p.id); t.outerHTML=archBtn(p); render();
   });
+
+  // ---------- kirim progres ke spreadsheet (murid) & pantau (guru) ----------
+  var pid=jp(ARK+'-id',{sid:'',name:'',kelas:'',on:false}), pTimer=null, pStat='';
+  function savePid(){ try{ localStorage.setItem(ARK+'-id',JSON.stringify(pid)); }catch(e){} }
+  function clk(d){ d=d||new Date(); return ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)+':'+('0'+d.getSeconds()).slice(-2); }
+  function updStat(){ var el=document.getElementById('pstat'); if(el) el.textContent=pStat; }
+  function syncProgress(delay){
+    if(!pid.on||!pid.name||!hasApi()||isG()) return;
+    clearTimeout(pTimer);
+    pTimer=setTimeout(function(){
+      var gr=universe(), st=archStats(gr), ids=[];
+      gr.forEach(function(g){ g.panels.forEach(function(p){ if(arch[p.id]) ids.push(p.id); }); });
+      pStat='Mengirim...'; updStat();
+      post({action:'progress',sid:pid.sid,name:pid.name,kelas:pid.kelas,done:st.done,total:st.tot,ids:ids}).then(function(r){
+        pStat=(r&&r.ok)?'Terkirim ke guru pukul '+clk()+'.':'Gagal mengirim: '+String((r&&r.error)||'tidak ada respons').slice(0,100);
+      }).catch(function(){ pStat='Gagal terhubung ke server.'; }).then(updStat);
+    },delay==null?1200:delay);
+  }
+  function togglePid(o){
+    var n=o.querySelector('#pn'), k=o.querySelector('#pk');
+    if(!pid.on){
+      if(n) pid.name=n.value.trim(); if(k) pid.kelas=k.value.trim();
+      if(pid.name.length<2){ pStat='Isi nama lengkap dulu (minimal 2 huruf).'; return; }
+      if(!pid.sid) pid.sid='m'+Math.random().toString(36).slice(2,10)+Date.now().toString(36);
+      pid.on=true; savePid(); pStat='Mengirim...'; syncProgress(0);
+    } else {
+      clearTimeout(pTimer); pid.on=false; savePid(); pStat='Dihentikan. Menghapus datamu dari spreadsheet...';
+      post({action:'progress',sid:pid.sid,remove:true}).then(function(r){
+        pStat=(r&&r.ok)?'Dihentikan. Datamu sudah dihapus dari spreadsheet.':'Gagal menghapus data di server.';
+      }).catch(function(){ pStat='Gagal terhubung ke server.'; }).then(updStat);
+    }
+  }
+  function shareBlock(){
+    if(isG()||!hasApi()) return '';
+    var dis=pid.on?' disabled':'';
+    return '<div class="ab-share"><div class="ab-sh hud">KIRIM PROGRES KE GURU</div><div class="ab-sf">'+
+      '<input id="pn" maxlength="60" placeholder="Nama lengkap" value="'+esc(pid.name)+'"'+dis+'><input id="pk" maxlength="30" placeholder="Kelas (opsional)" value="'+esc(pid.kelas)+'"'+dis+'>'+
+      '<button class="abtn'+(pid.on?' on':'')+'" data-ar="pon">'+(pid.on?'\u2713 AKTIF \u00b7 MATIKAN':'AKTIFKAN PENGIRIMAN')+'</button></div>'+
+      '<div class="ab-note" id="pstat">'+esc(pStat||(pid.on?'Aktif. Progresmu dikirim otomatis setiap kali kamu menandai.':'Belum aktif. Jika diaktifkan, nama, kelas, dan daftar yang kamu tandai akan dikirim ke guru. Mematikannya menghapus datamu dari spreadsheet.'))+'</div></div>';
+  }
+  function openMonitor(){
+    if(!hasApi()){ alert('Pemantauan butuh koneksi ke Apps Script (Google Sheets).'); return; }
+    var o=overlay('<div class="modal big arch"><div class="mh"><h2 class="hud">PANTAU PROGRES MURID</h2><button class="x" data-close>\u00d7</button></div><div class="abody"><div class="ab-note" id="mst">Memuat...</div><div id="mbody"></div></div></div>');
+    var rows=[], open={}, sort='pct', timer=null;
+    function ago(ms){ var s=Math.max(0,Math.round((Date.now()-ms)/1000)); return !ms?'-':s<60?s+' dtk lalu':s<3600?Math.round(s/60)+' mnt lalu':s<86400?Math.round(s/3600)+' jam lalu':fdate(ms); }
+    function pbar(label,pct,right,big){
+      return '<div class="ab'+(big?' big':'')+'"><div class="ab-h"><span>'+label+'</span><span>'+right+'</span></div><div class="ab-t"><div class="ab-f" style="width:'+pct+'%"></div></div></div>';
+    }
+    function pc(r){ return r.total?Math.round(r.done/r.total*100):0; }
+    function draw(){
+      var n=rows.length, avg=n?Math.round(rows.reduce(function(a,r){return a+pc(r);},0)/n):0;
+      var live=rows.filter(function(r){return Date.now()-r.at<120000;}).length;
+      var list=rows.slice().sort(function(a,b){ return sort==='name'?a.name.localeCompare(b.name,'id',{numeric:true}):sort==='new'?b.at-a.at:pc(b)-pc(a); });
+      var h=pbar('RATA-RATA KELAS \u00b7 '+n+' MURID \u00b7 '+live+' AKTIF',avg,avg+'%',true)+
+        '<div class="ab-filter">'+[['pct','NILAI'],['name','NAMA'],['new','TERBARU']].map(function(s){
+          return '<button class="abtn'+(sort===s[0]?' on':'')+'" data-mr="sort" data-i="'+s[0]+'">'+s[1]+'</button>'; }).join('')+
+        '<button class="abtn" data-mr="refresh">MUAT ULANG</button></div>';
+      if(!n) h+='<div class="empty hud">BELUM ADA MURID YANG MENGIRIM PROGRES</div>';
+      h+=list.map(function(r){
+        var on=Date.now()-r.at<120000, det='';
+        if(open[r.sid]){
+          var t=r.ids.map(function(id){ var p=findP(id); return p?(p.title||NOUN):null; }).filter(Boolean);
+          det='<div class="mr-d">'+(t.length?t.map(function(x){return '<div>\u2713 '+esc(x)+'</div>';}).join(''):'Belum ada yang ditandai.')+'</div>';
+        }
+        return '<div class="mr"><div class="mr-h" data-mr="toggle" data-i="'+esc(r.sid)+'"><span class="dot'+(on?' online':'')+'"></span><b>'+esc(r.name)+'</b>'+(r.kelas?'<em>'+esc(r.kelas)+'</em>':'')+
+          '<span class="mr-t">'+ago(r.at)+'</span><button class="c d" data-mr="del" data-i="'+esc(r.sid)+'" title="Hapus data murid ini">\u00d7</button></div>'+
+          pbar('',pc(r),r.done+' / '+r.total+' \u00b7 '+pc(r)+'%')+det+'</div>';
+      }).join('');
+      var b=o.querySelector('#mbody'), sc=o.querySelector('.abody').scrollTop; b.innerHTML=h; o.querySelector('.abody').scrollTop=sc;
+    }
+    function load(){
+      if(!document.body.contains(o)){ clearInterval(timer); return; }
+      post({action:'progresslist',password:pw}).then(function(r){
+        if(!r||!r.ok) throw (r||{});
+        rows=r.rows||[]; o.querySelector('#mst').textContent='Diperbarui otomatis tiap 10 detik \u00b7 terakhir '+clk()+'. Persentase mengikuti total yang dilihat murid saat terakhir mengirim.'; draw();
+      }).catch(function(e){ o.querySelector('#mst').textContent=e&&e.error==='unauthorized'?'Sesi guru ditolak server.':'Gagal memuat: '+String((e&&e.error)||'tidak dapat terhubung').slice(0,100); });
+    }
+    o.addEventListener('click',function(e){
+      var t=e.target.closest('[data-mr]'); if(!t) return; var a=t.dataset.mr, id=t.dataset.i;
+      if(a==='toggle'){ open[id]=!open[id]; draw(); }
+      else if(a==='sort'){ sort=id; draw(); }
+      else if(a==='refresh') load();
+      else if(a==='del'){ e.stopPropagation(); if(confirm('Hapus data murid ini dari spreadsheet?')) post({action:'progressdel',password:pw,sid:id}).then(load); }
+    });
+    load(); timer=setInterval(load,10000);
+  }
 
   // ---------- aksi ----------
   function byId(a,id){ return a.filter(function(x){return x.id===id;})[0]; }
@@ -639,6 +744,7 @@ input[type=date]{color-scheme:dark}
     else if(a==='mvmenu'&&m){ swap(state.menus,m,d,function(){return true;}); save(); }
     else if(a==='vismenu'&&m){ m.hidden=!m.hidden; save(); }
     else if(a==='impfolder') impForm();
+    else if(a==='pantau') openMonitor();
     else if(a==='addpanel'){ if(!state.menus.length) alert('Buat menu terlebih dahulu.'); else panelForm(null); }
     else if(a==='editpanel'&&p) panelForm(p);
     else if(a==='delpanel'&&p){ if(confirm('Hapus panel ini?')){ state.panels=state.panels.filter(function(x){return x!==p;}); save(); } }
