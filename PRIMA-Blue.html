@@ -20,6 +20,7 @@
   --shadow:0 1px 2px rgba(0,20,40,.08);
   --cyan:var(--accent); --cyan-dim:var(--accent-dim);
   --uf-tint:var(--panel-2); --uf-base:var(--panel);
+  --shine-edge:rgba(0,113,188,.20); --shine-core:rgba(255,255,255,.95);
 }
 :root[data-theme="dark"]{
   color-scheme:dark;
@@ -28,6 +29,7 @@
   --accent:#5bb8f0; --accent-dim:#2f6f9a; --violet:#a28bd6; --amber:#f0a63a; --red:#f2776d;
   --on-amber:#1d1300; --btn-bg:#5bb8f0; --btn-bg-h:#7cc6f4; --btn-ink:#04121f;
   --hdr:#001428; --shadow:0 1px 2px rgba(0,0,0,.4);
+  --shine-edge:rgba(91,184,240,.22); --shine-core:rgba(255,255,255,.42);
 }
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;}
@@ -229,8 +231,12 @@ main{padding:24px 16px 64px;max-width:1100px;margin:0 auto;}
 .uf-strong{color:var(--text);font-weight:600;}
 .uf-where{color:var(--muted);}
 .uf-left{flex-shrink:0;font-size:13px;color:var(--muted);}
-.panel-card.flash{animation:flashCard 2.4s ease-in-out;}
-@keyframes flashCard{0%,43%,100%{box-shadow:var(--shadow);}18%,68%{box-shadow:inset 0 0 0 2px var(--accent),0 0 0 3px rgba(0,113,188,.25);}}
+.panel-card.flash::after{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:2;
+  background:linear-gradient(115deg,transparent 41%,var(--shine-edge) 46%,var(--shine-core) 50%,var(--shine-edge) 54%,transparent 59%);
+  background-size:300% 100%;background-repeat:no-repeat;background-position:100% 0;
+  animation:glassSweep 1.3s ease-in-out 2;}
+/* refleksi kaca: menyapu kiri→kanan, lalu jeda sebentar; diulang 2 kali */
+@keyframes glassSweep{0%{background-position:100% 0;}70%,100%{background-position:0% 0;}}
 
 /* Transisi halus saat ganti menu / peran */
 @keyframes grid-switch-in{from{opacity:0;}to{opacity:1;}}
@@ -245,7 +251,7 @@ main{padding:24px 16px 64px;max-width:1100px;margin:0 auto;}
 @media (prefers-reduced-motion: reduce){
   .modal-overlay,.modal-overlay .modal,.modal-overlay .lightbox-wrap{animation:none !important;transition:none !important;}
   .menu-tab{transition:none !important;}
-  .panels-grid.menu-switch,#app.role-switch,.panel-card.flash,.dot.sync{animation:none !important;}
+  .panels-grid.menu-switch,#app.role-switch,.panel-card.flash::after,.dot.sync{animation:none !important;}
 }
 
 .hero{background:var(--navy,#002244);color:#fff;}
@@ -370,7 +376,7 @@ main{padding:24px 16px 64px;max-width:1100px;margin:0 auto;}
     state.activeMenu = menuId; render(); persistLocal();
     if(panelId){
       var el = document.querySelector('.panel-card[data-pid="'+panelId+'"]');
-      if(el){ el.scrollIntoView({behavior:'smooth', block:'center'}); el.classList.add('flash'); setTimeout(function(){ el.classList.remove('flash'); }, 2500); }
+      if(el){ el.scrollIntoView({behavior:'smooth', block:'center'}); el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); setTimeout(function(){ el.classList.remove('flash'); }, 2800); }
     }
   }
 
