@@ -181,6 +181,19 @@
     color: #8fefff;
   }
 
+  .btn-link{
+    background: none; border: none; box-shadow: none; padding: 0; border-radius: 0;
+    font-family: 'Share Tech Mono', monospace; font-size: 11px; font-weight: 400;
+    letter-spacing: .3px; text-transform: none; color: var(--cyan);
+    cursor: pointer; margin-top: 6px; align-self: flex-start;
+  }
+  .btn-link:hover{ background: none; box-shadow: none; color: var(--cyan-soft); text-decoration: underline; }
+  .mode-edit{
+    margin-top: 10px; padding: 10px 12px; border-radius: 4px;
+    border: 1px solid rgba(255,176,32,.45); background: rgba(255,176,32,.08);
+    color: var(--amber); font-family: 'Share Tech Mono', monospace; font-size: 12px; line-height: 1.5;
+  }
+  .mode-edit strong{ color: #ffd27a; }
   .jadwal-legend{
     margin: 6px 0 0;
     font-family: 'Share Tech Mono', monospace;
@@ -725,6 +738,8 @@
             <option value="" disabled selected>Memuat jadwal pertemuan...</option>
           </select>
           <p class="jadwal-legend">✅ Sudah diisi &nbsp;·&nbsp; 🟢 Hari ini &nbsp;·&nbsp; 🔴 Terlewat, belum diisi &nbsp;·&nbsp; ⚪ Akan datang</p>
+          <button type="button" id="segarkanBtn" class="btn-link">⟳ Segarkan status dari spreadsheet</button>
+          <div class="mode-edit" id="modeEditBanner" style="display:none;"></div>
           <input type="hidden" id="tanggal" name="tanggal">
           <input type="hidden" id="jamKe" name="jamKe">
           <input type="hidden" id="kelas" name="kelas">
@@ -821,26 +836,230 @@
     muatDataReferensi();
   }
 
-  document.getElementById('jadwalPertemuan').addEventListener('change', (e) => {
+  let modeEditId = null;   // ID jadwal yang sedang diedit (entrinya sudah ada di spreadsheet)
+  let tokenMuat = 0;       // untuk mengabaikan respons lama bila jadwal diganti cepat-cepat
+  let terakhirSegarkan = Date.now();
+
+  document.getElementById('jadwalPertemuan').addEventListener('change', async (e) => {
     const j = daftarJadwalSemua.find(x => x.id === e.target.value);
     if (!j) return;
     document.getElementById('tanggal').value = j.tanggal;
     document.getElementById('jamKe').value = j.jamKe;
     document.getElementById('kelas').value = j.kelas;
     document.getElementById('idJadwal').value = j.id;
+    resetIsiForm();
     renderRoster(j.kelas);
     renderTujuan(j.kelas);
-    resetKuisSection();
+
+    if (j.sudahDiinput) {
+      await muatDetailKeForm(j);
+    } else {
+      tokenMuat++;
+      keluarModeEdit();
+      submitBtn.disabled = false;
+    }
   });
 
-  document.getElementById('tambahKuisBtn').addEventListener('click', tambahBarisKuis);
+  document.getElementById('tambahKuisBtn').addEventListener('click', () => tambahBarisKuis());
+  document.getElementById('segarkanBtn').addEventListener('click', () => segarkanJadwal(true));
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && Date.now() - terakhirSegarkan > 30000 && !submitBtn.disabled) {
+      segarkanJadwal(false);
+    }
+  });
+
+  function tampilStatus(teks, kelas) {
+    statusText.textContent = teks;
+    statusText.className = 'status' + (kelas ? ' ' + kelas : '');
+  }
+
+  function normNama(n) {
+    return String(n || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  }
+
+  // Pastikan nilai ada sebagai opsi di <select>; kalau belum ada, tambahkan. Mengembalikan nilai yang harus dipakai.
+  function pastikanOpsi(select, nilai, catatan) {
+    const target = String(nilai || '').trim();
+    const ada = Array.from(select.options).find(o => o.value.trim() === target);
+    if (ada) return ada.value;
+    const opt = document.createElement('option');
+    opt.value = target;
+    opt.textContent = potongTeks(target, 80) + (catatan ? ' ' + catatan : '');
+    select.appendChild(opt);
+    return target;
+  }
+
+  function resetIsiForm() {
+    document.getElementById('tidakTerlaksana').checked = false;
+    toggleModeTidakTerlaksana(false);
+    document.getElementById('keterangan').value = '';
+    resetKuisSection();
+    tampilStatus('', '');
+  }
+
+  function masukModeEdit(j, d) {
+    modeEditId = j.id;
+    const b = document.getElementById('modeEditBanner');
+    b.style.display = '';
+    b.innerHTML = '✎ <strong>Mode edit</strong> — data dimuat dari spreadsheet'
+      + (d.diperbarui ? ' (terakhir disimpan ' + d.diperbarui + ')' : '')
+      + '. Menyimpan akan <strong>memperbarui</strong> entri ini, bukan menambah baru.';
+    submitBtn.textContent = 'Perbarui Jurnal';
+  }
+
+  function keluarModeEdit() {
+    modeEditId = null;
+    document.getElementById('modeEditBanner').style.display = 'none';
+    submitBtn.textContent = 'Simpan Jurnal';
+  }
+
+  async function ambilDetail(id) {
+    const res = await fetch(`${APPS_SCRIPT_URL}?action=detail-jurnal&id=${encodeURIComponent(id)}&_=${Date.now()}`);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return await res.json();
+  }
+
+  async function muatDetailKeForm(j) {
+    const token = ++tokenMuat;
+    submitBtn.disabled = true;
+    tampilStatus('Memuat data tersimpan dari spreadsheet…', '');
+
+    let d = null;
+    try { d = await ambilDetail(j.id); } catch (err) { d = null; }
+    if (token !== tokenMuat) return; // jadwal sudah diganti selagi menunggu
+
+    if (d === null || d.galat) {
+      keluarModeEdit();
+      tampilStatus('Gagal memuat data tersimpan — tombol simpan dinonaktifkan agar data lama tidak tertimpa. Pilih ulang jadwal atau klik "Segarkan".', 'err');
+      submitBtn.disabled = true;
+      return;
+    }
+
+    if (!d.ada) {
+      // Ditandai "sudah diisi" di daftar, tetapi barisnya sudah tidak ada di sheet Jurnal (mis. dihapus manual)
+      j.sudahDiinput = false;
+      const sel = document.getElementById('jadwalPertemuan');
+      renderJadwalPertemuan();
+      sel.value = j.id;
+      keluarModeEdit();
+      submitBtn.disabled = false;
+      tampilStatus('Entri tersimpan untuk jadwal ini tidak ditemukan di spreadsheet (mungkin sudah dihapus) — diperlakukan sebagai input baru.', '');
+      return;
+    }
+
+    const info = isiFormDariDetail(d);
+    masukModeEdit(j, d);
+    submitBtn.disabled = false;
+    tampilStatus(info.belumAda > 0
+      ? `Data tersimpan dimuat. ${info.belumAda} siswa di daftar saat ini belum ada di data tersimpan (diisi Hadir).`
+      : 'Data tersimpan dimuat dari spreadsheet.', 'ok');
+  }
+
+  function isiFormDariDetail(d) {
+    const info = { belumAda: 0 };
+
+    if (d.statusPertemuan === 'Tidak Terlaksana') {
+      document.getElementById('tidakTerlaksana').checked = true;
+      toggleModeTidakTerlaksana(true);
+      const sel = document.getElementById('alasanTidak');
+      if (d.alasanTidak) sel.value = pastikanOpsi(sel, d.alasanTidak, '');
+      document.getElementById('keteranganTidak').value = d.keterangan || '';
+      return info;
+    }
+
+    // Tujuan Pembelajaran + Materi Pokok
+    if (d.tujuan) {
+      const tpSel = document.getElementById('tujuan');
+      tpSel.value = pastikanOpsi(tpSel, d.tujuan, '(tersimpan — tidak ada di daftar TP saat ini)');
+      renderMateri(tpSel.value);
+      tandaiMateri(d.materi);
+    }
+
+    // Daftar hadir
+    const peta = {};
+    (d.kehadiran || []).forEach(k => { peta[normNama(k.nama)] = k; });
+    const rows = document.querySelectorAll('#rosterBody tr');
+    rows.forEach((row, i) => {
+      const k = peta[normNama(row.querySelector('.nama').textContent)];
+      if (!k) { info.belumAda++; return; }
+      const radio = row.querySelector(`input[name="status-${i}"][value="${k.status}"]`);
+      if (radio) radio.checked = true;
+      row.querySelector('.ket-input').value = k.keterangan || '';
+    });
+    perbaruiRingkasanRoster();
+
+    // Kuis harian
+    (d.kuis || []).forEach(k => tambahBarisKuis(k));
+
+    document.getElementById('keterangan').value = d.keterangan || '';
+    return info;
+  }
+
+  // Centang materi yang tersimpan. Teks tersimpan digabung dengan ", " sehingga item yang
+  // mengandung koma dicocokkan dari yang terpanjang. Sisa yang tak cocok tetap dipertahankan.
+  function tandaiMateri(tersimpan) {
+    const group = document.getElementById('materiGroup');
+    let sisa = ', ' + String(tersimpan || '') + ', ';
+    const kotak = Array.from(group.querySelectorAll('input[name="materi"]'));
+
+    kotak.slice().sort((a, b) => b.value.length - a.value.length).forEach(cb => {
+      const kunci = ', ' + cb.value + ', ';
+      if (sisa.includes(kunci)) {
+        cb.checked = true;
+        sisa = sisa.replace(kunci, ', ');
+      }
+    });
+
+    const lebih = sisa.replace(/^,\s*/, '').replace(/,\s*$/, '').trim();
+    if (lebih) {
+      if (kotak.length === 0) group.innerHTML = '';
+      const label = document.createElement('label');
+      label.className = 'checkbox-item';
+      label.title = lebih + ' (tersimpan; tidak ada di daftar materi saat ini)';
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.name = 'materi';
+      input.value = lebih;
+      input.checked = true;
+      label.appendChild(input);
+      label.appendChild(document.createTextNode(' ' + potongTeks(lebih, 60) + ' (tersimpan)'));
+      group.appendChild(label);
+    }
+  }
+
+  async function segarkanJadwal(tampilkanPesan) {
+    if (APPS_SCRIPT_URL.includes('PASTE_URL')) return;
+    if (tampilkanPesan) tampilStatus('Memuat ulang status jadwal dari spreadsheet…', '');
+    try {
+      const res = await fetch(`${APPS_SCRIPT_URL}?_=${Date.now()}`);
+      const data = await res.json();
+
+      petaJam = {};
+      (data.jamKe || []).forEach(j => { petaJam[j.label] = j.waktu; });
+      daftarJadwalSemua = data.jadwal || [];
+      daftarSiswaSemua = data.siswa || daftarSiswaSemua;
+      daftarTujuanSemua = data.tujuan || daftarTujuanSemua;
+      daftarMateriSemua = data.materi || daftarMateriSemua;
+
+      const sel = document.getElementById('jadwalPertemuan');
+      const nilai = sel.value;
+      renderJadwalPertemuan();
+      if (nilai && daftarJadwalSemua.some(x => x.id === nilai)) sel.value = nilai;
+
+      terakhirSegarkan = Date.now();
+      if (tampilkanPesan) tampilStatus('Status jadwal diperbarui dari spreadsheet.', 'ok');
+    } catch (err) {
+      if (tampilkanPesan) tampilStatus('Gagal memuat ulang dari spreadsheet. Periksa koneksi.', 'err');
+    }
+  }
 
   function resetKuisSection() {
     document.getElementById('kuisRows').innerHTML = '';
     document.getElementById('kuisEmpty').style.display = '';
   }
 
-  function tambahBarisKuis() {
+  function tambahBarisKuis(prefill) {
     const kelasTerpilih = document.getElementById('kelas').value;
     if (!kelasTerpilih) {
       statusText.textContent = 'Pilih Jadwal Pertemuan terlebih dahulu sebelum menambah skor kuis.';
@@ -873,6 +1092,13 @@
         document.getElementById('kuisEmpty').style.display = '';
       }
     });
+
+    if (prefill) {
+      const selNama = row.querySelector('.kuis-nama');
+      selNama.value = pastikanOpsi(selNama, prefill.nama, '(tidak ada di daftar kelas)');
+      row.querySelector('.kuis-skor').value = String(prefill.skor);
+      row.querySelector('.kuis-catatan').value = prefill.catatan || '';
+    }
 
     document.getElementById('kuisRows').appendChild(row);
     document.getElementById('kuisEmpty').style.display = 'none';
@@ -1100,6 +1326,14 @@
     }
   }
 
+  function cekCocok(cek, data) {
+    if (!cek || !cek.ada || cek.statusPertemuan !== data.statusPertemuan) return false;
+    if (data.statusPertemuan === 'Tidak Terlaksana') return cek.alasanTidak === data.alasanTidak;
+    return (cek.tujuan || '').trim() === (data.tujuan || '').trim()
+      && (cek.kehadiran || []).length === data.kehadiran.length
+      && (cek.kuis || []).length === data.kuis.length;
+  }
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -1203,6 +1437,8 @@
     statusText.textContent = 'Menyimpan...';
     statusText.className = 'status';
 
+    const mauEdit = (modeEditId === data.idJadwal);
+
     try {
       await fetch(APPS_SCRIPT_URL, {
         method: 'POST',
@@ -1211,20 +1447,31 @@
         body: JSON.stringify(data)
       });
 
-      // mode 'no-cors' tidak mengizinkan membaca respons,
-      // jadi kita anggap berhasil dan beri konfirmasi optimis.
-      statusText.textContent = 'Tersimpan. Silakan cek spreadsheet untuk memastikan.';
-      statusText.className = 'status ok';
+      // Respons POST tidak bisa dibaca (no-cors), maka hasilnya diverifikasi dengan membaca ulang dari spreadsheet.
+      tampilStatus('Terkirim — memverifikasi ke spreadsheet…', '');
+      let terverifikasi = false;
+      try { terverifikasi = cekCocok(await ambilDetail(data.idJadwal), data); } catch (_) {}
 
-      const jadwalTersimpan = daftarJadwalSemua.find(j => j.id === data.idJadwal);
-      if (jadwalTersimpan) jadwalTersimpan.sudahDiinput = true;
-      renderJadwalPertemuan();
+      if (terverifikasi) {
+        tampilStatus(mauEdit ? 'Diperbarui ✓ — terverifikasi di spreadsheet.' : 'Tersimpan ✓ — terverifikasi di spreadsheet.', 'ok');
 
-      form.reset();
-      toggleModeTidakTerlaksana(false);
-      resetKuisSection();
-      document.getElementById('rosterContainer').innerHTML =
-        '<span class="roster-status">Pilih jadwal pertemuan terlebih dahulu untuk memuat daftar siswa</span>';
+        const jadwalTersimpan = daftarJadwalSemua.find(j => j.id === data.idJadwal);
+        if (jadwalTersimpan) jadwalTersimpan.sudahDiinput = true;
+        renderJadwalPertemuan();
+
+        form.reset();
+        // Input hidden tidak ikut dikosongkan oleh form.reset(), jadi dikosongkan manual
+        ['tanggal', 'jamKe', 'kelas', 'idJadwal'].forEach(id => { document.getElementById(id).value = ''; });
+        toggleModeTidakTerlaksana(false);
+        resetKuisSection();
+        keluarModeEdit();
+        document.getElementById('rosterContainer').innerHTML =
+          '<span class="roster-status">Pilih jadwal pertemuan terlebih dahulu untuk memuat daftar siswa</span>';
+
+        segarkanJadwal(false); // sinkronkan status semua jadwal dengan kondisi spreadsheet saat ini
+      } else {
+        tampilStatus('Terkirim, tetapi data belum terdeteksi di spreadsheet. Isian TIDAK dikosongkan — coba simpan ulang, atau periksa Apps Script (sudah di-deploy sebagai versi baru?).', 'err');
+      }
     } catch (err) {
       statusText.textContent = 'Gagal menyimpan. Periksa koneksi atau URL Web App.';
       statusText.className = 'status err';
