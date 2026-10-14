@@ -205,6 +205,18 @@ input[type=date]{color-scheme:dark}
 .head h3{flex:1;min-width:0}
 .seq{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 5px;background:var(--acc);color:#1a0d00;font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;flex-shrink:0}
 .feat-n{font-size:11px;color:var(--muted);margin:-4px 0 12px;line-height:1.5}
+.pl{border:1px solid var(--line);background:var(--panel);margin-bottom:8px}
+.pl.off{opacity:.85}
+.pl-h{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;flex-wrap:wrap}
+.pl-h:hover{background:rgba(255,138,31,.06)}
+.pl-c{color:var(--acc);width:14px;flex-shrink:0}
+.pl-t{flex:1;min-width:140px}
+.pl-t b{display:block;font-size:12.5px;color:var(--acc);letter-spacing:.06em;font-weight:400}
+.pl-t small{color:var(--muted);font-size:10.5px}
+.pl-b{padding:0 10px 8px}
+.pl-b .ar-r{background:var(--bg)}
+.pl-pick{display:flex;gap:6px}
+.pl-pick select{flex:1;width:auto;min-width:0}
 </style>
 </head>
 <body>
@@ -402,7 +414,7 @@ input[type=date]{color-scheme:dark}
     var g=isG(), ms=state.menus.filter(function(m){return g||!m.hidden;});
     if(!ms.some(function(m){return m.id===state.activeMenu;})) state.activeMenu=ms[0]?ms[0].id:'';
     $('top').innerHTML='<div class="status" data-a="cfg"><span class="dot" id="st-dot"></span><span id="st-lbl"></span></div>'+
-      (g?'<button class="btn" data-a="pantau" title="Pantau progres murid">PANTAU MURID</button>':'')+'<button class="btn" data-a="arsip" title="Arsip belajar">ARSIP '+topCount()+'</button><span class="pill'+(g?' on':'')+'">'+(g?'MODE GURU':'MODE MURID')+'</span>'+
+      '<button class="btn" data-a="playlist" title="Playlist dari Koleksi Pekan">PLAYLIST</button>'+(g?'<button class="btn" data-a="pantau" title="Pantau progres murid">PANTAU MURID</button>':'')+'<button class="btn" data-a="arsip" title="Arsip belajar">ARSIP '+topCount()+'</button><span class="pill'+(g?' on':'')+'">'+(g?'MODE GURU':'MODE MURID')+'</span>'+
       (g?'<button class="btn" data-a="addpanel">+ VIDEO</button><button class="btn" data-a="impfolder">IMPOR FOLDER</button><button class="btn" data-a="logout">KELUAR</button>':'<button class="btn" data-a="login">MASUK GURU</button>');
     status();
     $('tabs').innerHTML=ms.map(function(m,i){
@@ -469,8 +481,11 @@ input[type=date]{color-scheme:dark}
     }).join('');
     return (g?'<button class="add2 feat-add" data-a="addcoll">+ KOLEKSI PEKAN (TAMPIL SEMENTARA)</button>':'')+out;
   }
-  function collForm(f){
+  function collForm(f,seedId){
     var isNew=!f; f=f||{id:uid(),title:'',start:today(),end:ymd(new Date(Date.now()+6*864e5)),ids:[]};
+    var order=(f.ids||[]).slice();
+    var pls=playlists().filter(function(x){return isNew||x.f.id!==f.id;});
+    var plOpts=pls.map(function(x){ return '<option value="'+x.f.id+'">'+esc(x.f.title)+' ('+x.ps.length+' · '+['aktif','akan datang','berakhir'][x.st]+')</option>'; }).join('');
     var list=state.menus.map(function(m){
       var ps=state.panels.filter(function(p){return p.menuId===m.id;}); if(!ps.length) return '';
       return '<div class="ck-menu hud">'+esc(m.name)+'</div>'+ps.map(function(p){
@@ -480,8 +495,9 @@ input[type=date]{color-scheme:dark}
     var o=overlay('<div class="modal"><h2 class="hud">'+(isNew?'KOLEKSI PEKAN BARU':'UBAH KOLEKSI PEKAN')+'</h2>'+
       '<label>JUDUL</label><input id="c-t" value="'+esc(f.title)+'" placeholder="mis. Materi Pekan 5" autocomplete="off">'+
       '<div class="two"><div><label>MULAI</label><input id="c-s" type="date" value="'+f.start+'"></div><div><label>SAMPAI (TERMASUK)</label><input id="c-e" type="date" value="'+f.end+'"></div></div>'+
+      '<label>AMBIL DARI PLAYLIST (OPSIONAL)</label><div class="pl-pick"><select id="c-pl"><option value="">'+(pls.length?'Pilih playlist untuk menambahkan isinya...':'Belum ada playlist')+'</option>'+plOpts+'</select><button class="abtn" data-cl="1" type="button">KOSONGKAN</button></div><div class="hint" id="c-plm"></div>'+
       '<label>PILIH VIDEO (DARI SEMUA MENU)</label><div class="cklist">'+list+'</div>'+
-      '<div class="hint">Selama rentang tanggal ini, video terpilih tampil di menu Umum untuk murid, termasuk model yang disembunyikan. Setelah lewat, otomatis hilang dari Umum. Urutan tampil bisa diatur setelah disimpan, lewat tombol \u2039 \u203a pada panel di koleksi.</div>'+
+      '<div class="hint">Selama rentang tanggal ini, video terpilih tampil di menu Umum untuk murid, termasuk video yang disembunyikan. Setelah lewat, otomatis hilang dari Umum. Urutan tampil bisa diatur setelah disimpan, lewat tombol \u2039 \u203a pada panel di koleksi.</div>'+
       '<div class="err"></div><div class="row"><button class="btn" data-close style="color:var(--muted)">BATAL</button><button class="btn" data-ok>SIMPAN</button></div></div>');
     o.querySelector('[data-ok]').addEventListener('click',function(){
       var t=o.querySelector('#c-t').value.trim(), st=o.querySelector('#c-s').value, en=o.querySelector('#c-e').value, err=o.querySelector('.err');
@@ -489,14 +505,31 @@ input[type=date]{color-scheme:dark}
       if(!t){ err.textContent='Judul wajib diisi.'; return; }
       if(!st||!en){ err.textContent='Tanggal mulai dan akhir wajib diisi.'; return; }
       if(en<st){ err.textContent='Tanggal akhir tidak boleh sebelum tanggal mulai.'; return; }
-      if(!ids.length){ err.textContent='Pilih minimal satu model.'; return; }
-      var keep=(f.ids||[]).filter(function(i){return ids.indexOf(i)!==-1;});
+      if(!ids.length){ err.textContent='Pilih minimal satu video.'; return; }
+      var keep=order.filter(function(i){return ids.indexOf(i)!==-1;});
       var add=ids.filter(function(i){return keep.indexOf(i)===-1;}).map(function(i){return byId(state.panels,i);}).filter(Boolean).sort(function(x,y){
         return (x.title||'').localeCompare(y.title||'','id',{numeric:true,sensitivity:'base'}); }).map(function(x){return x.id;});
       f.title=t; f.start=st; f.end=en; f.ids=keep.concat(add); if(isNew) state.featured.push(f);
       state.menus.some(function(m){ if(m.name.trim().toLowerCase()===WELCOME_MENU){ state.activeMenu=m.id; return true; } });
       save(); o.close();
     });
+    var plSel=o.querySelector('#c-pl'), plMsg=o.querySelector('#c-plm');
+    function applyPl(id){
+      var pl=pls.filter(function(x){return x.f.id===id;})[0]; if(!pl) return;
+      var n=0;
+      pl.ps.forEach(function(p){
+        var cb=o.querySelector('.cklist input[value="'+p.id+'"]'); if(!cb) return;
+        if(!cb.checked){ cb.checked=true; n++; }
+        if(order.indexOf(p.id)===-1) order.push(p.id);
+      });
+      var ti=o.querySelector('#c-t'); if(!ti.value.trim()) ti.value=pl.f.title+' (salinan)';
+      plMsg.textContent='Dari playlist "'+pl.f.title+'": '+n+' baru dicentang. Urutannya mengikuti playlist tersebut.';
+    }
+    plSel.addEventListener('change',function(){ applyPl(this.value); this.value=''; });
+    o.querySelector('[data-cl]').addEventListener('click',function(){
+      [].forEach.call(o.querySelectorAll('.cklist input'),function(c){ c.checked=false; }); order=[]; plMsg.textContent='Semua centang dikosongkan.';
+    });
+    if(seedId) applyPl(seedId);
   }
 
   // ---------- impor otomatis isi folder Google Drive ----------
@@ -708,6 +741,47 @@ input[type=date]{color-scheme:dark}
     load(); timer=setInterval(load,10000);
   }
 
+  // ---------- PLAYLIST: daftar Koleksi Pekan (juga dipakai sebagai dasar koleksi baru) ----------
+  function playlists(){
+    var g=isG(), t=today();
+    return (state.featured||[]).filter(function(f){ return g||f.panels||(f.start<=t&&t<=f.end); }).map(function(f){
+      var ps=(f.panels||(f.ids||[]).map(function(i){return byId(state.panels,i);})).filter(Boolean);
+      return {f:f,ps:ps,st:f.start>t?1:f.end<t?2:0};   // 0 aktif, 1 akan datang, 2 berakhir
+    }).sort(function(a,b){
+      if(a.st!==b.st) return a.st-b.st;
+      if(a.st===2) return a.f.end<b.f.end?1:a.f.end>b.f.end?-1:0;
+      return a.f.start<b.f.start?-1:a.f.start>b.f.start?1:0;
+    });
+  }
+  function openPlaylist(){
+    var ex={}, first=true;
+    var o=overlay('<div class="modal big arch"><div class="mh"><h2 class="hud">PLAYLIST</h2><button class="x" data-close>\u00d7</button></div><div class="abody"></div></div>');
+    var body=o.querySelector('.abody');
+    function draw(){
+      var g=isG(), L=playlists(), sc=body.scrollTop;
+      if(first){ L.forEach(function(x){ if(x.st===0) ex[x.f.id]=true; }); first=false; }
+      var h='<div class="ab-note">'+(g?'Playlist berasal dari Koleksi Pekan, termasuk yang sudah berakhir. Tekan GUNAKAN untuk membuat koleksi pekan baru dari sebuah playlist.':'Playlist yang sedang dibuka guru. Ikuti nomor urut yang disarankan.')+'</div>';
+      if(!L.length) h+='<div class="empty hud">BELUM ADA PLAYLIST</div>';
+      h+=L.map(function(x){
+        var f=x.f, open=!!ex[f.id];
+        return '<div class="pl'+(x.st?' off':'')+'"><div class="pl-h" data-pl="toggle" data-i="'+f.id+'"><span class="pl-c">'+(open?'\u25be':'\u25b8')+'</span>'+
+          '<div class="pl-t"><b class="hud">'+esc(f.title)+'</b><small>'+fd(f.start)+' \u2013 '+fd(f.end)+' \u00b7 '+x.ps.length+' '+NOUN.toLowerCase()+'</small></div>'+
+          (g?'<span class="pill'+(x.st?'':' on')+'">'+['AKTIF','AKAN DATANG','BERAKHIR'][x.st]+'</span><button class="abtn" data-pl="use" data-i="'+f.id+'" title="Buat koleksi pekan baru dari playlist ini">GUNAKAN</button>':'')+'</div>'+
+          (open?'<div class="pl-b">'+(x.ps.length?x.ps.map(function(p,i){
+            return '<div class="ar-r'+(arch[p.id]?' done':'')+'"><span class="seq">'+(i+1)+'</span><button class="ar-t" data-pl="play" data-i="'+p.id+'" aria-label="Buka">'+thumbMini(p)+'</button>'+
+              '<div class="ar-n">'+esc(p.title||NOUN)+(arch[p.id]?'<small>\u2713 Sudah dipelajari</small>':'')+'</div></div>'; }).join(''):'<div class="hint">Semua '+NOUN.toLowerCase()+' di playlist ini sudah dihapus.</div>')+'</div>':'')+'</div>';
+      }).join('');
+      body.innerHTML=h; body.scrollTop=sc;
+    }
+    o.addEventListener('click',function(e){
+      var t=e.target.closest('[data-pl]'); if(!t) return; var a=t.dataset.pl, id=t.dataset.i;
+      if(a==='toggle'){ ex[id]=!ex[id]; draw(); }
+      else if(a==='play'){ var p=findP(id); if(p) openViewer(p); }
+      else if(a==='use'){ o.close(); collForm(null,id); }
+    });
+    draw();
+  }
+
   // ---------- aksi ----------
   function byId(a,id){ return a.filter(function(x){return x.id===id;})[0]; }
   function swap(arr,item,d,same){
@@ -737,6 +811,7 @@ input[type=date]{color-scheme:dark}
     var a=t.dataset.a, id=t.dataset.i, d=+t.dataset.d, m=byId(state.menus,id), p=findP(id);
     if(a==='menu'){ state.activeMenu=id; persist(); rise=true; render(); }
     else if(a==='arsip') openArchive();
+    else if(a==='playlist') openPlaylist();
     else if(a==='viewgrid'||a==='viewlist'){ view=a==='viewlist'?'list':'grid'; try{localStorage.setItem('jarvisvideo-view',view);}catch(e){} rise=true; render(); }
     else if(a==='resetorder'){ delete localOrder[state.activeMenu]; saveLocal(); flip=true; render(); }
     else if(a==='lmove') localMove(id,d);
