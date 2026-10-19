@@ -221,6 +221,24 @@ input[type=date]{color-scheme:dark}
 .trsel{width:auto;min-width:150px}
 .trnote{font-size:10.5px;color:var(--muted);flex:1 1 200px}
 .trout{font-size:12px;color:var(--gold);margin-top:6px;line-height:1.5}
+.feat{margin:0 0 14px}
+.feat-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.feat-tg{flex:1 1 280px;position:relative;display:flex;align-items:center;gap:12px;text-align:left;font:inherit;color:var(--text);cursor:pointer;padding:14px 16px 14px 20px;
+  border:1px solid var(--acc-dim);background:linear-gradient(90deg,rgba(255,138,31,.14),var(--panel) 70%);
+  clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);transition:box-shadow .2s,background .2s}
+.feat-tg::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--acc);box-shadow:0 0 10px var(--acc)}
+.feat-tg:hover{background:linear-gradient(90deg,rgba(255,138,31,.26),var(--panel-2) 80%);box-shadow:0 0 16px rgba(255,138,31,.25)}
+.feat-tg:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.feat-chev{color:var(--acc);font-size:14px;transition:transform .3s;flex-shrink:0}
+.feat.open .feat-chev{transform:rotate(90deg)}
+.feat-tg .feat-t{margin:0;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.feat-cnt{font-size:9px;letter-spacing:.1em;color:#1a0d00;background:var(--gold);padding:3px 8px;white-space:nowrap}
+.feat-dt{font-size:11px;color:var(--muted);white-space:nowrap}
+.feat-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .4s cubic-bezier(.22,1,.36,1)}
+.feat.open .feat-body{grid-template-rows:1fr}
+.feat-in{overflow:hidden;min-height:0;visibility:hidden;padding-top:0;transition:visibility 0s .4s,padding .4s}
+.feat.open .feat-in{visibility:visible;padding:14px 0 4px;transition-delay:0s}
+@media (max-width:560px){.feat-dt{display:none}}
 </style>
 </head>
 <body>
@@ -253,7 +271,7 @@ input[type=date]{color-scheme:dark}
   function jp(k,d){ try{ var r=localStorage.getItem(k); return r?JSON.parse(r):d; }catch(e){ return d; } }
   function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
   function uid(){ return Math.random().toString(36).slice(2,10)+Date.now().toString(36); }
-  var sq={}; // kata kunci pencarian per menu (tidak disimpan)
+  var sq={}; var openF=jp('jarvisvideo-open',{}); function saveOpen(){ try{ localStorage.setItem('jarvisvideo-open',JSON.stringify(openF)); }catch(e){} } // kata kunci pencarian per menu (tidak disimpan)
   var flip=false, rise=false, quietNow=false;
   var view='grid'; try{ if(localStorage.getItem('jarvisvideo-view')==='list') view='list'; }catch(e){}
   var localOrder=jp('jarvisvideo-order',{}); // urutan pribadi per menu, hanya di perangkat ini
@@ -535,10 +553,11 @@ input[type=date]{color-scheme:dark}
       var ps=full;
       if(q) ps=ps.filter(function(p){return (p.title||'Video').toLowerCase().indexOf(q)!==-1;});
       if(q&&!ps.length) return '';
-      return '<section class="feat'+(g&&!st[1]?' off':'')+'"><div class="feat-h"><div><span class="hud feat-t">\u25c6 '+esc(f.title)+'</span>'+(g?'<span class="pill'+(st[1]?' on':'')+'">'+st[0]+'</span>':'')+'</div>'+
-        '<div class="feat-d">'+fd(f.start)+' \u2013 '+fd(f.end)+(g?'<span class="ctl"><button class="c" data-a="csort" data-i="'+f.id+'" title="Urutkan ulang berdasarkan nomor di judul">123</button><button class="c" data-a="editcoll" data-i="'+f.id+'" title="Ubah">\u270e</button><button class="c d" data-a="delcoll" data-i="'+f.id+'" title="Hapus">\u00d7</button></span>':'')+'</div></div>'+
-        (full.length>1?'<div class="feat-n">Urutan yang disarankan guru: ikuti nomor pada tiap panel (1, 2, 3, ...).'+(g&&!q?' Atur dengan tombol \u2039 \u203a pada panel, atau 123 untuk mengurutkan berdasarkan nomor judul.':'')+'</div>':'')+
-        (ps.length?'<div class="grid'+(view==='list'?' list':'')+'">'+ps.map(function(p){ return miniCard(p,{seq:seqOf[p.id],fid:f.id,ctl:g&&!q}); }).join('')+'</div>':'<div class="empty">Semua video di koleksi ini sudah dihapus.</div>')+'</section>';
+      var isOpen=!!(q||openF[f.id]);
+      var ctl=g?'<span class="pill'+(st[1]?' on':'')+'">'+st[0]+'</span><span class="ctl"><button class="c" data-a="csort" data-i="'+f.id+'" title="Urutkan ulang berdasarkan nomor di judul">123</button><button class="c" data-a="editcoll" data-i="'+f.id+'" title="Ubah">\u270e</button><button class="c d" data-a="delcoll" data-i="'+f.id+'" title="Hapus">\u00d7</button></span>':'';
+      var note=full.length>1?'<div class="feat-n">Urutan yang disarankan guru: ikuti nomor pada tiap panel (1, 2, 3, ...).'+(g&&!q?' Atur dengan tombol \u2039 \u203a pada panel, atau 123 untuk mengurutkan berdasarkan nomor judul.':'')+'</div>':'';
+      var gr=ps.length?'<div class="grid'+(view==='list'?' list':'')+'">'+ps.map(function(p){ return miniCard(p,{seq:seqOf[p.id],fid:f.id,ctl:g&&!q}); }).join('')+'</div>':'<div class="empty">Semua video di koleksi ini sudah dihapus.</div>';
+      return '<section class="feat'+(g&&!st[1]?' off':'')+(isOpen?' open':'')+'"><div class="feat-bar"><button class="feat-tg" data-a="featt" data-i="'+f.id+'" aria-expanded="'+isOpen+'"><span class="feat-chev">\u25b8</span><span class="hud feat-t">\u25c6 '+esc(f.title)+'</span><span class="feat-cnt hud">'+full.length+' VIDEO</span><span class="feat-dt">'+fd(f.start)+' \u2013 '+fd(f.end)+'</span></button>'+ctl+'</div><div class="feat-body"><div class="feat-in">'+note+gr+'</div></div></section>';
     }).join('');
     return (g?'<button class="add2 feat-add" data-a="addcoll">+ KOLEKSI PEKAN (TAMPIL SEMENTARA)</button>':'')+out;
   }
@@ -570,7 +589,7 @@ input[type=date]{color-scheme:dark}
       var keep=order.filter(function(i){return ids.indexOf(i)!==-1;});
       var add=ids.filter(function(i){return keep.indexOf(i)===-1;}).map(function(i){return byId(state.panels,i);}).filter(Boolean).sort(function(x,y){
         return (x.title||'').localeCompare(y.title||'','id',{numeric:true,sensitivity:'base'}); }).map(function(x){return x.id;});
-      f.title=t; f.start=st; f.end=en; f.ids=keep.concat(add); if(isNew) state.featured.push(f);
+      f.title=t; f.start=st; f.end=en; f.ids=keep.concat(add); if(isNew){ state.featured.push(f); openF[f.id]=true; saveOpen(); }
       state.menus.some(function(m){ if(m.name.trim().toLowerCase()===WELCOME_MENU){ state.activeMenu=m.id; return true; } });
       save(); o.close();
     });
@@ -873,6 +892,7 @@ input[type=date]{color-scheme:dark}
     if(a==='menu'){ state.activeMenu=id; persist(); rise=true; render(); }
     else if(a==='arsip') openArchive();
     else if(a==='playlist') openPlaylist();
+    else if(a==='featt'){ var sec=t.closest('.feat'); openF[id]=!openF[id]; saveOpen(); var on=!!openF[id]||!!(sq[state.activeMenu]||'').trim(); if(sec) sec.classList.toggle('open',on); t.setAttribute('aria-expanded',on); }
     else if(a==='viewgrid'||a==='viewlist'){ view=a==='viewlist'?'list':'grid'; try{localStorage.setItem('jarvisvideo-view',view);}catch(e){} rise=true; render(); }
     else if(a==='resetorder'){ delete localOrder[state.activeMenu]; saveLocal(); flip=true; render(); }
     else if(a==='lmove') localMove(id,d);
