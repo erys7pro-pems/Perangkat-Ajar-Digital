@@ -398,7 +398,26 @@
     cursor: pointer;
     transition: .15s;
   }
-  .kuis-hapus:hover{ border-color: var(--red); box-shadow: 0 0 10px rgba(255,77,106,.35); }
+  .kuis-hapus:hover{ background: rgba(255,77,106,.12); border-color: var(--red); box-shadow: 0 0 10px rgba(255,77,106,.35); }
+  .kuis-aksi{ display: flex; gap: 6px; align-items: center; }
+  .kuis-dup{
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--cyan);
+    border-radius: 4px;
+    width: 34px; height: 34px;
+    padding: 0; box-shadow: none;
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: .15s;
+  }
+  .kuis-dup:hover{ background: rgba(79,230,255,.12); border-color: var(--cyan); box-shadow: 0 0 10px rgba(79,230,255,.35); }
+  .kuis-dup:disabled{ opacity: .35; cursor: not-allowed; background: transparent; border-color: var(--border); box-shadow: none; color: var(--cyan); }
+  .kuis-row.baru{ animation: kuisMuncul .9s ease-out; border-radius: 4px; }
+  @keyframes kuisMuncul{
+    from{ box-shadow: 0 0 0 3px rgba(79,230,255,.40); }
+    to{ box-shadow: 0 0 0 3px rgba(79,230,255,0); }
+  }
   .btn-secondary{
     background: rgba(79,230,255,.08);
     color: var(--cyan-soft);
@@ -496,6 +515,7 @@
     .roster{ overflow-x: auto; }
     .roster table{ min-width: 480px; }
     .kuis-row{ grid-template-columns: 1fr; }
+    .kuis-aksi{ justify-content: flex-end; }
   }
 
 
@@ -967,7 +987,7 @@
       let d;
       try { d = await ambilDetail(id); } catch (_) { return; }     // jaringan putus: diam, coba lagi nanti
       if (token !== tokenMuat || sedangMenyimpan || document.getElementById('idJadwal').value !== id) return;
-      if (!d || d.galat) return;
+      if (!d || d.galat || typeof d.ada !== 'boolean') return;   // balasan tak dikenal: abaikan, jangan ubah form
 
       const kotor = ambilSnapshotForm() !== snapshotBersih;        // ada isian belum disimpan?
 
@@ -1080,10 +1100,21 @@
       return;
     }
 
+    if (typeof d.ada !== 'boolean') {
+      // Balasan bukan format detail jurnal (mis. doGet lama yang mengabaikan action=detail-jurnal dan
+      // membalas data form biasa). JANGAN dianggap "entri tidak ada": menyimpan akan membuat data ganda.
+      keluarModeEdit();
+      perluMuatUlang = true;           // dicoba lagi otomatis sampai server mengenali permintaan ini
+      const kunci = (d && typeof d === 'object') ? Object.keys(d).slice(0, 6).join(', ') : String(d).slice(0, 40);
+      tampilStatus('Server belum mengenali permintaan data tersimpan (balasan server berisi: ' + kunci + '). Apps Script kemungkinan belum di-deploy ulang sebagai versi baru. Tombol simpan dinonaktifkan agar tidak terjadi data ganda. Mencoba lagi otomatis…', 'err');
+      submitBtn.disabled = true;
+      return;
+    }
+
     if (!d.ada) {
-      // Ditandai "sudah diisi" di daftar, tetapi barisnya sudah tidak ada di sheet Jurnal (mis. dihapus manual)
+      // Ditandai "sudah diisi" di daftar, tetapi tidak ada baris dengan ID ini di sheet Jurnal (mis. dihapus manual)
       jadikanEntriBaru(j);
-      tampilStatus('Entri tersimpan untuk jadwal ini tidak ditemukan di spreadsheet (mungkin sudah dihapus) — diperlakukan sebagai input baru.', '');
+      tampilStatus('Entri untuk jadwal ' + j.id + ' tidak ditemukan di sheet Jurnal (kolom "ID Jadwal") — diperlakukan sebagai input baru.', '');
       return;
     }
 
@@ -1230,7 +1261,7 @@
     document.getElementById('kuisEmpty').style.display = '';
   }
 
-  function tambahBarisKuis(prefill) {
+  function tambahBarisKuis(prefill, setelah) {
     const kelasTerpilih = document.getElementById('kelas').value;
     if (!kelasTerpilih) {
       statusText.textContent = 'Pilih Jadwal Pertemuan terlebih dahulu sebelum menambah skor kuis.';
@@ -1254,7 +1285,12 @@
         <option value="0">Tidak Menjawab / Salah (0)</option>
       </select>
       <input type="text" class="kuis-catatan" placeholder="Catatan/pertanyaan (opsional)">
-      <button type="button" class="kuis-hapus" title="Hapus baris">✕</button>
+      <div class="kuis-aksi">
+        <button type="button" class="kuis-dup" title="Duplikat baris ini (siswa yang sama)" aria-label="Duplikat baris ini untuk siswa yang sama">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>
+        </button>
+        <button type="button" class="kuis-hapus" title="Hapus baris" aria-label="Hapus baris">✕</button>
+      </div>
     `;
 
     row.querySelector('.kuis-hapus').addEventListener('click', () => {
@@ -1271,7 +1307,25 @@
       row.querySelector('.kuis-catatan').value = prefill.catatan || '';
     }
 
-    document.getElementById('kuisRows').appendChild(row);
+    // Tombol duplikat: baris baru dengan siswa yang sama (skor kembali ke "Benar", catatan kosong),
+    // disisipkan tepat di bawah baris asal. Nonaktif selama belum ada siswa yang dipilih.
+    const selNamaBaris = row.querySelector('.kuis-nama');
+    const btnDup = row.querySelector('.kuis-dup');
+    const perbaruiDup = () => { btnDup.disabled = !selNamaBaris.value; };
+    selNamaBaris.addEventListener('change', perbaruiDup);
+    btnDup.addEventListener('click', () => {
+      if (!selNamaBaris.value) return;
+      tambahBarisKuis({ nama: selNamaBaris.value, skor: '1', catatan: '' }, row);
+    });
+    perbaruiDup();
+
+    if (setelah && setelah.parentNode) {
+      setelah.after(row);
+      row.classList.add('baru');
+      row.addEventListener('animationend', () => row.classList.remove('baru'), { once: true });
+    } else {
+      document.getElementById('kuisRows').appendChild(row);
+    }
     document.getElementById('kuisEmpty').style.display = 'none';
   }
 
