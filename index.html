@@ -641,7 +641,46 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
   }
 
   // ---- Render ----
+  // ---- Animasi pergeseran halus (teknik FLIP): elemen yang berpindah posisi meluncur dari posisi lama ke baru ----
+  function flipSnapshot(root, selector, attr){
+    var m = {};
+    root.querySelectorAll(selector).forEach(function(el){
+      var k = el.getAttribute(attr);
+      if(k) m[k] = el.getBoundingClientRect();
+    });
+    return m;
+  }
+  function flipPlay(root, selector, attr, prev){
+    if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var moved = [];
+    root.querySelectorAll(selector).forEach(function(el){
+      var before = prev[el.getAttribute(attr)];
+      if(!before) return;
+      var r = el.getBoundingClientRect();
+      var dx = before.left - r.left, dy = before.top - r.top;
+      if(Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+      el.style.transition = 'none';
+      el.style.transform = 'translate('+dx+'px,'+dy+'px)';
+      moved.push(el);
+    });
+    if(!moved.length) return;
+    void root.offsetWidth; // paksa reflow agar posisi awal tercatat sebelum meluncur
+    moved.forEach(function(el){
+      el.style.transition = 'transform .38s cubic-bezier(.22,.9,.32,1)';
+      el.style.transform = '';
+      setTimeout(function(){ el.style.transition = ''; }, 420);
+    });
+  }
+  var FLIP_APP_SEL = '.menu-tab[data-switch], .panel-card[data-pid]';
   function render(){
+    var app = document.getElementById('app');
+    // jangan animasikan saat ganti menu/peran (isinya memang berbeda total); hanya saat urutan berubah
+    var animate = app.children.length && state.activeMenu === lastActiveMenu && role === lastRole;
+    var prev = animate ? flipSnapshot(app, FLIP_APP_SEL, 'data-key') : null;
+    renderCore();
+    if(prev) flipPlay(app, FLIP_APP_SEL, 'data-key', prev);
+  }
+  function renderCore(){
     var app = document.getElementById('app');
     var s = statusLabel();
     var g = isGuru();
@@ -654,7 +693,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
         '<span class="menu-move'+(idx<=0?' disabled':'')+'" data-movemenu="left" data-id="'+m.id+'" title="Geser menu ke kiri">\u25c0</span>'+
         '<span class="menu-move'+(idx>=state.menus.length-1?' disabled':'')+'" data-movemenu="right" data-id="'+m.id+'" title="Geser menu ke kanan">\u25b6</span>' : '';
       var mAcc = itemAccess(m);
-      return '<div role="button" tabindex="0" class="menu-tab'+(m.id===state.activeMenu?' active':'')+(g&&mAcc==='teacher'?' teacher-only':'')+(g&&mAcc==='staff'?' staff-only':'')+'"'+(g?' draggable="true" title="Seret untuk mengubah urutan menu"':'')+' data-switch="'+m.id+'">'+esc(m.name)+newTag(m.newAt, mAcc==='student')+arrows+(g?visToggle('menu',m.id,mAcc)+'<span class="menu-del" data-delmenu="'+m.id+'">\u00d7</span>':'')+'</div>';
+      return '<div role="button" tabindex="0" class="menu-tab'+(m.id===state.activeMenu?' active':'')+(g&&mAcc==='teacher'?' teacher-only':'')+(g&&mAcc==='staff'?' staff-only':'')+'"'+(g?' draggable="true" title="Seret untuk mengubah urutan menu"':'')+' data-switch="'+m.id+'" data-key="m'+m.id+'">'+esc(m.name)+newTag(m.newAt, mAcc==='student')+arrows+(g?visToggle('menu',m.id,mAcc)+'<span class="menu-del" data-delmenu="'+m.id+'">\u00d7</span>':'')+'</div>';
     }).join('');
     var histCount = historyItems().length;
     // Pengumuman yang sudah lewat batas waktu dipindahkan ke riwayat (tidak tampil di papan)
@@ -865,7 +904,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     var hasMore = subsList.length > 2;
     var showBtn = hasMore || (g && subsList.length > 0);
     var btnLabel = hasMore ? ('\u2261 LIHAT SEMUA SUB-PANEL ('+subsList.length+')') : '\u2261 KELOLA SUB-PANEL';
-    return '<div class="panel-card type-info'+(g&&pAcc==='teacher'?' teacher-only':'')+(g&&pAcc==='staff'?' staff-only':'')+'" data-pid="'+p.id+'">'+
+    return '<div class="panel-card type-info'+(g&&pAcc==='teacher'?' teacher-only':'')+(g&&pAcc==='staff'?' staff-only':'')+'" data-pid="'+p.id+'" data-key="p'+p.id+'">'+
       '<div class="panel-head"><div class="panel-head-left">'+(g?'<span class="drag-handle" draggable="true" data-dragpanel="'+p.id+'" title="Seret untuk urutkan">\u283f</span>':'')+'<h3 class="hud-font">'+esc(p.title)+'</h3>'+newTag(p.newAt, panelEff(p))+'</div>'+
       (g?'<div class="panel-head-right">'+visToggle('panel',p.id,pAcc)+
         '<button class="icon-btn" data-editpanel="'+p.id+'" title="Edit judul panel">\u270e</button>'+
@@ -1216,7 +1255,9 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
       var p = state.panels.find(function(x){ return x.id===panelId; });
       if(!p){ closeOverlay(ov); return; }
       var list = g ? p.subpanels : p.subpanels.filter(function(x){ return viewerAllowedAccess().indexOf(itemAccess(x))!==-1; });
+      var prevTiles = row.children.length ? flipSnapshot(row, '.sub-tile[data-subid]', 'data-subid') : null;
       row.innerHTML = list.length ? list.map(function(s, i){ return subTileHtml(p, s, i, list.length); }).join('') : '<div class="empty-hint">Belum ada sub-panel.</div>';
+      if(prevTiles) flipPlay(row, '.sub-tile[data-subid]', 'data-subid', prevTiles);
       row.querySelectorAll('.sub-card img').forEach(function(im){
         im.addEventListener('click', function(){ openImageLightbox(im.getAttribute('src')); });
       });
