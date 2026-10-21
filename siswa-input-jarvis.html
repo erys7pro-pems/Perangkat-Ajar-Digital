@@ -143,7 +143,7 @@ tr.conflict{animation:flashWarn 1.4s ease;}
 (function(){
   // ====== PENGATURAN ======
   // Isi dengan URL web app (/exec) dari SiswaCode.gs, atau isi lewat ikon status di halaman.
-  var DEFAULT_API_URL = '';
+  var DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbxQRNsIZtMSnqqLBNBa3V0_CaEUaC1SQjNr8kgOlW7e-k7Ss8-5RDRBOZj27dwVvBn2/exec';
   var POLL_MS = 10000;
   // ========================
 
@@ -188,7 +188,7 @@ tr.conflict{animation:flashWarn 1.4s ease;}
   function api(action,payload){
     var url=apiUrl();
     if(!url) return Promise.reject(new Error('nourl'));
-    var body=Object.assign({action:action,password:S.pw},payload||{});
+    var body=Object.assign({modul:'siswa',action:action,password:S.pw},payload||{});
     S.busy++; drawStatus();
     return fetch(url,{method:'POST',headers:JSON_HDR,body:JSON.stringify(body)})
       .then(function(r){ return r.json(); })
@@ -409,10 +409,10 @@ tr.conflict{animation:flashWarn 1.4s ease;}
   }
 
   // ---------- ubah (per baris, berurutan agar versi tidak bentrok) ----------
-  function enqueueUpdate(id){
-    queues[id]=(queues[id]||Promise.resolve()).then(function(){ return doUpdate(id); }).catch(function(){});
+  function enqueueUpdate(id,force){
+    queues[id]=(queues[id]||Promise.resolve()).then(function(){ return doUpdate(id,force); }).catch(function(){});
   }
-  function doUpdate(id){
+  function doUpdate(id,force){
     var r=findRow(id); if(!r) return Promise.resolve();
     var inN=document.querySelector('input[data-id="'+id+'"][data-f="nama"]');
     var inK=document.querySelector('input[data-id="'+id+'"][data-f="kelas"]');
@@ -425,12 +425,17 @@ tr.conflict{animation:flashWarn 1.4s ease;}
     var d=dupOf(nama,kelas,id);
     if(d){ toast('Data sudah ada: '+d.nama+' ('+d.kelas+').','err'); revertInputs(id); setRowState(id,'error'); return Promise.resolve(); }
     setRowState(id,'saving');
-    return api('update',{id:id,nama:nama,kelas:kelas,ver:r.ver}).then(function(res){
+    return api('update',{id:id,nama:nama,kelas:kelas,ver:r.ver,force:!!force}).then(function(res){
       if(res.ok){
         var cur=findRow(id); if(cur){ cur.nama=res.row.nama; cur.kelas=res.row.kelas; cur.ver=res.row.ver; }
         S.rev=res.rev; setRowState(id,'saved'); flash(id,'flash');
         if(S.sort.key==='kelas'||S.sort.key==='nama'||S.sort.key==='terbaru'){ setTimeout(renderRows,350); }
       } else if(res.error==='unauthorized'){ logout(); }
+      else if(res.needConfirm){
+        setRowState(id,''); 
+        modal('PERUBAHAN BERDAMPAK','<p>Siswa ini punya <b>'+res.refs+'</b> catatan di Kehadiran/Kuis Harian. Catatan lama <b>tidak ikut berubah</b> (tetap atas nama &amp; kelas lama), sehingga di dashboard akan terpisah dari data baru.</p><p>Lanjutkan mengubah?</p>',
+          [{label:'BATAL',cls:'ghost',onClick:function(){ revertInputs(id); }},{label:'LANJUTKAN',onClick:function(){ enqueueUpdate(id,true); }}]);
+      }
       else if(res.conflict && res.row){
         var c=findRow(id); if(c){ c.nama=res.row.nama; c.kelas=res.row.kelas; c.ver=res.row.ver; }
         toast(res.error+' Data terbaru ditampilkan.','err'); setRowState(id,'error'); renderRows(); flash(id,'conflict');
@@ -446,16 +451,21 @@ tr.conflict{animation:flashWarn 1.4s ease;}
     modal('HAPUS DATA','<p>Hapus <b>'+esc(r.nama)+'</b> ('+esc(r.kelas)+') dari sheet Siswa? Tindakan ini tidak bisa dibatalkan.</p>',
       [{label:'BATAL',cls:'ghost'},{label:'HAPUS',cls:'danger',onClick:function(){ doDelete(id); }}]);
   }
-  function doDelete(id){
+  function doDelete(id,force){
     var r=findRow(id); if(!r) return;
     setRowState(id,'saving');
-    api('delete',{id:id,ver:r.ver}).then(function(res){
+    api('delete',{id:id,ver:r.ver,force:!!force}).then(function(res){
       if(res.ok){
         var tr=rowEl(id);
         S.rows=S.rows.filter(function(x){ return x.id!==id; }); S.rev=res.rev;
         if(tr){ tr.style.transition='opacity .25s, transform .25s'; tr.style.opacity='0'; tr.style.transform='translateX(12px)'; setTimeout(renderRows,260); } else renderRows();
         toast('Data dihapus.','ok');
       } else if(res.error==='unauthorized'){ logout(); }
+      else if(res.needConfirm){
+        setRowState(id,'');
+        modal('HAPUS BERDAMPAK','<p><b>'+esc(r.nama)+'</b> punya <b>'+res.refs+'</b> catatan di Kehadiran/Kuis Harian. Catatan itu tetap tersimpan tetapi tidak lagi cocok dengan daftar siswa.</p><p>Tetap hapus?</p>',
+          [{label:'BATAL',cls:'ghost'},{label:'TETAP HAPUS',cls:'danger',onClick:function(){ doDelete(id,true); }}]);
+      }
       else if(res.conflict && res.row){
         r.nama=res.row.nama; r.kelas=res.row.kelas; r.ver=res.row.ver;
         toast(res.error,'err'); setRowState(id,'error'); renderRows(); flash(id,'conflict');
