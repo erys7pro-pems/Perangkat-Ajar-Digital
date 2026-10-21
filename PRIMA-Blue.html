@@ -731,6 +731,7 @@ main{padding:24px 16px 64px;max-width:1100px;margin:0 auto;}
       });
       sub.addEventListener('dragleave', function(){ sub.classList.remove('drag-over'); });
       sub.addEventListener('drop', function(e){
+        if(!draggedSubId) return; // yang diseret bukan sub-panel (mis. sebuah panel): biarkan naik ke kartu panel tujuan
         e.preventDefault();
         e.stopPropagation();
         sub.classList.remove('drag-over');
@@ -1197,6 +1198,39 @@ main{padding:24px 16px 64px;max-width:1100px;margin:0 auto;}
   }
 
   // ---- Reorder via drag & drop ----
+  // ---- Animasi halus saat urutan berubah (teknik FLIP) ----
+  // Catat posisi lama -> render ulang -> geser tiap elemen dari posisi lama ke posisi barunya.
+  var FLIP_SEL = '.panel-card[data-pid], .sub-card[data-subid], .menu-tab[data-switch]';
+  function flipKey(el){
+    return el.hasAttribute('data-pid') ? 'p:'+el.getAttribute('data-pid')
+         : el.hasAttribute('data-subid') ? 's:'+el.getAttribute('data-subid')
+         : 'm:'+el.getAttribute('data-switch');
+  }
+  function saveAnimated(){
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var before = {};
+    if(!reduce) document.querySelectorAll(FLIP_SEL).forEach(function(el){ before[flipKey(el)] = el.getBoundingClientRect(); });
+    save();
+    if(reduce) return;
+    var moved = [];
+    document.querySelectorAll(FLIP_SEL).forEach(function(el){
+      var b = before[flipKey(el)]; if(!b) return;
+      var a = el.getBoundingClientRect();
+      var dx = b.left - a.left, dy = b.top - a.top;
+      if(Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+      el.style.transition = 'none';
+      el.style.transform = 'translate('+dx+'px,'+dy+'px)';
+      moved.push(el);
+    });
+    if(!moved.length) return;
+    void document.body.offsetWidth; // paksa reflow agar posisi awal tercatat sebelum transisi mulai
+    moved.forEach(function(el){
+      el.style.transition = 'transform .4s cubic-bezier(.22,.8,.3,1)';
+      el.style.transform = '';
+      setTimeout(function(){ el.style.transition = ''; }, 480);
+    });
+  }
+
   function reorderInfoPanels(draggedId, targetId){
     if(!isGuru()) return;
     if(draggedId===targetId) return;
@@ -1214,7 +1248,7 @@ main{padding:24px 16px 64px;max-width:1100px;margin:0 auto;}
     // breaks the forward case and made adjacent-forward drags a no-op.
     items.splice(ti, 0, moved);
     idxs.forEach(function(origIdx, k){ state.panels[origIdx] = items[k]; });
-    save();
+    saveAnimated();
   }
   function reorderSubpanels(panelId, draggedId, targetId){
     if(!isGuru()) return;
@@ -1227,7 +1261,7 @@ main{padding:24px 16px 64px;max-width:1100px;margin:0 auto;}
     if(di<0 || ti<0 || di===ti) return;
     var moved = arr.splice(di, 1)[0];
     arr.splice(ti, 0, moved); // see note above in reorderInfoPanels
-    save();
+    saveAnimated();
   }
   function reorderMenus(draggedId, targetId){
     if(!isGuru() || draggedId===targetId) return;
@@ -1237,7 +1271,7 @@ main{padding:24px 16px 64px;max-width:1100px;margin:0 auto;}
     if(di<0 || ti<0 || di===ti) return;
     var moved = arr.splice(di, 1)[0];
     arr.splice(ti, 0, moved); // geser maju: tepat setelah target; geser mundur: tepat sebelum target
-    save();
+    saveAnimated();
   }
   function moveMenuPosition(id, direction){
     if(!isGuru()) return;
@@ -1246,7 +1280,7 @@ main{padding:24px 16px 64px;max-width:1100px;margin:0 auto;}
     var np = pos + direction;
     if(pos<0 || np<0 || np>=arr.length) return;
     var tmp = arr[pos]; arr[pos] = arr[np]; arr[np] = tmp;
-    save();
+    saveAnimated();
   }
   function movePanelPosition(panelId, direction){
     if(!isGuru()) return;
@@ -1259,7 +1293,7 @@ main{padding:24px 16px 64px;max-width:1100px;margin:0 auto;}
     if(pos<0 || newPos<0 || newPos>=items.length) return;
     var tmp = items[pos]; items[pos] = items[newPos]; items[newPos] = tmp;
     idxs.forEach(function(origIdx, k){ state.panels[origIdx] = items[k]; });
-    save();
+    saveAnimated();
   }
 
   // ---- Riwayat pengumuman ----
