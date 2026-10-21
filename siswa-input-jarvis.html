@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>P.R.I.M.A — Data Siswa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#050a12; --bg-top:#0a1826; --panel:#0a1622; --panel-2:#0d1c2b;
+  --cyan:#2be3ff; --cyan-dim:#0f7c94; --violet:#7b61ff; --amber:#ffb020; --red:#ff4d5e; --green:#35e08a;
+  --text:#d6f2ff; --muted:#5b7c95; --line:#173347;
+  --header-a:rgba(5,10,18,.97); --header-b:rgba(5,10,18,.9);
+}
+:root[data-theme="light"]{
+  --bg:#eef3f8; --bg-top:#dbe8f2; --panel:#ffffff; --panel-2:#f3f8fc;
+  --cyan:#0089ab; --cyan-dim:#4fa4bd; --violet:#6a4fe0; --amber:#b56e00; --red:#c93341; --green:#13915a;
+  --text:#0d2436; --muted:#5c7488; --line:#c9d8e3;
+  --header-a:rgba(255,255,255,.97); --header-b:rgba(255,255,255,.88);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:radial-gradient(ellipse at top, var(--bg-top) 0%, var(--bg) 55%),
+    repeating-linear-gradient(0deg, rgba(43,227,255,.025) 0px, rgba(43,227,255,.025) 1px, transparent 1px, transparent 3px);
+  color:var(--text); font-family:'Share Tech Mono',monospace; min-height:100vh; overflow-x:hidden;
+  transition:background-color .25s,color .25s;
+}
+.hud-font{font-family:'Orbitron',sans-serif;}
+button,input,select{font-family:inherit;color:inherit;}
+
+/* boot */
+.boot{position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;animation:bootOut .6s ease 1.1s forwards;}
+.boot-line{font-family:'Orbitron',sans-serif;color:var(--cyan);letter-spacing:.12em;font-size:13px;text-shadow:0 0 12px rgba(43,227,255,.7);}
+.boot-ring{width:64px;height:64px;border-radius:50%;border:2px solid var(--cyan-dim);border-top-color:var(--cyan);animation:spin 1s linear infinite;box-shadow:0 0 24px rgba(43,227,255,.35);}
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes bootOut{to{opacity:0;visibility:hidden;pointer-events:none;}}
+
+/* header */
+header{position:sticky;top:0;z-index:20;padding:12px 18px;background:linear-gradient(180deg,var(--header-a),var(--header-b));border-bottom:1px solid var(--cyan-dim);box-shadow:0 0 18px rgba(43,227,255,.08);backdrop-filter:blur(6px);}
+.header-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.brand{display:flex;align-items:center;gap:10px;}
+.brand-mark{width:26px;height:26px;flex-shrink:0;}
+.brand-mark svg{width:100%;height:100%;}
+.brand h1{font-size:15px;margin:0;letter-spacing:.16em;font-weight:700;color:var(--cyan);text-shadow:0 0 10px rgba(43,227,255,.5);}
+.brand small{display:block;font-size:10px;color:var(--muted);letter-spacing:.14em;margin-top:1px;}
+.header-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.pill-btn{font-family:'Orbitron',sans-serif;font-size:9.5px;letter-spacing:.07em;color:var(--cyan);cursor:pointer;padding:6px 10px;border:1px solid var(--line);background:var(--panel);
+  clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px);transition:border-color .18s,box-shadow .18s;}
+.pill-btn:hover{border-color:var(--cyan);box-shadow:0 0 10px rgba(43,227,255,.2);}
+.status{display:flex;align-items:center;gap:7px;font-size:10.5px;letter-spacing:.06em;color:var(--muted);border:1px solid var(--line);background:var(--panel);padding:6px 10px;cursor:pointer;}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted);}
+.dot.ok{background:var(--green);box-shadow:0 0 8px var(--green);}
+.dot.busy{background:var(--amber);box-shadow:0 0 8px var(--amber);animation:blink .8s ease-in-out infinite;}
+.dot.off{background:var(--red);box-shadow:0 0 8px var(--red);}
+@keyframes blink{50%{opacity:.35;}}
+
+main{max-width:980px;margin:0 auto;padding:18px;}
+.panel{background:linear-gradient(180deg,var(--panel-2),var(--panel));border:1px solid var(--line);padding:14px 16px;margin-bottom:16px;position:relative;
+  clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px);}
+.panel h2{font-family:'Orbitron',sans-serif;font-size:12px;letter-spacing:.12em;color:var(--cyan);margin:0 0 10px;text-shadow:0 0 8px rgba(43,227,255,.4);}
+.sub{font-size:11px;color:var(--muted);margin:-4px 0 10px;line-height:1.5;}
+
+/* form */
+.form-row{display:grid;grid-template-columns:1fr 150px auto;gap:10px;align-items:end;}
+label.f{display:block;font-size:10px;letter-spacing:.1em;color:var(--muted);margin-bottom:4px;}
+input[type=text],input[type=password],input[type=search],select{
+  width:100%;background:var(--bg);border:1px solid var(--line);padding:9px 10px;font-size:13px;outline:none;transition:border-color .18s,box-shadow .18s;}
+input:focus,select:focus{border-color:var(--cyan);box-shadow:0 0 0 1px rgba(43,227,255,.25),0 0 12px rgba(43,227,255,.15);}
+.btn{font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:.08em;padding:10px 16px;cursor:pointer;border:1px solid var(--cyan);color:var(--cyan);background:transparent;transition:background .18s,box-shadow .18s;}
+.btn:hover:not(:disabled){background:rgba(43,227,255,.1);box-shadow:0 0 12px rgba(43,227,255,.2);}
+.btn:disabled{opacity:.45;cursor:default;}
+.btn.ghost{border-color:var(--line);color:var(--muted);}
+.btn.danger{border-color:var(--red);color:var(--red);}
+.msg{min-height:18px;margin-top:8px;font-size:11.5px;letter-spacing:.03em;}
+.msg.err{color:var(--red);} .msg.ok{color:var(--green);}
+
+/* toolbar & chips */
+.toolbar{display:grid;grid-template-columns:1fr 170px 170px;gap:10px;margin-bottom:10px;}
+.stats{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;align-items:center;}
+.chip{font-size:10.5px;letter-spacing:.05em;padding:4px 9px;border:1px solid var(--line);color:var(--muted);cursor:pointer;background:transparent;transition:all .18s;}
+.chip:hover{border-color:var(--cyan-dim);color:var(--cyan);}
+.chip.active{border-color:var(--cyan);color:var(--cyan);background:rgba(43,227,255,.08);}
+.chip.total{cursor:default;color:var(--text);border-color:var(--cyan-dim);}
+
+/* table */
+.table-wrap{overflow-x:auto;border:1px solid var(--line);}
+table{width:100%;border-collapse:collapse;min-width:520px;}
+th{font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:.1em;color:var(--cyan);text-align:left;padding:10px;background:var(--panel-2);border-bottom:1px solid var(--cyan-dim);white-space:nowrap;}
+th.sortable{cursor:pointer;user-select:none;} th.sortable:hover{text-shadow:0 0 8px rgba(43,227,255,.6);}
+td{padding:4px 8px;border-bottom:1px solid var(--line);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+td.no{width:46px;color:var(--muted);font-size:11px;text-align:right;padding-right:12px;}
+td.act{width:92px;text-align:right;white-space:nowrap;}
+td input{border-color:transparent;background:transparent;padding:7px 8px;}
+td input:hover{border-color:var(--line);}
+td input:focus{background:var(--bg);}
+tbody tr{transition:background-color .2s;}
+tbody tr:hover{background:rgba(43,227,255,.04);}
+tr.new-row{animation:rowIn .45s cubic-bezier(.22,.9,.32,1);}
+@keyframes rowIn{from{opacity:0;transform:translateY(-8px);background:rgba(43,227,255,.16);}to{opacity:1;transform:translateY(0);}}
+tr.flash{animation:flashRow 1s ease;}
+@keyframes flashRow{0%{background:rgba(53,224,138,.22);}100%{background:transparent;}}
+tr.conflict{animation:flashWarn 1.4s ease;}
+@keyframes flashWarn{0%{background:rgba(255,176,32,.28);}100%{background:transparent;}}
+.rs{display:inline-block;width:18px;text-align:center;font-size:12px;margin-right:6px;}
+.rs.saving{color:var(--amber);animation:blink .8s infinite;} .rs.saved{color:var(--green);} .rs.error{color:var(--red);}
+.icon-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px;padding:4px 7px;line-height:1;transition:color .18s;}
+.icon-btn:hover{color:var(--red);}
+.empty{text-align:center;color:var(--muted);padding:28px 10px;font-size:12px;letter-spacing:.05em;}
+
+/* login */
+.login{max-width:420px;margin:60px auto 0;}
+.login .btn{width:100%;margin-top:12px;}
+
+/* modal */
+.overlay{position:fixed;inset:0;background:rgba(2,5,8,.78);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;padding:16px;z-index:100;animation:fadeIn .16s ease;}
+.overlay.closing{opacity:0;transition:opacity .16s ease;}
+.modal{background:var(--panel);border:1px solid var(--cyan-dim);padding:18px;width:100%;max-width:380px;animation:pop .2s cubic-bezier(.22,.9,.32,1.1);
+  clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);}
+.overlay.closing .modal{transform:scale(.97);transition:transform .16s ease;}
+.modal h3{font-family:'Orbitron',sans-serif;font-size:12px;letter-spacing:.1em;color:var(--cyan);margin:0 0 10px;}
+.modal p{font-size:12.5px;line-height:1.6;margin:0 0 14px;}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+@keyframes pop{from{opacity:0;transform:translateY(6px) scale(.97);}to{opacity:1;transform:none;}}
+
+@media (max-width:640px){
+  .form-row{grid-template-columns:1fr;} .toolbar{grid-template-columns:1fr;}
+}
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition:none !important;}
+}
+</style>
+</head>
+<body>
+<div class="boot"><div class="boot-ring"></div><div class="boot-line">P.R.I.M.A // DATA SISWA</div></div>
+<div id="app"></div>
+
+<script>
+(function(){
+  // ====== PENGATURAN ======
+  // Isi dengan URL web app (/exec) dari SiswaCode.gs, atau isi lewat ikon status di halaman.
+  var DEFAULT_API_URL = '';
+  var POLL_MS = 10000;
+  // ========================
+
+  var LS_URL='siswa-api-url', LS_THEME='siswa-theme', SS_PW='siswa-pw';
+  var JSON_HDR = {'Content-Type':'text/plain;charset=utf-8'}; // menghindari preflight CORS di Apps Script
+  var app = document.getElementById('app');
+
+  var S = { rows:[], rev:null, pw:'', rowState:{}, search:'', kelas:'', sort:{key:'kelas',dir:1},
+            connected:false, busy:0, pendingRender:false, loggedIn:false, msg:null };
+  var queues = {};
+
+  // ---------- util ----------
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+  function clean(s){ return String(s==null?'':s).replace(/\s+/g,' ').trim(); }
+  function normKelas(s){ return clean(s).toUpperCase(); }
+  function keyOf(n,k){ return clean(n).toLowerCase()+'|'+normKelas(k); }
+  function apiUrl(){ try{ return localStorage.getItem(LS_URL) || DEFAULT_API_URL; }catch(e){ return DEFAULT_API_URL; } }
+
+  // Validasi yang sama dengan server (server tetap penentu akhir)
+  function validate(nama,kelas){
+    nama=clean(nama); kelas=normKelas(kelas);
+    if(!nama) return 'Nama wajib diisi.';
+    if(!kelas) return 'Kelas wajib diisi.';
+    if(nama.length<2||nama.length>80) return 'Nama harus 2–80 karakter.';
+    if(kelas.length>20) return 'Kelas maksimal 20 karakter.';
+    if(!/[A-Za-z\u00C0-\u024F]/.test(nama)) return 'Nama harus mengandung huruf.';
+    if(/^[=+\-@]/.test(nama)||/^[=+\-@]/.test(kelas)) return 'Isian tidak boleh diawali karakter = + - atau @.';
+    return null;
+  }
+  function dupOf(nama,kelas,exceptId){
+    var k=keyOf(nama,kelas);
+    return S.rows.filter(function(r){ return r.id!==exceptId && keyOf(r.nama,r.kelas)===k; })[0] || null;
+  }
+
+  // ---------- tema ----------
+  function applyTheme(t){ document.documentElement.setAttribute('data-theme',t); }
+  var theme='dark'; try{ theme=localStorage.getItem(LS_THEME)||'dark'; }catch(e){}
+  applyTheme(theme);
+  function toggleTheme(){ theme=theme==='dark'?'light':'dark'; applyTheme(theme); try{localStorage.setItem(LS_THEME,theme);}catch(e){} drawHeader(); }
+
+  // ---------- API ----------
+  function api(action,payload){
+    var url=apiUrl();
+    if(!url) return Promise.reject(new Error('nourl'));
+    var body=Object.assign({action:action,password:S.pw},payload||{});
+    S.busy++; drawStatus();
+    return fetch(url,{method:'POST',headers:JSON_HDR,body:JSON.stringify(body)})
+      .then(function(r){ return r.json(); })
+      .then(function(res){ S.busy--; S.connected=true; drawStatus(); return res; })
+      .catch(function(err){ S.busy--; S.connected=false; drawStatus(); throw err; });
+  }
+
+  // ---------- modal ----------
+  function closeOverlay(ov,cb){ ov.classList.add('closing'); setTimeout(function(){ ov.remove(); if(cb) cb(); },170); }
+  function modal(title,bodyHtml,buttons){
+    var ov=document.createElement('div'); ov.className='overlay';
+    ov.innerHTML='<div class="modal"><h3>'+esc(title)+'</h3>'+bodyHtml+'<div class="modal-actions"></div></div>';
+    var box=ov.querySelector('.modal-actions');
+    buttons.forEach(function(b){
+      var el=document.createElement('button'); el.className='btn '+(b.cls||''); el.textContent=b.label;
+      el.onclick=function(){ if(b.onClick){ var keep=b.onClick(ov); if(keep===false) return; } closeOverlay(ov); };
+      box.appendChild(el);
+    });
+    ov.addEventListener('click',function(e){ if(e.target===ov) closeOverlay(ov); });
+    document.body.appendChild(ov);
+    var first=ov.querySelector('input'); if(first) first.focus();
+    return ov;
+  }
+  function settingsModal(){
+    var ov=modal('KONEKSI DATABASE',
+      '<p>Tempel URL web app (berakhiran <b>/exec</b>) dari Apps Script.</p><label class="f">URL WEB APP</label><input type="text" id="m-url" value="'+esc(apiUrl())+'" placeholder="https://script.google.com/macros/s/.../exec">',
+      [{label:'BATAL',cls:'ghost'},{label:'SIMPAN',onClick:function(o){
+        var v=clean(o.querySelector('#m-url').value);
+        try{ if(v) localStorage.setItem(LS_URL,v); else localStorage.removeItem(LS_URL); }catch(e){}
+        S.rev=null; if(S.loggedIn) loadRows(); else draw();
+      }}]);
+    return ov;
+  }
+
+  // ---------- gambar halaman ----------
+  var REACTOR='<svg viewBox="0 0 40 40"><defs><radialGradient id="rg" cx="50%" cy="32%" r="75%"><stop offset="0%" stop-color="#eafdff"/><stop offset="45%" stop-color="#2be3ff"/><stop offset="100%" stop-color="#0f7c94"/></radialGradient></defs>'+
+    '<polygon points="9,9 31,9 32.6,11.7 21.4,33.3 18.6,33.3 7.4,11.7" fill="none" stroke="#2be3ff" stroke-width="1.3" opacity="0.85"/>'+
+    '<polygon points="14,13.5 26,13.5 27.1,15.3 20.9,27.2 19.1,27.2 12.9,15.3" fill="url(#rg)"/></svg>';
+
+  function statusInfo(){
+    if(!apiUrl()) return {cls:'off',text:'BELUM TERHUBUNG'};
+    if(S.busy>0) return {cls:'busy',text:'SINKRONISASI…'};
+    return S.connected ? {cls:'ok',text:'TERHUBUNG · REAL-TIME'} : {cls:'off',text:'TERPUTUS — COBA LAGI'};
+  }
+  function drawStatus(){
+    var st=document.getElementById('status'); if(!st) return;
+    var s=statusInfo(); st.innerHTML='<span class="dot '+s.cls+'"></span><span>'+s.text+'</span>';
+  }
+  function drawHeader(){
+    var h=document.getElementById('hdr'); if(!h) return;
+    var s=statusInfo();
+    h.innerHTML='<div class="header-top"><div class="brand"><div class="brand-mark">'+REACTOR+'</div><div><h1 class="hud-font" title="Panel Responsif untuk Informasi dan Media Ajar">P.R.I.M.A</h1><small>DATA SISWA — FORMULIR NAMA &amp; KELAS</small></div></div>'+
+      '<div class="header-actions"><div class="status" id="status" title="Pengaturan koneksi"><span class="dot '+s.cls+'"></span><span>'+s.text+'</span></div>'+
+      '<div class="pill-btn" id="b-theme">'+(theme==='dark'?'\u2600 TERANG':'\u263e GELAP')+'</div>'+
+      (S.loggedIn?'<div class="pill-btn" id="b-out">KELUAR</div>':'')+'</div></div>';
+    document.getElementById('status').onclick=settingsModal;
+    document.getElementById('b-theme').onclick=toggleTheme;
+    var o=document.getElementById('b-out'); if(o) o.onclick=logout;
+  }
+
+  function draw(){
+    app.innerHTML='<header id="hdr"></header><main id="main"></main>';
+    drawHeader();
+    if(!S.loggedIn) drawLogin(); else drawMain();
+  }
+
+  // ---------- login ----------
+  function drawLogin(){
+    var m=document.getElementById('main');
+    m.innerHTML='<div class="panel login"><h2>AKSES TERBATAS</h2><div class="sub">Data siswa bersifat pribadi. Masukkan kata sandi untuk membuka dan mengubah data.</div>'+
+      '<label class="f">KATA SANDI</label><input type="password" id="l-pw" autocomplete="current-password">'+
+      '<button class="btn" id="l-go">MASUK</button><div class="msg" id="l-msg"></div></div>';
+    var pw=document.getElementById('l-pw'), go=document.getElementById('l-go'), msg=document.getElementById('l-msg');
+    function setMsg(t,c){ msg.textContent=t; msg.className='msg '+(c||''); }
+    if(!apiUrl()) setMsg('Klik ikon status di kanan atas untuk mengisi URL web app lebih dulu.','err');
+    function submit(){
+      if(!apiUrl()){ settingsModal(); return; }
+      S.pw=pw.value; go.disabled=true; setMsg('Memeriksa…');
+      api('load',{}).then(function(res){
+        go.disabled=false;
+        if(res.ok){ try{sessionStorage.setItem(SS_PW,S.pw);}catch(e){} S.loggedIn=true; S.rows=res.rows||[]; S.rev=res.rev; draw(); startPolling(); }
+        else setMsg('Kata sandi salah.','err');
+      }).catch(function(){ go.disabled=false; setMsg('Tidak dapat terhubung ke database. Periksa URL web app & koneksi internet.','err'); });
+    }
+    go.onclick=submit; pw.addEventListener('keydown',function(e){ if(e.key==='Enter') submit(); });
+    pw.focus();
+  }
+  function logout(){
+    S.loggedIn=false; S.pw=''; S.rows=[]; S.rev=null; try{sessionStorage.removeItem(SS_PW);}catch(e){}
+    draw();
+  }
+
+  // ---------- halaman utama ----------
+  function drawMain(){
+    var m=document.getElementById('main');
+    m.innerHTML=
+      '<div class="panel"><h2>TAMBAH SISWA</h2><div class="sub">Setiap data langsung tersimpan ke sheet &quot;Siswa&quot;. Nama + Kelas yang sama tidak bisa dimasukkan dua kali.</div>'+
+      '<div class="form-row"><div><label class="f">NAMA</label><input type="text" id="f-nama" maxlength="80" autocomplete="off" placeholder="Nama lengkap"></div>'+
+      '<div><label class="f">KELAS</label><input type="text" id="f-kelas" maxlength="20" list="kelas-list" autocomplete="off" placeholder="mis. X-1"></div>'+
+      '<button class="btn" id="f-add">TAMBAHKAN</button></div><datalist id="kelas-list"></datalist><div class="msg" id="f-msg"></div></div>'+
+      '<div class="panel"><h2>DAFTAR SISWA</h2><div class="stats" id="stats"></div>'+
+      '<div class="toolbar"><input type="search" id="t-search" placeholder="Cari nama…" value="'+esc(S.search)+'">'+
+      '<select id="t-kelas"></select><select id="t-sort"><option value="kelas">Urut: Kelas, Nama</option><option value="nama">Urut: Nama</option><option value="terbaru">Urut: Terbaru diubah</option></select></div>'+
+      '<div class="table-wrap"><table><thead><tr><th>#</th><th>NAMA</th><th>KELAS</th><th></th></tr></thead><tbody id="tbody"></tbody></table></div></div>';
+
+    var fn=document.getElementById('f-nama'), fk=document.getElementById('f-kelas'), fa=document.getElementById('f-add');
+    fa.onclick=addRow;
+    [fn,fk].forEach(function(el){ el.addEventListener('keydown',function(e){ if(e.key==='Enter') addRow(); }); });
+    var ts=document.getElementById('t-search'); ts.oninput=function(){ S.search=ts.value; renderRows(); };
+    var tk=document.getElementById('t-kelas'); tk.onchange=function(){ S.kelas=tk.value; renderRows(); };
+    var so=document.getElementById('t-sort'); so.value=S.sort.key; so.onchange=function(){ S.sort={key:so.value,dir:1}; renderRows(); };
+
+    var tb=document.getElementById('tbody');
+    tb.addEventListener('change',function(e){
+      var inp=e.target; if(!inp.dataset||!inp.dataset.id) return;
+      enqueueUpdate(inp.dataset.id);
+    });
+    tb.addEventListener('keydown',function(e){
+      var inp=e.target; if(!inp.dataset||!inp.dataset.id) return;
+      if(e.key==='Enter'){ inp.blur(); }
+      if(e.key==='Escape'){ revertInputs(inp.dataset.id); inp.blur(); }
+    });
+    tb.addEventListener('focusout',function(){ setTimeout(function(){ if(S.pendingRender && !editingNow()){ S.pendingRender=false; renderRows(); } },60); });
+    tb.addEventListener('click',function(e){
+      var b=e.target.closest('[data-del]'); if(b) askDelete(b.getAttribute('data-del'));
+    });
+    renderRows(); fn.focus();
+  }
+
+  function editingNow(){ var a=document.activeElement; return !!(a && a.dataset && a.dataset.id && a.tagName==='INPUT'); }
+
+  function sortedFiltered(){
+    var q=clean(S.search).toLowerCase();
+    var list=S.rows.filter(function(r){
+      return (!S.kelas || r.kelas===S.kelas) && (!q || r.nama.toLowerCase().indexOf(q)!==-1);
+    });
+    var cmp=function(a,b){ return a.localeCompare(b,'id',{numeric:true,sensitivity:'base'}); };
+    list.sort(function(a,b){
+      if(S.sort.key==='nama') return cmp(a.nama,b.nama);
+      if(S.sort.key==='terbaru') return b.ver-a.ver;
+      return cmp(a.kelas,b.kelas) || cmp(a.nama,b.nama);
+    });
+    return list;
+  }
+
+  var lastIds={}; // untuk animasi baris baru
+  function renderRows(){
+    var tb=document.getElementById('tbody'); if(!tb) return;
+    if(editingNow()){ S.pendingRender=true; return; }
+    var list=sortedFiltered();
+
+    // chip kelas & dropdown
+    var counts={}; S.rows.forEach(function(r){ counts[r.kelas]=(counts[r.kelas]||0)+1; });
+    var kelasList=Object.keys(counts).sort(function(a,b){ return a.localeCompare(b,'id',{numeric:true}); });
+    if(S.kelas && !counts[S.kelas]) S.kelas='';
+    var stats=document.getElementById('stats');
+    stats.innerHTML='<span class="chip total">TOTAL '+S.rows.length+(list.length!==S.rows.length?' · TAMPIL '+list.length:'')+'</span>'+
+      kelasList.map(function(k){ return '<button class="chip'+(S.kelas===k?' active':'')+'" data-k="'+esc(k)+'">'+esc(k)+' · '+counts[k]+'</button>'; }).join('');
+    stats.querySelectorAll('[data-k]').forEach(function(c){ c.onclick=function(){ S.kelas=(S.kelas===c.dataset.k?'':c.dataset.k); renderRows(); }; });
+    var sel=document.getElementById('t-kelas');
+    sel.innerHTML='<option value="">Semua kelas</option>'+kelasList.map(function(k){ return '<option value="'+esc(k)+'"'+(S.kelas===k?' selected':'')+'>'+esc(k)+'</option>'; }).join('');
+    document.getElementById('kelas-list').innerHTML=kelasList.map(function(k){ return '<option value="'+esc(k)+'">'; }).join('');
+
+    if(!list.length){
+      tb.innerHTML='<tr><td colspan="4" class="empty">'+(S.rows.length?'Tidak ada data yang cocok dengan pencarian/filter.':'Belum ada data siswa. Tambahkan lewat formulir di atas.')+'</td></tr>';
+      lastIds={}; return;
+    }
+    var first=Object.keys(lastIds).length===0;
+    tb.innerHTML=list.map(function(r,i){
+      var st=S.rowState[r.id]||'';
+      var isNew=!first && !lastIds[r.id];
+      return '<tr data-row="'+esc(r.id)+'"'+(isNew?' class="new-row"':'')+'>'+
+        '<td class="no">'+(i+1)+'</td>'+
+        '<td><input type="text" data-id="'+esc(r.id)+'" data-f="nama" maxlength="80" value="'+esc(r.nama)+'" aria-label="Nama"></td>'+
+        '<td><input type="text" data-id="'+esc(r.id)+'" data-f="kelas" maxlength="20" list="kelas-list" value="'+esc(r.kelas)+'" aria-label="Kelas" style="max-width:150px"></td>'+
+        '<td class="act"><span class="rs '+st+'" data-rs="'+esc(r.id)+'">'+(st==='saving'?'\u27f3':st==='saved'?'\u2713':st==='error'?'!':'')+'</span><button class="icon-btn" data-del="'+esc(r.id)+'" title="Hapus">\u00d7</button></td></tr>';
+    }).join('');
+    lastIds={}; S.rows.forEach(function(r){ lastIds[r.id]=1; });
+  }
+
+  function setRowState(id,st,ms){
+    S.rowState[id]=st;
+    var el=document.querySelector('[data-rs="'+id+'"]');
+    if(el){ el.className='rs '+st; el.textContent=st==='saving'?'\u27f3':st==='saved'?'\u2713':st==='error'?'!':''; }
+    if(st==='saved'||st==='error') setTimeout(function(){ if(S.rowState[id]===st){ S.rowState[id]=''; var e2=document.querySelector('[data-rs="'+id+'"]'); if(e2){ e2.className='rs'; e2.textContent=''; } } }, ms||1800);
+  }
+  function rowEl(id){ return document.querySelector('tr[data-row="'+id+'"]'); }
+  function flash(id,cls){ var tr=rowEl(id); if(tr){ tr.classList.remove('flash','conflict'); void tr.offsetWidth; tr.classList.add(cls||'flash'); } }
+  function toast(text,cls){
+    var m=document.getElementById('f-msg'); if(!m) return;
+    m.textContent=text; m.className='msg '+(cls||'');
+    clearTimeout(toast.t); toast.t=setTimeout(function(){ if(m.textContent===text){ m.textContent=''; m.className='msg'; } },5000);
+  }
+  function findRow(id){ return S.rows.filter(function(r){ return r.id===id; })[0]; }
+  function revertInputs(id){
+    var r=findRow(id); if(!r) return;
+    document.querySelectorAll('input[data-id="'+id+'"]').forEach(function(i){ i.value=(i.dataset.f==='nama'?r.nama:r.kelas); });
+  }
+
+  // ---------- tambah ----------
+  function addRow(){
+    var fn=document.getElementById('f-nama'), fk=document.getElementById('f-kelas'), fa=document.getElementById('f-add');
+    var err=validate(fn.value,fk.value);
+    if(err){ toast(err,'err'); return; }
+    var d=dupOf(fn.value,fk.value,null);
+    if(d){ toast('Data sudah ada: '+d.nama+' ('+d.kelas+').','err'); return; }
+    fa.disabled=true;
+    api('add',{nama:fn.value,kelas:fk.value}).then(function(res){
+      fa.disabled=false;
+      if(res.ok){
+        S.rows.push(res.row); S.rev=res.rev;
+        toast('Tersimpan: '+res.row.nama+' ('+res.row.kelas+').','ok');
+        var keepKelas=res.row.kelas; fn.value=''; fk.value=keepKelas; // kelas dipertahankan supaya input beruntun lebih cepat
+        renderRows(); fn.focus();
+      } else if(res.error==='unauthorized'){ logout(); }
+      else toast(res.error||'Gagal menyimpan.','err');
+    }).catch(function(){ fa.disabled=false; toast('Tidak dapat terhubung. Data BELUM tersimpan — coba lagi.','err'); });
+  }
+
+  // ---------- ubah (per baris, berurutan agar versi tidak bentrok) ----------
+  function enqueueUpdate(id){
+    queues[id]=(queues[id]||Promise.resolve()).then(function(){ return doUpdate(id); }).catch(function(){});
+  }
+  function doUpdate(id){
+    var r=findRow(id); if(!r) return Promise.resolve();
+    var inN=document.querySelector('input[data-id="'+id+'"][data-f="nama"]');
+    var inK=document.querySelector('input[data-id="'+id+'"][data-f="kelas"]');
+    if(!inN||!inK) return Promise.resolve();
+    var nama=clean(inN.value), kelas=normKelas(inK.value);
+    inN.value=nama; inK.value=kelas;
+    if(nama===r.nama && kelas===r.kelas) return Promise.resolve();
+    var err=validate(nama,kelas);
+    if(err){ toast(err,'err'); revertInputs(id); setRowState(id,'error'); return Promise.resolve(); }
+    var d=dupOf(nama,kelas,id);
+    if(d){ toast('Data sudah ada: '+d.nama+' ('+d.kelas+').','err'); revertInputs(id); setRowState(id,'error'); return Promise.resolve(); }
+    setRowState(id,'saving');
+    return api('update',{id:id,nama:nama,kelas:kelas,ver:r.ver}).then(function(res){
+      if(res.ok){
+        var cur=findRow(id); if(cur){ cur.nama=res.row.nama; cur.kelas=res.row.kelas; cur.ver=res.row.ver; }
+        S.rev=res.rev; setRowState(id,'saved'); flash(id,'flash');
+        if(S.sort.key==='kelas'||S.sort.key==='nama'||S.sort.key==='terbaru'){ setTimeout(renderRows,350); }
+      } else if(res.error==='unauthorized'){ logout(); }
+      else if(res.conflict && res.row){
+        var c=findRow(id); if(c){ c.nama=res.row.nama; c.kelas=res.row.kelas; c.ver=res.row.ver; }
+        toast(res.error+' Data terbaru ditampilkan.','err'); setRowState(id,'error'); renderRows(); flash(id,'conflict');
+      } else if(res.gone){
+        S.rows=S.rows.filter(function(x){ return x.id!==id; }); toast(res.error,'err'); renderRows();
+      } else { toast(res.error||'Gagal menyimpan.','err'); revertInputs(id); setRowState(id,'error'); }
+    }).catch(function(){ toast('Tidak dapat terhubung. Perubahan BELUM tersimpan.','err'); revertInputs(id); setRowState(id,'error'); });
+  }
+
+  // ---------- hapus ----------
+  function askDelete(id){
+    var r=findRow(id); if(!r) return;
+    modal('HAPUS DATA','<p>Hapus <b>'+esc(r.nama)+'</b> ('+esc(r.kelas)+') dari sheet Siswa? Tindakan ini tidak bisa dibatalkan.</p>',
+      [{label:'BATAL',cls:'ghost'},{label:'HAPUS',cls:'danger',onClick:function(){ doDelete(id); }}]);
+  }
+  function doDelete(id){
+    var r=findRow(id); if(!r) return;
+    setRowState(id,'saving');
+    api('delete',{id:id,ver:r.ver}).then(function(res){
+      if(res.ok){
+        var tr=rowEl(id);
+        S.rows=S.rows.filter(function(x){ return x.id!==id; }); S.rev=res.rev;
+        if(tr){ tr.style.transition='opacity .25s, transform .25s'; tr.style.opacity='0'; tr.style.transform='translateX(12px)'; setTimeout(renderRows,260); } else renderRows();
+        toast('Data dihapus.','ok');
+      } else if(res.error==='unauthorized'){ logout(); }
+      else if(res.conflict && res.row){
+        r.nama=res.row.nama; r.kelas=res.row.kelas; r.ver=res.row.ver;
+        toast(res.error,'err'); setRowState(id,'error'); renderRows(); flash(id,'conflict');
+      } else { toast(res.error||'Gagal menghapus.','err'); setRowState(id,'error'); }
+    }).catch(function(){ toast('Tidak dapat terhubung. Data BELUM dihapus.','err'); setRowState(id,'error'); });
+  }
+
+  // ---------- sinkronisasi real-time ----------
+  var pollTimer=null;
+  function loadRows(){
+    return api('load',{rev:S.rev}).then(function(res){
+      if(res.ok && res.changed){ S.rows=res.rows; S.rev=res.rev; renderRows(); }
+      else if(res.error==='unauthorized'){ logout(); }
+    }).catch(function(){});
+  }
+  function startPolling(){
+    clearInterval(pollTimer);
+    pollTimer=setInterval(function(){ if(S.loggedIn && !document.hidden && S.busy===0) loadRows(); },POLL_MS);
+  }
+  document.addEventListener('visibilitychange',function(){ if(!document.hidden && S.loggedIn) loadRows(); });
+  window.addEventListener('online',function(){ if(S.loggedIn) loadRows(); });
+
+  // ---------- mulai ----------
+  var saved=''; try{ saved=sessionStorage.getItem(SS_PW)||''; }catch(e){}
+  draw();
+  if(saved && apiUrl()){
+    S.pw=saved;
+    api('load',{}).then(function(res){
+      if(res.ok){ S.loggedIn=true; S.rows=res.rows||[]; S.rev=res.rev; draw(); startPolling(); }
+      else { S.pw=''; }
+    }).catch(function(){ S.pw=''; });
+  }
+})();
+</script>
+</body>
+</html>
