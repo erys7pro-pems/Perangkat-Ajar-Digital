@@ -66,7 +66,7 @@ main{max-width:980px;margin:0 auto;padding:18px;}
 /* form */
 .form-row{display:grid;grid-template-columns:1fr 150px auto;gap:10px;align-items:end;}
 label.f{display:block;font-size:10px;letter-spacing:.1em;color:var(--muted);margin-bottom:4px;}
-input[type=text],input[type=password],input[type=search],select{
+input[type=text],input[type=search],select{
   width:100%;background:var(--bg);border:1px solid var(--line);padding:9px 10px;font-size:13px;outline:none;transition:border-color .18s,box-shadow .18s;}
 input:focus,select:focus{border-color:var(--cyan);box-shadow:0 0 0 1px rgba(43,227,255,.25),0 0 12px rgba(43,227,255,.15);}
 .btn{font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:.08em;padding:10px 16px;cursor:pointer;border:1px solid var(--cyan);color:var(--cyan);background:transparent;transition:background .18s,box-shadow .18s;}
@@ -111,9 +111,6 @@ tr.conflict{animation:flashWarn 1.4s ease;}
 .icon-btn:hover{color:var(--red);}
 .empty{text-align:center;color:var(--muted);padding:28px 10px;font-size:12px;letter-spacing:.05em;}
 
-/* login */
-.login{max-width:420px;margin:60px auto 0;}
-.login .btn{width:100%;margin-top:12px;}
 
 /* modal */
 .overlay{position:fixed;inset:0;background:rgba(2,5,8,.78);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;padding:16px;z-index:100;animation:fadeIn .16s ease;}
@@ -147,12 +144,12 @@ tr.conflict{animation:flashWarn 1.4s ease;}
   var POLL_MS = 10000;
   // ========================
 
-  var LS_URL='siswa-api-url', LS_THEME='siswa-theme', SS_PW='siswa-pw';
+  var LS_URL='siswa-api-url', LS_THEME='siswa-theme';
   var JSON_HDR = {'Content-Type':'text/plain;charset=utf-8'}; // menghindari preflight CORS di Apps Script
   var app = document.getElementById('app');
 
-  var S = { rows:[], rev:null, pw:'', rowState:{}, search:'', kelas:'', sort:{key:'kelas',dir:1},
-            connected:false, busy:0, pendingRender:false, loggedIn:false, msg:null };
+  var S = { rows:[], rev:null, loaded:false, rowState:{}, search:'', kelas:'', sort:{key:'kelas',dir:1},
+            connected:false, busy:0, pendingRender:false, msg:null };
   var queues = {};
 
   // ---------- util ----------
@@ -188,7 +185,7 @@ tr.conflict{animation:flashWarn 1.4s ease;}
   function api(action,payload){
     var url=apiUrl();
     if(!url) return Promise.reject(new Error('nourl'));
-    var body=Object.assign({modul:'siswa',action:action,password:S.pw},payload||{});
+    var body=Object.assign({modul:'siswa',action:action},payload||{});
     S.busy++; drawStatus();
     return fetch(url,{method:'POST',headers:JSON_HDR,body:JSON.stringify(body)})
       .then(function(r){ return r.json(); })
@@ -218,7 +215,7 @@ tr.conflict{animation:flashWarn 1.4s ease;}
       [{label:'BATAL',cls:'ghost'},{label:'SIMPAN',onClick:function(o){
         var v=clean(o.querySelector('#m-url').value);
         try{ if(v) localStorage.setItem(LS_URL,v); else localStorage.removeItem(LS_URL); }catch(e){}
-        S.rev=null; if(S.loggedIn) loadRows(); else draw();
+        S.rev=null; S.loaded=false; renderRows(); loadRows();
       }}]);
     return ov;
   }
@@ -243,42 +240,15 @@ tr.conflict{animation:flashWarn 1.4s ease;}
     h.innerHTML='<div class="header-top"><div class="brand"><div class="brand-mark">'+REACTOR+'</div><div><h1 class="hud-font" title="Panel Responsif untuk Informasi dan Media Ajar">P.R.I.M.A</h1><small>DATA SISWA — FORMULIR NAMA &amp; KELAS</small></div></div>'+
       '<div class="header-actions"><div class="status" id="status" title="Pengaturan koneksi"><span class="dot '+s.cls+'"></span><span>'+s.text+'</span></div>'+
       '<div class="pill-btn" id="b-theme">'+(theme==='dark'?'\u2600 TERANG':'\u263e GELAP')+'</div>'+
-      (S.loggedIn?'<div class="pill-btn" id="b-out">KELUAR</div>':'')+'</div></div>';
+      '</div></div>';
     document.getElementById('status').onclick=settingsModal;
     document.getElementById('b-theme').onclick=toggleTheme;
-    var o=document.getElementById('b-out'); if(o) o.onclick=logout;
   }
 
   function draw(){
     app.innerHTML='<header id="hdr"></header><main id="main"></main>';
     drawHeader();
-    if(!S.loggedIn) drawLogin(); else drawMain();
-  }
-
-  // ---------- login ----------
-  function drawLogin(){
-    var m=document.getElementById('main');
-    m.innerHTML='<div class="panel login"><h2>AKSES TERBATAS</h2><div class="sub">Data siswa bersifat pribadi. Masukkan kata sandi untuk membuka dan mengubah data.</div>'+
-      '<label class="f">KATA SANDI</label><input type="password" id="l-pw" autocomplete="current-password">'+
-      '<button class="btn" id="l-go">MASUK</button><div class="msg" id="l-msg"></div></div>';
-    var pw=document.getElementById('l-pw'), go=document.getElementById('l-go'), msg=document.getElementById('l-msg');
-    function setMsg(t,c){ msg.textContent=t; msg.className='msg '+(c||''); }
-    if(!apiUrl()) setMsg('Klik ikon status di kanan atas untuk mengisi URL web app lebih dulu.','err');
-    function submit(){
-      if(!apiUrl()){ settingsModal(); return; }
-      S.pw=pw.value; go.disabled=true; setMsg('Memeriksa…');
-      api('load',{}).then(function(res){
-        go.disabled=false;
-        if(res.ok){ try{sessionStorage.setItem(SS_PW,S.pw);}catch(e){} S.loggedIn=true; S.rows=res.rows||[]; S.rev=res.rev; draw(); startPolling(); }
-        else setMsg('Kata sandi salah.','err');
-      }).catch(function(){ go.disabled=false; setMsg('Tidak dapat terhubung ke database. Periksa URL web app & koneksi internet.','err'); });
-    }
-    go.onclick=submit; pw.addEventListener('keydown',function(e){ if(e.key==='Enter') submit(); });
-    pw.focus();
-  }
-  function logout(){
-    S.loggedIn=false; S.pw=''; S.rows=[]; S.rev=null; try{sessionStorage.removeItem(SS_PW);}catch(e){}
-    draw();
+    drawMain();
   }
 
   // ---------- halaman utama ----------
@@ -353,7 +323,7 @@ tr.conflict{animation:flashWarn 1.4s ease;}
     document.getElementById('kelas-list').innerHTML=kelasList.map(function(k){ return '<option value="'+esc(k)+'">'; }).join('');
 
     if(!list.length){
-      tb.innerHTML='<tr><td colspan="4" class="empty">'+(S.rows.length?'Tidak ada data yang cocok dengan pencarian/filter.':'Belum ada data siswa. Tambahkan lewat formulir di atas.')+'</td></tr>';
+      tb.innerHTML='<tr><td colspan="4" class="empty">'+(!S.loaded?'Memuat data…':S.rows.length?'Tidak ada data yang cocok dengan pencarian/filter.':'Belum ada data siswa. Tambahkan lewat formulir di atas.')+'</td></tr>';
       lastIds={}; return;
     }
     var first=Object.keys(lastIds).length===0;
@@ -403,7 +373,7 @@ tr.conflict{animation:flashWarn 1.4s ease;}
         toast('Tersimpan: '+res.row.nama+' ('+res.row.kelas+').','ok');
         var keepKelas=res.row.kelas; fn.value=''; fk.value=keepKelas; // kelas dipertahankan supaya input beruntun lebih cepat
         renderRows(); fn.focus();
-      } else if(res.error==='unauthorized'){ logout(); }
+      }
       else toast(res.error||'Gagal menyimpan.','err');
     }).catch(function(){ fa.disabled=false; toast('Tidak dapat terhubung. Data BELUM tersimpan — coba lagi.','err'); });
   }
@@ -430,7 +400,7 @@ tr.conflict{animation:flashWarn 1.4s ease;}
         var cur=findRow(id); if(cur){ cur.nama=res.row.nama; cur.kelas=res.row.kelas; cur.ver=res.row.ver; }
         S.rev=res.rev; setRowState(id,'saved'); flash(id,'flash');
         if(S.sort.key==='kelas'||S.sort.key==='nama'||S.sort.key==='terbaru'){ setTimeout(renderRows,350); }
-      } else if(res.error==='unauthorized'){ logout(); }
+      }
       else if(res.needConfirm){
         setRowState(id,''); 
         modal('PERUBAHAN BERDAMPAK','<p>Siswa ini punya <b>'+res.refs+'</b> catatan di Kehadiran/Kuis Harian. Catatan lama <b>tidak ikut berubah</b> (tetap atas nama &amp; kelas lama), sehingga di dashboard akan terpisah dari data baru.</p><p>Lanjutkan mengubah?</p>',
@@ -460,7 +430,7 @@ tr.conflict{animation:flashWarn 1.4s ease;}
         S.rows=S.rows.filter(function(x){ return x.id!==id; }); S.rev=res.rev;
         if(tr){ tr.style.transition='opacity .25s, transform .25s'; tr.style.opacity='0'; tr.style.transform='translateX(12px)'; setTimeout(renderRows,260); } else renderRows();
         toast('Data dihapus.','ok');
-      } else if(res.error==='unauthorized'){ logout(); }
+      }
       else if(res.needConfirm){
         setRowState(id,'');
         modal('HAPUS BERDAMPAK','<p><b>'+esc(r.nama)+'</b> punya <b>'+res.refs+'</b> catatan di Kehadiran/Kuis Harian. Catatan itu tetap tersimpan tetapi tidak lagi cocok dengan daftar siswa.</p><p>Tetap hapus?</p>',
@@ -475,29 +445,35 @@ tr.conflict{animation:flashWarn 1.4s ease;}
 
   // ---------- sinkronisasi real-time ----------
   var pollTimer=null;
+  function showLoadError(text){
+    var tb=document.getElementById('tbody');
+    if(tb && !S.rows.length) tb.innerHTML='<tr><td colspan="4" class="empty" style="color:var(--red)">'+esc(text)+'</td></tr>';
+  }
   function loadRows(){
     return api('load',{rev:S.rev}).then(function(res){
-      if(res.ok && res.changed){ S.rows=res.rows; S.rev=res.rev; renderRows(); }
-      else if(res.error==='unauthorized'){ logout(); }
-    }).catch(function(){});
+      if(res.ok){
+        var first=!S.loaded;
+        if(res.changed){ S.rows=res.rows; S.rev=res.rev; }
+        S.loaded=true;
+        if(res.changed||first) renderRows();
+      }
+      else if(res.error==='unauthorized') showLoadError('Server masih meminta kata sandi. Perbarui ModulSiswa.gs (tanpa pemeriksaan sandi) lalu deploy versi baru.');
+      else showLoadError(res.error||'Gagal memuat data.');
+    }).catch(function(err){
+      showLoadError(err && err.message==='nourl' ? 'URL web app belum diisi. Klik ikon status di kanan atas.' : 'Tidak dapat terhubung ke database. Mencoba lagi otomatis…');
+    });
   }
   function startPolling(){
     clearInterval(pollTimer);
-    pollTimer=setInterval(function(){ if(S.loggedIn && !document.hidden && S.busy===0) loadRows(); },POLL_MS);
+    pollTimer=setInterval(function(){ if(!document.hidden && S.busy===0) loadRows(); },POLL_MS);
   }
-  document.addEventListener('visibilitychange',function(){ if(!document.hidden && S.loggedIn) loadRows(); });
-  window.addEventListener('online',function(){ if(S.loggedIn) loadRows(); });
+  document.addEventListener('visibilitychange',function(){ if(!document.hidden) loadRows(); });
+  window.addEventListener('online',function(){ loadRows(); });
 
   // ---------- mulai ----------
-  var saved=''; try{ saved=sessionStorage.getItem(SS_PW)||''; }catch(e){}
   draw();
-  if(saved && apiUrl()){
-    S.pw=saved;
-    api('load',{}).then(function(res){
-      if(res.ok){ S.loggedIn=true; S.rows=res.rows||[]; S.rev=res.rev; draw(); startPolling(); }
-      else { S.pw=''; }
-    }).catch(function(){ S.pw=''; });
-  }
+  loadRows();
+  startPolling();
 })();
 </script>
 </body>
