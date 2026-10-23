@@ -376,6 +376,9 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     render();
   }
   var fullLoaded = false; // true jika state di memori adalah data lengkap (bukan versi yang sudah disaring untuk peran ini)
+  var serverRev = 0;      // nomor versi data di server saat terakhir dimuat/disimpan; dikirim saat menyimpan untuk mendeteksi penimpaan dari sesi lain
+  var loadEpoch = 0;      // penghitung permintaan muat; respons yang bukan yang terbaru (atau beda peran) dianggap usang & diabaikan
+  var pushing = false, pushAgain = false, forceNextPush = false, conflictOpen = false;
   var JSON_HDR = {'Content-Type':'text/plain;charset=utf-8'}; // avoids CORS preflight on Apps Script
 
   // ---- Visibilitas 3 jalur: setiap item punya SATU pemilik akses -----
@@ -464,6 +467,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
   }
   function setRole(r, pw){
     role = r; actorPw = pw || '';
+    loadEpoch++; // respons muat yang masih di perjalanan milik peran sebelumnya -> usang
     if(r==='murid') fullLoaded = false;
     try{
       if(r==='guru' || r==='petugas'){ sessionStorage.setItem('papan-panel-role', r); sessionStorage.setItem('papan-panel-pw', actorPw); }
@@ -560,15 +564,22 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
   function loadFromApi(silent){
     if(!hasApi()){ syncStatus='local'; render(); return; }
     if(!silent){ syncStatus='syncing'; render(); }
+    var reqRole = role, myEpoch = ++loadEpoch;
     fetchState()
       .then(function(data){
-        var changed = false;
+        // Respons usang: peran sudah berganti (mis. murid -> guru) atau ada permintaan yang lebih baru.
+        // Menerapkannya akan mengganti data lengkap guru dengan data tersaring lalu menimpa server.
+        if(myEpoch!==loadEpoch || reqRole!==role) return;
+        // Jangan menimpa perubahan guru yang belum sempat tersimpan.
+        if(reqRole==='guru' && fullLoaded && syncPending()) return;
+        if(data && data.error && !data.menus){ syncStatus='error'; render(); return; }
         if(data && typeof data==='object' && data.menus){
           var fresh = normalizeState(data);
+          serverRev = Number(fresh.rev)||0; delete fresh.rev;
           var keep = state.activeMenu; // menu aktif bersifat lokal per pengguna
-          changed = JSON.stringify(fresh.panels)!==JSON.stringify(state.panels) || JSON.stringify(fresh.menus)!==JSON.stringify(state.menus);
           state = fresh;
-          if(isGuru()) fullLoaded = true; // petugas & murid selalu menerima versi yang sudah disaring server (bukan data lengkap)
+          // Data lengkap hanya jika permintaan DIKIRIM sebagai guru (petugas & murid selalu menerima versi tersaring).
+          fullLoaded = (reqRole==='guru');
           if(keep && state.menus.some(function(m){ return m.id===keep; })) state.activeMenu = keep;
           persistLocal();
         }
@@ -576,6 +587,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
         render();
       })
       .catch(function(err){
+        if(myEpoch!==loadEpoch || reqRole!==role) return;
         if(err && err.unauthorized){
           alert('Sesi '+(isGuru()?'guru':'petugas')+' tidak valid (kata sandi ditolak server). Kamu dikembalikan ke mode murid.');
           setRole('murid');
@@ -588,39 +600,80 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
       });
   }
 
+  // Ada perubahan guru yang menunggu dikirim / sedang dikirim?
+  function syncPending(){ return !!syncTimer || pushing; }
+
+  // Guru: cek ringan apakah data di server berubah dari sesi lain; bila ya dan tidak ada perubahan lokal, muat ulang.
+  function checkServerRev(){
+    if(!isGuru() || !hasApi() || !fullLoaded || syncPending()) return;
+    if(document.querySelector('.modal-overlay')) return; // jangan mengganti data saat guru sedang mengisi formulir
+    fetch(apiUrl()+(apiUrl().indexOf('?')===-1?'?':'&')+'rev=1', {method:'GET'})
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if(d && typeof d.rev==='number' && d.rev!==serverRev && isGuru() && !syncPending() && !document.querySelector('.modal-overlay')) loadFromApi(true);
+      })
+      .catch(function(){});
+  }
+
   function pushToApi(){
     if(!hasApi() || !isGuru()) return;
     if(!fullLoaded){ // jangan menimpa server dengan data yang belum lengkap
       syncStatus='error'; renderStatusOnly(); return;
     }
+    if(pushing){ pushAgain = true; return; } // satu pengiriman pada satu waktu agar nomor versi tidak bentrok dengan diri sendiri
+    pushing = true;
+    var force = forceNextPush; forceNextPush = false;
     syncStatus='syncing'; renderStatusOnly();
+    function done(){ pushing = false; if(pushAgain){ pushAgain = false; pushToApi(); } }
     fetch(apiUrl(), {
       method:'POST',
       headers:{'Content-Type':'text/plain;charset=utf-8'}, // avoids CORS preflight on Apps Script
-      body: JSON.stringify({action:'save', password:actorPw, state:state})
+      body: JSON.stringify({action:'save', password:actorPw, state:state, baseRev:serverRev, force:force})
     })
       .then(function(r){ return r.json(); })
       .then(function(res){
         if(res && res.error==='unauthorized'){
+          pushing = false; pushAgain = false;
           alert('Sesi guru tidak valid (kata sandi ditolak server). Kamu dikembalikan ke mode murid.');
           setRole('murid');
           loadFromApi();
           return;
         }
-        syncStatus = (res && res.ok) ? 'online' : 'error';
-        renderStatusOnly();
+        if(res && res.ok){ serverRev = res.rev; syncStatus='online'; renderStatusOnly(); done(); return; }
+        syncStatus='error'; renderStatusOnly();
+        if(res && res.error==='conflict'){ pushAgain = false; pushing = false; handleSyncConflict(); return; }
+        if(res && res.error==='outdated_client'){ pushAgain = false; pushing = false; alert('Halaman ini versi lama dan ditolak server demi keamanan data. Muat ulang halaman (Ctrl+F5), lalu ulangi perubahanmu.'); return; }
+        if(res && res.error==='too_large'){ pushAgain = false; pushing = false; alert('Data terlalu besar untuk disimpan. Hapus sebagian isi (mis. teks/gambar yang tidak terpakai).'); return; }
+        done();
       })
       .catch(function(err){
         console.error('Gagal menyimpan ke mainframe:', err);
         syncStatus='error';
         renderStatusOnly();
+        done();
       });
+  }
+
+  // Server menolak karena data di server sudah berubah sejak terakhir dimuat (sesi/perangkat lain).
+  function handleSyncConflict(){
+    if(conflictOpen) return;
+    conflictOpen = true;
+    function release(){ conflictOpen = false; }
+    var ov = openChoice('DATA DI SERVER SUDAH BERUBAH',
+      'Perubahan ini dibuat dari perangkat/tab lain setelah halaman ini memuat data. Perubahanmu di sini BELUM tersimpan.',
+      [
+        {icon:'\u21bb', label:'Muat data terbaru (perubahan belum tersimpan di sini dibuang)', onPick:function(){ release(); loadFromApi(); }},
+        {icon:'\u2b06', label:'Timpa dengan data saya (versi server dicadangkan dulu)', onPick:function(){ release(); forceNextPush = true; pushToApi(); }}
+      ]);
+    // menutup lewat BATAL / klik di luar = nanti; lepaskan penjaga agar peringatan bisa muncul lagi di simpanan berikutnya
+    var obs = new MutationObserver(function(){ if(!document.body.contains(ov)){ release(); obs.disconnect(); } });
+    obs.observe(document.body, {childList:true});
   }
 
   function queueSync(){
     if(!hasApi() || !isGuru()) return;
     if(syncTimer) clearTimeout(syncTimer);
-    syncTimer = setTimeout(pushToApi, 500); // debounce rapid edits
+    syncTimer = setTimeout(function(){ syncTimer = null; pushToApi(); }, 500); // debounce rapid edits
   }
 
   function statusLabel(){
@@ -1488,6 +1541,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
                 if(res.state && typeof res.state==='object' && res.state.menus){
                   var keep = state.activeMenu;
                   state = normalizeState(res.state);
+                  serverRev = Number(state.rev)||0; delete state.rev;
                   if(keep && state.menus.some(function(m){ return m.id===keep; })) state.activeMenu = keep;
                   persistLocal();
                 }
@@ -1521,7 +1575,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
   fetchHighfiveCounts();
   setInterval(function(){
     // murid: ambil data terbaru dari mainframe secara berkala; guru: cukup segarkan tampilan
-    if(!isGuru() && hasApi()) loadFromApi(true); else render();
+    if(!isGuru() && hasApi()) loadFromApi(true); else { render(); checkServerRev(); }
     fetchHighfiveCounts();
   }, 60 * 1000);
 })();
