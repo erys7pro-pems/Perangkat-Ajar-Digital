@@ -207,6 +207,9 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
 .view-subs-btn:hover{background:rgba(43,227,255,.08);box-shadow:0 0 10px rgba(43,227,255,.15);}
 .empty-hint{color:var(--muted);font-size:11px;text-align:center;padding:10px 0;}
 .modal.subpanel-modal{max-width:min(94vw, 900px);}
+.sp-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:6px;}
+.sp-title{min-width:0;flex:1 1 200px;}
+.sp-head .modal-actions{margin-top:0;flex-shrink:0;}
 .subs-row{display:flex;gap:12px;overflow-x:auto;padding:4px 2px 10px;margin-top:2px;}
 .sub-tile{flex:0 0 230px;border:1px solid var(--line);padding:10px;}
 .sub-tile:first-child{border-top:1px solid var(--line);}
@@ -1295,10 +1298,11 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     var p0 = state.panels.find(function(x){ return x.id===panelId; });
     if(!p0) return;
     var ov = document.createElement('div'); ov.className='modal-overlay';
-    ov.innerHTML = '<div class="modal subpanel-modal"><h4 class="hud-font">'+esc(p0.title)+'</h4>'+
-      '<div class="sub">Sub-panel dalam panel ini, berjejer di bawah</div>'+
-      '<div class="subs-row"></div>'+
-      '<div class="modal-actions">'+(g?'<button class="btn" data-addsub-here>+ SUB-PANEL</button>':'')+'<button class="btn btn-primary" data-cancel>TUTUP</button></div></div>';
+    ov.innerHTML = '<div class="modal subpanel-modal">'+
+      '<div class="sp-head"><div class="sp-title"><h4 class="hud-font">'+esc(p0.title)+'</h4>'+
+      '<div class="sub">Sub-panel dalam panel ini, berjejer di bawah</div></div>'+
+      '<div class="modal-actions">'+(g?'<button class="btn" data-addsub-here>+ SUB-PANEL</button>':'')+'<button class="btn btn-primary" data-cancel>TUTUP</button></div></div>'+
+      '<div class="subs-row"></div></div>';
     document.body.appendChild(ov);
     var row = ov.querySelector('.subs-row');
     ov.addEventListener('click', function(e){ if(e.target===ov) closeOverlay(ov); });
