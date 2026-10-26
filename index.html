@@ -900,6 +900,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
       });
       sub.addEventListener('dragleave', function(){ sub.classList.remove('drag-over'); });
       sub.addEventListener('drop', function(e){
+        if(!draggedSubId) return; // yang diseret bukan sub-panel (mis. sebuah panel): biarkan naik ke kartu panel tujuan
         e.preventDefault();
         e.stopPropagation();
         sub.classList.remove('drag-over');
