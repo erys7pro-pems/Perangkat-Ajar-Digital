@@ -137,6 +137,9 @@ main{padding:24px 16px 64px;max-width:1100px;margin:0 auto;}
 .view-subs-btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:9px 10px;margin-top:8px;border:1px solid var(--accent);border-radius:2px;background:transparent;color:var(--accent);cursor:pointer;width:100%;font-size:14px;font-weight:600;}
 .view-subs-btn:hover{background:var(--panel-2);}
 .modal.subpanel-modal{max-width:min(94vw,900px);}
+.sp-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:6px;}
+.sp-title{min-width:0;flex:1 1 200px;}
+.sp-head .modal-actions{margin-top:0;flex-shrink:0;}
 .subs-row{display:flex;gap:12px;overflow-x:auto;padding:4px 2px 10px;margin-top:2px;}
 .sub-tile{flex:0 0 240px;border:1px solid var(--line);border-radius:2px;padding:10px;background:var(--panel);}
 .sub-tile-move{display:flex;justify-content:flex-end;gap:2px;margin-top:8px;border-top:1px solid var(--line);padding-top:6px;}
@@ -307,6 +310,9 @@ main{padding:24px 16px 64px;max-width:1100px;margin:0 auto;}
     render();
   }
   var fullLoaded = false; // true jika state di memori adalah data lengkap (bukan versi yang sudah disaring untuk peran ini)
+  var serverRev = 0;      // nomor versi data di server saat terakhir dimuat/disimpan; dikirim saat menyimpan untuk mendeteksi penimpaan dari sesi lain
+  var loadEpoch = 0;      // penghitung permintaan muat; respons yang bukan yang terbaru (atau beda peran) dianggap usang & diabaikan
+  var pushing = false, pushAgain = false, forceNextPush = false, conflictOpen = false;
   var JSON_HDR = {'Content-Type':'text/plain;charset=utf-8'}; // avoids CORS preflight on Apps Script
 
   // ---- Visibilitas 3 jalur: setiap item punya SATU pemilik akses -----
@@ -395,6 +401,7 @@ main{padding:24px 16px 64px;max-width:1100px;margin:0 auto;}
   }
   function setRole(r, pw){
     role = r; actorPw = pw || '';
+    loadEpoch++; // respons muat yang masih di perjalanan milik peran sebelumnya -> usang
     if(r==='murid') fullLoaded = false;
     try{
       if(r==='guru' || r==='petugas'){ sessionStorage.setItem('papan-panel-role', r); sessionStorage.setItem('papan-panel-pw', actorPw); }
@@ -491,15 +498,22 @@ main{padding:24px 16px 64px;max-width:1100px;margin:0 auto;}
   function loadFromApi(silent){
     if(!hasApi()){ syncStatus='local'; render(); return; }
     if(!silent){ syncStatus='syncing'; render(); }
+    var reqRole = role, myEpoch = ++loadEpoch;
     fetchState()
       .then(function(data){
-        var changed = false;
+        // Respons usang: peran sudah berganti (mis. murid -> guru) atau ada permintaan yang lebih baru.
+        // Menerapkannya akan mengganti data lengkap guru dengan data tersaring lalu menimpa server.
+        if(myEpoch!==loadEpoch || reqRole!==role) return;
+        // Jangan menimpa perubahan guru yang belum sempat tersimpan.
+        if(reqRole==='guru' && fullLoaded && syncPending()) return;
+        if(data && data.error && !data.menus){ syncStatus='error'; render(); return; }
         if(data && typeof data==='object' && data.menus){
           var fresh = normalizeState(data);
+          serverRev = Number(fresh.rev)||0; delete fresh.rev;
           var keep = state.activeMenu; // menu aktif bersifat lokal per pengguna
-          changed = JSON.stringify(fresh.panels)!==JSON.stringify(state.panels) || JSON.stringify(fresh.menus)!==JSON.stringify(state.menus);
           state = fresh;
-          if(isGuru()) fullLoaded = true; // petugas & murid selalu menerima versi yang sudah disaring server (bukan data lengkap)
+          // Data lengkap hanya jika permintaan DIKIRIM sebagai guru (petugas & murid selalu menerima versi tersaring).
+          fullLoaded = (reqRole==='guru');
           if(keep && state.menus.some(function(m){ return m.id===keep; })) state.activeMenu = keep;
           persistLocal();
         }
@@ -507,6 +521,7 @@ main{padding:24px 16px 64px;max-width:1100px;margin:0 auto;}
         render();
       })
       .catch(function(err){
+        if(myEpoch!==loadEpoch || reqRole!==role) return;
         if(err && err.unauthorized){
           alert('Sesi '+(isGuru()?'guru':'petugas')+' tidak valid (kata sandi ditolak server). Kamu dikembalikan ke mode murid.');
           setRole('murid');
@@ -519,39 +534,80 @@ main{padding:24px 16px 64px;max-width:1100px;margin:0 auto;}
       });
   }
 
+  // Ada perubahan guru yang menunggu dikirim / sedang dikirim?
+  function syncPending(){ return !!syncTimer || pushing; }
+
+  // Guru: cek ringan apakah data di server berubah dari sesi lain; bila ya dan tidak ada perubahan lokal, muat ulang.
+  function checkServerRev(){
+    if(!isGuru() || !hasApi() || !fullLoaded || syncPending()) return;
+    if(document.querySelector('.modal-overlay')) return; // jangan mengganti data saat guru sedang mengisi formulir
+    fetch(apiUrl()+(apiUrl().indexOf('?')===-1?'?':'&')+'rev=1', {method:'GET'})
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if(d && typeof d.rev==='number' && d.rev!==serverRev && isGuru() && !syncPending() && !document.querySelector('.modal-overlay')) loadFromApi(true);
+      })
+      .catch(function(){});
+  }
+
   function pushToApi(){
     if(!hasApi() || !isGuru()) return;
     if(!fullLoaded){ // jangan menimpa server dengan data yang belum lengkap
       syncStatus='error'; renderStatusOnly(); return;
     }
+    if(pushing){ pushAgain = true; return; } // satu pengiriman pada satu waktu agar nomor versi tidak bentrok dengan diri sendiri
+    pushing = true;
+    var force = forceNextPush; forceNextPush = false;
     syncStatus='syncing'; renderStatusOnly();
+    function done(){ pushing = false; if(pushAgain){ pushAgain = false; pushToApi(); } }
     fetch(apiUrl(), {
       method:'POST',
       headers:{'Content-Type':'text/plain;charset=utf-8'}, // avoids CORS preflight on Apps Script
-      body: JSON.stringify({action:'save', password:actorPw, state:state})
+      body: JSON.stringify({action:'save', password:actorPw, state:state, baseRev:serverRev, force:force})
     })
       .then(function(r){ return r.json(); })
       .then(function(res){
         if(res && res.error==='unauthorized'){
+          pushing = false; pushAgain = false;
           alert('Sesi guru tidak valid (kata sandi ditolak server). Kamu dikembalikan ke mode murid.');
           setRole('murid');
           loadFromApi();
           return;
         }
-        syncStatus = (res && res.ok) ? 'online' : 'error';
-        renderStatusOnly();
+        if(res && res.ok){ serverRev = res.rev; syncStatus='online'; renderStatusOnly(); done(); return; }
+        syncStatus='error'; renderStatusOnly();
+        if(res && res.error==='conflict'){ pushAgain = false; pushing = false; handleSyncConflict(); return; }
+        if(res && res.error==='outdated_client'){ pushAgain = false; pushing = false; alert('Halaman ini versi lama dan ditolak server demi keamanan data. Muat ulang halaman (Ctrl+F5), lalu ulangi perubahanmu.'); return; }
+        if(res && res.error==='too_large'){ pushAgain = false; pushing = false; alert('Data terlalu besar untuk disimpan. Hapus sebagian isi (mis. teks/gambar yang tidak terpakai).'); return; }
+        done();
       })
       .catch(function(err){
         console.error('Gagal menyimpan ke server:', err);
         syncStatus='error';
         renderStatusOnly();
+        done();
       });
+  }
+
+  // Server menolak karena data di server sudah berubah sejak terakhir dimuat (sesi/perangkat lain).
+  function handleSyncConflict(){
+    if(conflictOpen) return;
+    conflictOpen = true;
+    function release(){ conflictOpen = false; }
+    var ov = openChoice('Data di server sudah berubah',
+      'Perubahan ini dibuat dari perangkat/tab lain setelah halaman ini memuat data. Perubahanmu di sini belum tersimpan.',
+      [
+        {icon:'\u21bb', label:'Muat data terbaru (perubahan belum tersimpan di sini dibuang)', onPick:function(){ release(); loadFromApi(); }},
+        {icon:'\u2b06', label:'Timpa dengan data saya (versi server dicadangkan dulu)', onPick:function(){ release(); forceNextPush = true; pushToApi(); }}
+      ]);
+    // menutup lewat Batal / klik di luar = nanti; lepaskan penjaga agar peringatan bisa muncul lagi di simpanan berikutnya
+    var obs = new MutationObserver(function(){ if(!document.body.contains(ov)){ release(); obs.disconnect(); } });
+    obs.observe(document.body, {childList:true});
   }
 
   function queueSync(){
     if(!hasApi() || !isGuru()) return;
     if(syncTimer) clearTimeout(syncTimer);
-    syncTimer = setTimeout(pushToApi, 500); // debounce rapid edits
+    syncTimer = setTimeout(function(){ syncTimer = null; pushToApi(); }, 500); // debounce rapid edits
   }
 
   function statusLabel(){
@@ -572,7 +628,46 @@ main{padding:24px 16px 64px;max-width:1100px;margin:0 auto;}
   }
 
   // ---- Render ----
+  // ---- Animasi pergeseran halus (teknik FLIP): elemen yang berpindah posisi meluncur dari posisi lama ke baru ----
+  function flipSnapshot(root, selector, attr){
+    var m = {};
+    root.querySelectorAll(selector).forEach(function(el){
+      var k = el.getAttribute(attr);
+      if(k) m[k] = el.getBoundingClientRect();
+    });
+    return m;
+  }
+  function flipPlay(root, selector, attr, prev){
+    if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var moved = [];
+    root.querySelectorAll(selector).forEach(function(el){
+      var before = prev[el.getAttribute(attr)];
+      if(!before) return;
+      var r = el.getBoundingClientRect();
+      var dx = before.left - r.left, dy = before.top - r.top;
+      if(Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+      el.style.transition = 'none';
+      el.style.transform = 'translate('+dx+'px,'+dy+'px)';
+      moved.push(el);
+    });
+    if(!moved.length) return;
+    void root.offsetWidth; // paksa reflow agar posisi awal tercatat sebelum meluncur
+    moved.forEach(function(el){
+      el.style.transition = 'transform .38s cubic-bezier(.22,.9,.32,1)';
+      el.style.transform = '';
+      setTimeout(function(){ el.style.transition = ''; }, 420);
+    });
+  }
+  var FLIP_APP_SEL = '.menu-tab[data-switch], .panel-card[data-pid]';
   function render(){
+    var app = document.getElementById('app');
+    // jangan animasikan saat ganti menu/peran (isinya memang berbeda total); hanya saat urutan berubah
+    var animate = app.children.length && state.activeMenu === lastActiveMenu && role === lastRole;
+    var prev = animate ? flipSnapshot(app, FLIP_APP_SEL, 'data-key') : null;
+    renderCore();
+    if(prev) flipPlay(app, FLIP_APP_SEL, 'data-key', prev);
+  }
+  function renderCore(){
     var app = document.getElementById('app');
     var s = statusLabel();
     var g = isGuru();
@@ -585,7 +680,7 @@ main{padding:24px 16px 64px;max-width:1100px;margin:0 auto;}
         '<span class="menu-move'+(idx<=0?' disabled':'')+'" data-movemenu="left" data-id="'+m.id+'" title="Geser menu ke kiri">\u25c0</span>'+
         '<span class="menu-move'+(idx>=state.menus.length-1?' disabled':'')+'" data-movemenu="right" data-id="'+m.id+'" title="Geser menu ke kanan">\u25b6</span>' : '';
       var mAcc = itemAccess(m);
-      return '<div role="button" tabindex="0" class="menu-tab'+(m.id===state.activeMenu?' active':'')+(g&&mAcc==='teacher'?' teacher-only':'')+(g&&mAcc==='staff'?' staff-only':'')+'"'+(g?' draggable="true" title="Seret untuk mengubah urutan menu"':'')+' data-switch="'+m.id+'">'+esc(m.name)+newTag(m.newAt, mAcc==='student')+arrows+(g?visToggle('menu',m.id,mAcc)+'<span class="menu-del" data-delmenu="'+m.id+'">\u00d7</span>':'')+'</div>';
+      return '<div role="button" tabindex="0" class="menu-tab'+(m.id===state.activeMenu?' active':'')+(g&&mAcc==='teacher'?' teacher-only':'')+(g&&mAcc==='staff'?' staff-only':'')+'"'+(g?' draggable="true" title="Seret untuk mengubah urutan menu"':'')+' data-switch="'+m.id+'" data-key="m'+m.id+'">'+esc(m.name)+newTag(m.newAt, mAcc==='student')+arrows+(g?visToggle('menu',m.id,mAcc)+'<span class="menu-del" data-delmenu="'+m.id+'">\u00d7</span>':'')+'</div>';
     }).join('');
     var histCount = historyItems().length;
     // Pengumuman yang sudah lewat batas waktu dipindahkan ke riwayat (tidak tampil di papan)
@@ -792,7 +887,7 @@ main{padding:24px 16px 64px;max-width:1100px;margin:0 auto;}
     var hasMore = subsList.length > 2;
     var showBtn = hasMore || (g && subsList.length > 0);
     var btnLabel = hasMore ? ('Lihat semua sub-panel ('+subsList.length+')') : 'Kelola sub-panel';
-    return '<div class="panel-card type-info'+(g&&pAcc==='teacher'?' teacher-only':'')+(g&&pAcc==='staff'?' staff-only':'')+'" data-pid="'+p.id+'">'+
+    return '<div class="panel-card type-info'+(g&&pAcc==='teacher'?' teacher-only':'')+(g&&pAcc==='staff'?' staff-only':'')+'" data-pid="'+p.id+'" data-key="p'+p.id+'">'+
       '<div class="panel-head"><div class="panel-head-left">'+(g?'<span class="drag-handle" draggable="true" data-dragpanel="'+p.id+'" title="Seret untuk urutkan">\u283f</span>':'')+'<h3 class="hud-font">'+esc(p.title)+'</h3>'+newTag(p.newAt, panelEff(p))+'</div>'+
       (g?'<div class="panel-head-right">'+visToggle('panel',p.id,pAcc)+
         '<button class="icon-btn" data-editpanel="'+p.id+'" title="Edit judul panel">\u270e</button>'+
@@ -1130,10 +1225,11 @@ main{padding:24px 16px 64px;max-width:1100px;margin:0 auto;}
     var p0 = state.panels.find(function(x){ return x.id===panelId; });
     if(!p0) return;
     var ov = document.createElement('div'); ov.className='modal-overlay';
-    ov.innerHTML = '<div class="modal subpanel-modal"><h4 class="hud-font">'+esc(p0.title)+'</h4>'+
-      '<div class="sub">Sub-panel dalam panel ini, berjejer di bawah</div>'+
-      '<div class="subs-row"></div>'+
-      '<div class="modal-actions">'+(g?'<button class="btn" data-addsub-here>+ Sub-panel</button>':'')+'<button class="btn btn-primary" data-cancel>Tutup</button></div></div>';
+    ov.innerHTML = '<div class="modal subpanel-modal">'+
+      '<div class="sp-head"><div class="sp-title"><h4 class="hud-font">'+esc(p0.title)+'</h4>'+
+      '<div class="sub">Sub-panel dalam panel ini, berjejer di bawah</div></div>'+
+      '<div class="modal-actions">'+(g?'<button class="btn" data-addsub-here>+ Sub-panel</button>':'')+'<button class="btn btn-primary" data-cancel>Tutup</button></div></div>'+
+      '<div class="subs-row"></div></div>';
     document.body.appendChild(ov);
     var row = ov.querySelector('.subs-row');
     ov.addEventListener('click', function(e){ if(e.target===ov) closeOverlay(ov); });
@@ -1143,7 +1239,9 @@ main{padding:24px 16px 64px;max-width:1100px;margin:0 auto;}
       var p = state.panels.find(function(x){ return x.id===panelId; });
       if(!p){ closeOverlay(ov); return; }
       var list = g ? p.subpanels : p.subpanels.filter(function(x){ return viewerAllowedAccess().indexOf(itemAccess(x))!==-1; });
+      var prevTiles = row.children.length ? flipSnapshot(row, '.sub-tile[data-subid]', 'data-subid') : null;
       row.innerHTML = list.length ? list.map(function(s, i){ return subTileHtml(p, s, i, list.length); }).join('') : '<div class="empty-hint">Belum ada sub-panel.</div>';
+      if(prevTiles) flipPlay(row, '.sub-tile[data-subid]', 'data-subid', prevTiles);
       row.querySelectorAll('.sub-card img').forEach(function(im){
         im.addEventListener('click', function(){ openImageLightbox(im.getAttribute('src')); });
       });
@@ -1198,39 +1296,6 @@ main{padding:24px 16px 64px;max-width:1100px;margin:0 auto;}
   }
 
   // ---- Reorder via drag & drop ----
-  // ---- Animasi halus saat urutan berubah (teknik FLIP) ----
-  // Catat posisi lama -> render ulang -> geser tiap elemen dari posisi lama ke posisi barunya.
-  var FLIP_SEL = '.panel-card[data-pid], .sub-card[data-subid], .menu-tab[data-switch]';
-  function flipKey(el){
-    return el.hasAttribute('data-pid') ? 'p:'+el.getAttribute('data-pid')
-         : el.hasAttribute('data-subid') ? 's:'+el.getAttribute('data-subid')
-         : 'm:'+el.getAttribute('data-switch');
-  }
-  function saveAnimated(){
-    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    var before = {};
-    if(!reduce) document.querySelectorAll(FLIP_SEL).forEach(function(el){ before[flipKey(el)] = el.getBoundingClientRect(); });
-    save();
-    if(reduce) return;
-    var moved = [];
-    document.querySelectorAll(FLIP_SEL).forEach(function(el){
-      var b = before[flipKey(el)]; if(!b) return;
-      var a = el.getBoundingClientRect();
-      var dx = b.left - a.left, dy = b.top - a.top;
-      if(Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
-      el.style.transition = 'none';
-      el.style.transform = 'translate('+dx+'px,'+dy+'px)';
-      moved.push(el);
-    });
-    if(!moved.length) return;
-    void document.body.offsetWidth; // paksa reflow agar posisi awal tercatat sebelum transisi mulai
-    moved.forEach(function(el){
-      el.style.transition = 'transform .4s cubic-bezier(.22,.8,.3,1)';
-      el.style.transform = '';
-      setTimeout(function(){ el.style.transition = ''; }, 480);
-    });
-  }
-
   function reorderInfoPanels(draggedId, targetId){
     if(!isGuru()) return;
     if(draggedId===targetId) return;
@@ -1248,7 +1313,7 @@ main{padding:24px 16px 64px;max-width:1100px;margin:0 auto;}
     // breaks the forward case and made adjacent-forward drags a no-op.
     items.splice(ti, 0, moved);
     idxs.forEach(function(origIdx, k){ state.panels[origIdx] = items[k]; });
-    saveAnimated();
+    save();
   }
   function reorderSubpanels(panelId, draggedId, targetId){
     if(!isGuru()) return;
@@ -1261,7 +1326,7 @@ main{padding:24px 16px 64px;max-width:1100px;margin:0 auto;}
     if(di<0 || ti<0 || di===ti) return;
     var moved = arr.splice(di, 1)[0];
     arr.splice(ti, 0, moved); // see note above in reorderInfoPanels
-    saveAnimated();
+    save();
   }
   function reorderMenus(draggedId, targetId){
     if(!isGuru() || draggedId===targetId) return;
@@ -1271,7 +1336,7 @@ main{padding:24px 16px 64px;max-width:1100px;margin:0 auto;}
     if(di<0 || ti<0 || di===ti) return;
     var moved = arr.splice(di, 1)[0];
     arr.splice(ti, 0, moved); // geser maju: tepat setelah target; geser mundur: tepat sebelum target
-    saveAnimated();
+    save();
   }
   function moveMenuPosition(id, direction){
     if(!isGuru()) return;
@@ -1280,7 +1345,7 @@ main{padding:24px 16px 64px;max-width:1100px;margin:0 auto;}
     var np = pos + direction;
     if(pos<0 || np<0 || np>=arr.length) return;
     var tmp = arr[pos]; arr[pos] = arr[np]; arr[np] = tmp;
-    saveAnimated();
+    save();
   }
   function movePanelPosition(panelId, direction){
     if(!isGuru()) return;
@@ -1293,7 +1358,7 @@ main{padding:24px 16px 64px;max-width:1100px;margin:0 auto;}
     if(pos<0 || newPos<0 || newPos>=items.length) return;
     var tmp = items[pos]; items[pos] = items[newPos]; items[newPos] = tmp;
     idxs.forEach(function(origIdx, k){ state.panels[origIdx] = items[k]; });
-    saveAnimated();
+    save();
   }
 
   // ---- Riwayat pengumuman ----
@@ -1407,6 +1472,7 @@ main{padding:24px 16px 64px;max-width:1100px;margin:0 auto;}
                 if(res.state && typeof res.state==='object' && res.state.menus){
                   var keep = state.activeMenu;
                   state = normalizeState(res.state);
+                  serverRev = Number(state.rev)||0; delete state.rev;
                   if(keep && state.menus.some(function(m){ return m.id===keep; })) state.activeMenu = keep;
                   persistLocal();
                 }
@@ -1440,7 +1506,7 @@ main{padding:24px 16px 64px;max-width:1100px;margin:0 auto;}
   fetchHighfiveCounts();
   setInterval(function(){
     // murid: ambil data terbaru dari server secara berkala; guru: cukup segarkan tampilan
-    if(!isGuru() && hasApi()) loadFromApi(true); else render();
+    if(!isGuru() && hasApi()) loadFromApi(true); else { render(); checkServerRev(); }
     fetchHighfiveCounts();
   }, 60 * 1000);
 })();
