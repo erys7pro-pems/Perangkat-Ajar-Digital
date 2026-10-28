@@ -387,7 +387,7 @@
   <div class="lines">
     <div>&gt; INITIALIZING INTERFACE...</div>
     <div>&gt; MEMUAT DATA PROGRAM SEMESTER — BIOLOGI XI...</div>
-    <div>&gt; MENYINKRONKAN 8 MODUL / 29 PEKAN...</div>
+    <div>&gt; MENYINKRONKAN DATA PROMES...</div>
     <div>&gt; SISTEM SIAP.</div>
   </div>
 </div>
@@ -406,6 +406,7 @@
       <span><span class="dot"></span>ONLINE</span>
       <span>SEM: GANJIL</span>
       <span>T.P. 2026/2027</span>
+      <span id="dataSrc"><span class="dot"></span>DATA</span>
       <span id="clock">--:--:--</span>
     </div>
   </header>
@@ -484,7 +485,7 @@
     </section>
   </div>
 
-  <footer>PROMES INTERFACE — DIBANGUN DARI PROGRAM SEMESTER GANJIL BIOLOGI KELAS XI · DATA SUMBER: PROMES_XI.XLSX</footer>
+  <footer>PROMES INTERFACE — DIBANGUN DARI PROGRAM SEMESTER GANJIL BIOLOGI KELAS XI · DATA SUMBER: GOOGLE SHEETS (PROMES_XI_BIO_DATA)</footer>
 </div>
 
 <div class="modal-overlay" id="cpModal" aria-hidden="true">
@@ -499,9 +500,16 @@
 
 <script>
 /* ================= DATA ================= */
-const capaian = "Pemahaman Biologi: mengaitkan hubungan antara struktur dan fungsi organel di dalam sel; menerapkan prinsip-prinsip bioproses yang terjadi di dalam sel; menganalisis keterkaitan antar sistem organ dalam tubuh untuk merespons stimulus internal dan eksternal; menerapkan prinsip pewarisan sifat; mengaitkan mekanisme evolusi dengan proses terjadinya keanekaragaman dan kelangsungan hidup organisme; menerapkan prinsip pertumbuhan dan perkembangan; serta menganalisis proses bioteknologi modern.";
+/* ======== KONFIGURASI SUMBER DATA ========
+   Isi dengan URL Web App Apps Script (berakhiran /exec).
+   Kosong = pakai data bawaan di bawah (mode lokal). */
+const SHEET_API_URL = '';
+const CACHE_KEY = 'promes_xi_bio_cache_v1';
 
-const weekCols = [
+/* Data bawaan (cadangan bila spreadsheet tidak dapat diakses) */
+let capaian = "Pemahaman Biologi: mengaitkan hubungan antara struktur dan fungsi organel di dalam sel; menerapkan prinsip-prinsip bioproses yang terjadi di dalam sel; menganalisis keterkaitan antar sistem organ dalam tubuh untuk merespons stimulus internal dan eksternal; menerapkan prinsip pewarisan sifat; mengaitkan mekanisme evolusi dengan proses terjadinya keanekaragaman dan kelangsungan hidup organisme; menerapkan prinsip pertumbuhan dan perkembangan; serta menganalisis proses bioteknologi modern.";
+
+let weekCols = [
   {m:'JUL',w:'1'},{m:'JUL',w:'2'},{m:'JUL',w:'3'},{m:'JUL',w:'4'},{m:'JUL',w:'3H'},
   {m:'AGS',w:'1'},{m:'AGS',w:'2'},{m:'AGS',w:'3'},{m:'AGS',w:'4'},
   {m:'SEP',w:'1'},{m:'SEP',w:'2'},{m:'SEP',w:'3'},{m:'SEP',w:'4'},{m:'SEP',w:'3H'},
@@ -509,9 +517,9 @@ const weekCols = [
   {m:'NOV',w:'1'},{m:'NOV',w:'2'},{m:'NOV',w:'3'},{m:'NOV',w:'4'},{m:'NOV',w:'3H'},
   {m:'DES',w:'1'},{m:'DES',w:'2'},{m:'DES',w:'3'},{m:'DES',w:'4'},{m:'DES',w:'5'},
 ];
-const monthOrder = ['JUL','AGS','SEP','OKT','NOV','DES'];
+let monthOrder = ['JUL','AGS','SEP','OKT','NOV','DES'];
 
-const modules = [
+let modules = [
   {id:'11.1', title:'Menjelajah Sel', desc:'Mengaitkan hubungan antara struktur dan fungsi organel di dalam sel.', jam:'8 × 45 menit', weeks:[{m:'JUL',w:'3'},{m:'JUL',w:'4'}]},
   {id:'11.2', title:'Pergerakan Zat melalui Membran Sel', desc:'Mekanisme transpor zat (difusi, osmosis, transpor aktif) melalui membran sel.', jam:'8 × 45 menit', weeks:[{m:'JUL',w:'3H'},{m:'AGS',w:'1'}]},
   {id:'11.3', title:'Tahap-tahap Pembelahan Sel', desc:'Mitosis dan meiosis sebagai dasar pertumbuhan dan pewarisan sifat.', jam:'8 × 45 menit', weeks:[{m:'AGS',w:'2'},{m:'AGS',w:'4'}]},
@@ -522,7 +530,7 @@ const modules = [
   {id:'11.8', title:'Sistem Ekskresi', desc:'Keterkaitan peran antar-sistem organ pada proses transpor dan pertukaran zat dalam tubuh manusia — sistem ekskresi.', jam:'8 × 45 menit', weeks:[{m:'NOV',w:'1'},{m:'NOV',w:'2'}]},
 ];
 
-const events = [
+let events = [
   {label:'PENGANTAR', code:'', m:'JUL', w:'2', type:'intro', desc:'Pengenalan alur dan agenda pembelajaran Biologi semester ganjil.'},
   {label:'PILKETOS', code:'PIL', m:'AGS', w:'3', type:'agenda', desc:'Agenda sekolah: Pemilihan Ketua OSIS (PILKETOS).'},
   {label:'PHB 1', code:'A1', m:'SEP', w:'4', type:'exam', desc:'Penilaian Harian Bersama tahap 1 (Asesmen 1).'},
@@ -537,14 +545,25 @@ const events = [
 
 const typeClass = {intro:'ev-intro', agenda:'ev-agenda', exam:'ev-exam', holiday:'ev-holiday'};
 const typeLabel = {intro:'Pengantar', agenda:'Agenda Sekolah', exam:'Asesmen', holiday:'Libur'};
+const typeFromLabel = {'pengantar':'intro','agenda sekolah':'agenda','agenda':'agenda','asesmen':'exam','libur':'holiday'};
+const esc = t => String(t==null?'':t).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* kode pekan 'JUL-P3H' -> {m:'JUL', w:'3H'} */
+function parseWeek(code){
+  const mm = String(code).trim().toUpperCase().match(/^([A-Z]{3})\s*-\s*P?\s*(\w+)$/);
+  return mm ? {m:mm[1], w:mm[2]} : null;
+}
 
 /* ================= BUILD HEADER ================= */
 const gridTl = document.getElementById('gridTl');
+let rowMonths, rowWeeks, rowEvents;
+function buildTimeline(){
+gridTl.innerHTML = '';
 
 function colIndex(m,w){ return weekCols.findIndex(c=>c.m===m && String(c.w)===String(w)); }
 
 // month row
-const rowMonths = document.createElement('div');
+rowMonths = document.createElement('div');
 rowMonths.className = 'row-months';
 rowMonths.appendChild(Object.assign(document.createElement('div'),{textContent:''}));
 monthOrder.forEach(m=>{
@@ -563,7 +582,7 @@ monthOrder.forEach(m=>{
 gridTl.appendChild(rowMonths);
 
 // week row
-const rowWeeks = document.createElement('div');
+rowWeeks = document.createElement('div');
 rowWeeks.className = 'row-weeks';
 rowWeeks.appendChild(document.createElement('div'));
 weekCols.forEach(c=>{
@@ -576,7 +595,7 @@ weekCols.forEach(c=>{
 gridTl.appendChild(rowWeeks);
 
 // events row
-const rowEvents = document.createElement('div');
+rowEvents = document.createElement('div');
 rowEvents.className = 'row-events';
 const evHead = document.createElement('div');
 evHead.className = 'rowhead';
@@ -609,7 +628,7 @@ modules.forEach(mod=>{
   const head = document.createElement('div');
   head.className = 'mod-head';
   head.tabIndex = 0;
-  head.innerHTML = `<span class="id">${mod.id}</span><span class="title">${mod.title}</span>`;
+  head.innerHTML = `<span class="id">${esc(mod.id)}</span><span class="title">${esc(mod.title)}</span>`;
   head.addEventListener('click', ()=>selectModule(mod, row));
   head.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); selectModule(mod,row);} });
   row.appendChild(head);
@@ -626,6 +645,7 @@ modules.forEach(mod=>{
 
   gridTl.appendChild(row);
 });
+}
 
 /* ================= INTERACTIONS ================= */
 const detailBody = document.getElementById('detailBody');
@@ -659,12 +679,12 @@ function selectModule(mod, row){
   highlightColumns(mod.weeks);
   const weeksTxt = mod.weeks.map(w=>`${w.m} #${w.w}`).join('  →  ');
   detailBody.innerHTML = `
-    <div class="detail-id">MODUL ${mod.id}</div>
-    <div class="detail-title">${mod.title}</div>
-    <div class="detail-desc">${mod.desc}</div>
+    <div class="detail-id">MODUL ${esc(mod.id)}</div>
+    <div class="detail-title">${esc(mod.title)}</div>
+    <div class="detail-desc">${esc(mod.desc)}</div>
     <div class="detail-meta">
-      <span class="chip">⏱ ${mod.jam}</span>
-      <span class="chip">📅 ${weeksTxt}</span>
+      <span class="chip">⏱ ${esc(mod.jam)}</span>
+      <span class="chip">📅 ${esc(weeksTxt)}</span>
     </div>`;
 }
 
@@ -673,11 +693,11 @@ function showEventDetail(ev){
   highlightColumns([{m:ev.m, w:ev.w}]);
   detailBody.innerHTML = `
     <div class="detail-id" style="color:var(--amber)">AGENDA</div>
-    <div class="detail-title">${ev.label}</div>
-    <div class="detail-desc">${ev.desc}</div>
+    <div class="detail-title">${esc(ev.label)}</div>
+    <div class="detail-desc">${esc(ev.desc)}</div>
     <div class="detail-meta">
       <span class="chip">🏷 ${typeLabel[ev.type]}</span>
-      <span class="chip">📅 ${ev.m} #${ev.w}</span>
+      <span class="chip">📅 ${esc(ev.m)} #${esc(ev.w)}</span>
     </div>`;
 }
 
@@ -698,7 +718,8 @@ function applyFilters(){
 
   // module rows: relevant when category is 'semua' or 'materi'
   modules.forEach(mod=>{
-    const row = document.querySelector(`.row-module[data-id="${mod.id}"]`);
+    const row = document.querySelector(`.row-module[data-id="${CSS.escape(mod.id)}"]`);
+    if(!row) return;
     const catOk = (currentCat==='semua' || currentCat==='materi');
     const monthOk = (currentMonth==='semua' || mod.weeks.some(w=>w.m===currentMonth));
     row.classList.toggle('row-dim', !(catOk && monthOk));
@@ -784,7 +805,6 @@ const cpBtn = document.getElementById('cpBtn');
 const cpModal = document.getElementById('cpModal');
 const cpModalBody = document.getElementById('cpModalBody');
 const cpClose = document.getElementById('cpClose');
-cpModalBody.textContent = capaian;
 
 function openCpModal(){
   cpModal.classList.add('open');
@@ -804,7 +824,8 @@ cpModal.addEventListener('click', e=>{ if(e.target === cpModal) closeCpModal(); 
 document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && cpModal.classList.contains('open')) closeCpModal(); });
 
 /* Coverage bar */
-(function(){
+function renderCoverage(){
+  document.getElementById('covBar').innerHTML=''; document.getElementById('covLegend').innerHTML='';
   const total = weekCols.length;
   const materiWeeks = new Set();
   modules.forEach(m=>m.weeks.forEach(w=>materiWeeks.add(w.m+w.w)));
@@ -835,7 +856,66 @@ document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && cpModal.class
     el.innerHTML = `<i style="background:${s.color}"></i>${s.label} (${s.n})`;
     legend.appendChild(el);
   });
-})();
+}
+
+/* ================= LOAD DATA (Google Sheets) ================= */
+function applyData(j){
+  const id = j.identitas || {};
+  const set = (sel,val)=>{ const el=document.querySelector(sel); if(el && val) el.textContent=val; };
+  set('.readout div:nth-child(1) dd', id.satuan);
+  set('.readout div:nth-child(2) dd', id.mapel);
+  set('.readout div:nth-child(3) dd', id.kelas);
+  set('.readout div:nth-child(4) dd', id.tahun);
+  if(id.capaian) capaian = id.capaian;
+  if(id.fase) document.querySelector('.core-label span').textContent = 'FASE\u00a0'+id.fase;
+  const st = document.querySelectorAll('.statusbar > span');
+  if(id.semester && st[1]) st[1].textContent = 'SEM: '+id.semester.toUpperCase();
+  if(id.tahun_header && st[2]) st[2].textContent = 'T.P. '+id.tahun_header;
+
+  const wc = (j.pekan||[]).map(p=>parseWeek(p['Kode'])).filter(Boolean);
+  if(!wc.length) throw new Error('Sheet Pekan kosong / kode tidak valid');
+  const idx = (m,w)=>wc.findIndex(c=>c.m===m && c.w===w);
+  const mo = []; wc.forEach(c=>{ if(!mo.includes(c.m)) mo.push(c.m); });
+
+  const mods = (j.modul||[]).map(r=>({
+    id:r['ID'], title:r['Judul'], desc:r['Deskripsi'], jam:r['Jam'],
+    weeks:String(r['Pekan']||'').split(',').map(parseWeek).filter(Boolean).filter(w=>idx(w.m,w.w)>=0)
+          .sort((a,b)=>idx(a.m,a.w)-idx(b.m,b.w))
+  })).filter(m=>m.id);
+
+  const evs = (j.agenda||[]).map(r=>{
+    const w = parseWeek(r['Pekan']); const type = typeFromLabel[String(r['Kategori']||'').trim().toLowerCase()];
+    return (w && type && idx(w.m,w.w)>=0) ? {label:r['Label'], code:r['Kode'], m:w.m, w:w.w, type, desc:r['Deskripsi']} : null;
+  }).filter(Boolean);
+
+  weekCols = wc; monthOrder = mo; modules = mods; events = evs;
+  cpModalBody.textContent = capaian;
+  buildTimeline(); renderCoverage(); applyFilters();
+  document.getElementById('detailBody').innerHTML = '<div class="detail-empty">▹ PILIH MODUL ATAU AGENDA<br>PADA TIMELINE UNTUK<br>MENAMPILKAN DETAIL</div>';
+}
+
+function setSrc(txt, color){
+  const el = document.getElementById('dataSrc'); el.lastChild.textContent = txt; el.style.color = color||'';
+}
+
+async function loadData(){
+  cpModalBody.textContent = capaian;
+  buildTimeline(); renderCoverage(); applyFilters();   // tampilkan data bawaan dulu
+  if(!SHEET_API_URL){ setSrc('DATA: LOKAL'); return; }
+  try{
+    const res = await fetch(SHEET_API_URL, {cache:'no-store'});
+    const j = await res.json();
+    if(!j.ok) throw new Error(j.error||'API error');
+    applyData(j);
+    try{ localStorage.setItem(CACHE_KEY, JSON.stringify(j)); }catch(e){}
+    setSrc('DATA: SPREADSHEET','var(--cyan-soft)');
+  }catch(err){
+    console.warn('Gagal memuat spreadsheet:', err);
+    let cached=null; try{ cached = JSON.parse(localStorage.getItem(CACHE_KEY)||'null'); }catch(e){}
+    if(cached){ try{ applyData(cached); setSrc('DATA: CACHE (OFFLINE)','var(--amber)'); return; }catch(e){} }
+    setSrc('DATA: LOKAL (SHEET GAGAL)','var(--red)');
+  }
+}
 
 /* Clock */
 function tick(){
@@ -843,6 +923,7 @@ function tick(){
   document.getElementById('clock').textContent = d.toLocaleTimeString('id-ID',{hour12:false});
 }
 tick(); setInterval(tick,1000);
+loadData();
 
 /* Boot overlay dismiss */
 window.addEventListener('load', ()=>{
