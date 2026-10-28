@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>J.A.R.V.I.S. // VALIDASI KUIS SISWA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #03070f; 
+    --bg2: #050d1a;
+    --panel: rgba(8,22,40,.65); 
+    --panel-solid: #08182b;
+    --border: rgba(70,190,255,.28); 
+    --border-strong: rgba(90,220,255,.55);
+    --cyan: #4fe6ff; 
+    --cyan-soft: #8fefff; 
+    --cyan-dim: #1f7fa3;
+    --amber: #ffb020; 
+    --red: #ff4d6a; 
+    --green: #34ff9e; 
+    --blue: #5aa7ff;
+    --text: #d3edff; 
+    --text-dim: #5f84a8; 
+    --text-faint: #3a5470;
+    --radius: 8px;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    background:
+      radial-gradient(ellipse at 20% -10%, rgba(30,100,150,.18), transparent 55%),
+      radial-gradient(ellipse at 100% 10%, rgba(255,120,60,.06), transparent 45%),
+      var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    min-height: 100vh;
+    position: relative;
+    padding: 32px 16px 100px;
+  }
+
+  body::before {
+    content: ""; position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(79,230,255,.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(79,230,255,.035) 1px, transparent 1px);
+    background-size: 42px 42px; pointer-events: none; z-index: 0;
+    mask-image: radial-gradient(ellipse at 50% 0%, black 0%, transparent 75%);
+  }
+
+  body::after {
+    content: ""; position: fixed; inset: 0;
+    background: repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0, rgba(0,0,0,0) 3px, rgba(0,0,0,.14) 4px);
+    pointer-events: none; z-index: 5; opacity: .3;
+  }
+
+  .page {
+    position: relative; z-index: 1;
+    max-width: 780px;
+    margin: 0 auto;
+  }
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--cyan-soft);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    padding: 7px 16px;
+    border-radius: 999px;
+    margin-bottom: 20px;
+  }
+  .tag::before {
+    content: "";
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 8px var(--cyan);
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.35;} }
+
+  header h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: clamp(20px, 3.4vw, 27px);
+    letter-spacing: 1.5px;
+    line-height: 1.3;
+    margin: 0 0 8px;
+    color: var(--cyan-soft);
+    text-shadow: 0 0 18px rgba(79,230,255,.35);
+    text-transform: uppercase;
+  }
+  header p {
+    margin: 0 0 28px;
+    color: var(--text-dim);
+    font-size: 15px;
+    max-width: 60ch;
+  }
+
+  .filter-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px;
+    backdrop-filter: blur(8px);
+    margin-bottom: 24px;
+    position: relative;
+  }
+  .filter-box::before {
+    content: ""; position: absolute; top: -1px; left: -1px;
+    width: 16px; height: 16px;
+    border-top: 2px solid var(--cyan); border-left: 2px solid var(--cyan);
+  }
+  .filter-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  label {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+    color: var(--cyan);
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  select, input, textarea {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 500;
+    font-size: 15px;
+    color: var(--text);
+    background: rgba(79,230,255,.04);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px 12px;
+    width: 100%;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  select:focus, input:focus, textarea:focus {
+    outline: none;
+    border-color: var(--cyan);
+    box-shadow: 0 0 0 3px rgba(79,230,255,.15), 0 0 14px rgba(79,230,255,.2);
+  }
+  select option { background-color: #08182b; color: #d3edff; }
+
+  /* LIST KUIS CARDS */
+  .kuis-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+    backdrop-filter: blur(6px);
+    transition: border-color .2s ease;
+    position: relative;
+  }
+  .kuis-card:hover { border-color: var(--border-strong); }
+  
+  .kuis-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+    border-bottom: 1px solid rgba(79,230,255,.12);
+    padding-bottom: 10px;
+  }
+  .kuis-date {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    color: var(--cyan-soft);
+  }
+  .skor-badge {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+  .skor-1 { background: rgba(52,255,158,.15); color: var(--green); border: 1px solid var(--green); }
+  .skor-05 { background: rgba(255,176,32,.15); color: var(--amber); border: 1px solid var(--amber); }
+  .skor-0 { background: rgba(255,77,106,.15); color: var(--red); border: 1px solid var(--red); }
+
+  .status-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11.5px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    margin-top: 8px;
+  }
+  .st-valid { background: rgba(52,255,158,.1); color: var(--green); border: 1px solid rgba(52,255,158,.3); }
+  .st-pending { background: rgba(255,176,32,.1); color: var(--amber); border: 1px solid rgba(255,176,32,.3); }
+  .st-batal { background: rgba(255,77,106,.1); color: var(--red); border: 1px solid rgba(255,77,106,.3); }
+
+  .btn-simpan {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: #03070f;
+    background: var(--cyan);
+    border: none;
+    border-radius: 4px;
+    padding: 10px 18px;
+    cursor: pointer;
+    box-shadow: 0 0 12px rgba(79,230,255,.3);
+    transition: background .15s, box-shadow .15s;
+    margin-top: 10px;
+  }
+  .btn-simpan:hover { background: var(--cyan-soft); box-shadow: 0 0 18px rgba(79,230,255,.5); }
+  .btn-simpan:disabled { background: rgba(95,132,168,.3); color: var(--text-faint); box-shadow: none; cursor: not-allowed; }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--text-dim);
+    background: var(--panel);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+  }
+
+  /* JARVIS NAV BAR */
+  .jarvis-nav {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    z-index: 9999;
+    display: flex; gap: 8px;
+    background: rgba(4,14,28,.85);
+    border: 1px solid rgba(79,230,255,.38);
+    border-radius: 999px;
+    padding: 8px 14px;
+    backdrop-filter: blur(16px);
+    box-shadow: 0 0 28px rgba(79,230,255,.14), 0 6px 32px rgba(0,0,0,.7);
+  }
+  .jarvis-nav a {
+    display: flex; align-items: center; gap: 7px;
+    font-family: 'Share Tech Mono','Courier New',monospace;
+    font-size: 11.5px; letter-spacing: .12em; text-transform: uppercase;
+    color: #4a7fa0; text-decoration: none;
+    padding: 7px 16px; border-radius: 999px;
+    border: 1px solid transparent;
+    transition: color .2s, border-color .2s, background .2s, box-shadow .2s;
+    white-space: nowrap;
+  }
+  .jarvis-nav a:hover {
+    color: #4fe6ff;
+    border-color: rgba(79,230,255,.45);
+    background: rgba(79,230,255,.08);
+  }
+  .jarvis-nav a.nav-active {
+    color: #03070f;
+    background: #4fe6ff;
+    border-color: #4fe6ff;
+    box-shadow: 0 0 16px rgba(79,230,255,.6);
+    font-weight: 700;
+  }
+
+  @media(max-width:560px) {
+    .filter-grid { grid-template-columns: 1fr; }
+    .jarvis-nav { bottom: 12px; padding: 6px 8px; gap: 4px; }
+    .jarvis-nav a { padding: 6px 10px; font-size: 10px; gap: 5px; }
+    .jarvis-nav a .nav-label { display: none; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="page">
+    <header>
+      <span class="tag">J.A.R.V.I.S. // PORTAL SISWA</span>
+      <h1>Validasi & Refleksi Kuis</h1>
+      <p>Pilih kelas dan namamu untuk melengkapi rincian pertanyaan kuis harian. Partisipasimu diakui setelah catatan terisi dan tervalidasi.</p>
+    </header>
+
+    <!-- FILTER AREA -->
+    <div class="filter-box">
+      <div class="filter-grid">
+        <div>
+          <label for="selectKelas">1. Pilih Kelas</label>
+          <select id="selectKelas" onchange="onKelasChange()">
+            <option value="" disabled selected>Memuat kelas...</option>
+          </select>
+        </div>
+        <div>
+          <label for="selectSiswa">2. Pilih Nama Siswa</label>
+          <select id="selectSiswa" disabled onchange="muatKuisSiswa()">
+            <option value="" disabled selected>Pilih kelas terlebih dahulu</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- DAFTAR KUIS SISWA -->
+    <div id="kuisContainer">
+      <div class="empty-state">
+        ◈ Pilih Kelas dan Nama Siswa di atas untuk menampilkan catatan Kuis Harian Anda.
+      </div>
+    </div>
+  </div>
+
+  <!-- NAVIGASI J.A.R.V.I.S. -->
+  <nav class="jarvis-nav">
+    <a href="https://erys7pro-pems.github.io/Perangkat-Ajar-Digital/dashboard.html">⬡ <span class="nav-label">Dashboard</span></a>
+    <a href="https://erys7pro-pems.github.io/Perangkat-Ajar-Digital/kegiatan-akan-datang.html">◈ <span class="nav-label">Agenda</span></a>
+    <a href="https://erys7pro-pems.github.io/Perangkat-Ajar-Digital/PROMES_XI_BIO.html">◉ <span class="nav-label">Promes XI</span></a>
+  </nav>
+
+<script>
+  // URL Apps Script yang sama dengan Jurnal Mengajar Anda
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxQRNsIZtMSnqqLBNBa3V0_CaEUaC1SQjNr8kgOlW7e-k7Ss8-5RDRBOZj27dwVvBn2/exec";
+
+  let masterSiswa = [];
+  let dataKuisSiswa = [];
+
+  // Inisialisasi awal saat halaman dimuat
+  window.addEventListener('DOMContentLoaded', async () => {
+    try {
+      const res = await fetch(APPS_SCRIPT_URL);
+      const data = await res.json();
+      
+      masterSiswa = data.siswa || [];
+      populateKelasSelect();
+    } catch (err) {
+      document.getElementById('kuisContainer').innerHTML = `
+        <div class="empty-state" style="color:var(--red); border-color:var(--red);">
+          ⚠️ Gagal terhubung ke database. Periksa koneksi internet Anda.
+        </div>`;
+    }
+  });
+
+  function populateKelasSelect() {
+    const selectKelas = document.getElementById('selectKelas');
+    const daftarKelas = [...new Set(masterSiswa.map(s => s.kelas))].sort();
+
+    if (daftarKelas.length === 0) {
+      selectKelas.innerHTML = '<option disabled selected>Data siswa kosong</option>';
+      return;
+    }
+
+    let html = '<option value="" disabled selected>-- Pilih Kelas --</option>';
+    daftarKelas.forEach(k => {
+      html += `<option value="${k}">${k}</option>`;
+    });
+    selectKelas.innerHTML = html;
+  }
+
+  function onKelasChange() {
+    const kelasSelected = document.getElementById('selectKelas').value;
+    const selectSiswa = document.getElementById('selectSiswa');
+
+    const siswaDiKelas = masterSiswa.filter(s => s.kelas === kelasSelected);
+    siswaDiKelas.sort((a,b) => a.nama.localeCompare(b.nama));
+
+    let html = '<option value="" disabled selected>-- Pilih Namamu --</option>';
+    siswaDiKelas.forEach(s => {
+      html += `<option value="${s.nama}">${s.nama}</option>`;
+    });
+
+    selectSiswa.innerHTML = html;
+    selectSiswa.disabled = false;
+    document.getElementById('kuisContainer').innerHTML = `
+      <div class="empty-state">
+        ◈ Silakan pilih nama Anda untuk menampilkan data kuis.
+      </div>`;
+  }
+
+  async function muatKuisSiswa() {
+    const kelas = document.getElementById('selectKelas').value;
+    const siswa = document.getElementById('selectSiswa').value;
+    const container = document.getElementById('kuisContainer');
+
+    container.innerHTML = `<div class="empty-state">⏳ Memuat riwayat kuis dari Spreadsheet...</div>`;
+
+    try {
+      // Mengambil data kuis khusus siswa dari Apps Script
+      const res = await fetch(`${APPS_SCRIPT_URL}?action=get-kuis-siswa&kelas=${encodeURIComponent(kelas)}&nama=${encodeURIComponent(siswa)}&_=${Date.now()}`);
+      dataKuisSiswa = await res.json();
+
+      renderListKuis();
+    } catch (err) {
+      container.innerHTML = `
+        <div class="empty-state" style="color:var(--red);">
+          ⚠️ Gagal memuat data kuis. Coba refresh halaman.
+        </div>`;
+    }
+  }
+
+  function renderListKuis() {
+    const container = document.getElementById('kuisContainer');
+    
+    if (!dataKuisSiswa || dataKuisSiswa.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          🟢 Belum ada catatan kuis harian yang perlu diisi/divalidasi untuk nama ini.
+        </div>`;
+      return;
+    }
+
+    container.innerHTML = '';
+    dataKuisSiswa.forEach((item, index) => {
+      const isFilled = item.catatan && item.catatan.trim().length > 0;
+      
+      // Penentuan Status Validasi
+      let statusHtml = '';
+      if (item.statusOverride === 'Dibatalkan Guru') {
+        statusHtml = `<span class="status-tag st-batal">❌ Dibatalkan oleh Guru</span>`;
+      } else if (isFilled) {
+        statusHtml = `<span class="status-tag st-valid">✅ Valid (Telah Diisi & Diakui)</span>`;
+      } else {
+        statusHtml = `<span class="status-tag st-pending">⏳ Menunggu Pengisian Siswa</span>`;
+      }
+
+      // Skor badge
+      let badgeClass = 'skor-0';
+      if (item.skor == '1') badgeClass = 'skor-1';
+      else if (item.skor == '0.5') badgeClass = 'skor-05';
+
+      const card = document.createElement('div');
+      card.className = 'kuis-card';
+      card.innerHTML = `
+        <div class="kuis-header">
+          <div>
+            <div class="kuis-date">📅 ${item.tanggal} — Pertemuan ${item.idJadwal || ''}</div>
+            ${statusHtml}
+          </div>
+          <span class="skor-badge ${badgeClass}">SKOR: ${item.skor}</span>
+        </div>
+        <div style="margin-top:12px;">
+          <label for="catatan-${index}">Pertanyaan & Jawaban Kuis Anda:</label>
+          <textarea id="catatan-${index}" placeholder="Contoh: Pertanyaan: Sebutkan fungsi Mitokondria? Jawaban saya: Sebagai tempat penghasil energi (ATP) sel." ${item.statusOverride === 'Dibatalkan Guru' ? 'disabled' : ''}>${item.catatan || ''}</textarea>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <button type="button" class="btn-simpan" id="btnSimpan-${index}" onclick="simpanCatatan(${index})" ${item.statusOverride === 'Dibatalkan Guru' ? 'disabled' : ''}>
+              ${isFilled ? 'Perbarui Refleksi' : 'Simpan & Validasi'}
+            </button>
+            <span id="msgStatus-${index}" style="font-family:'Share Tech Mono'; font-size:12px; margin-top:8px;"></span>
+          </div>
+        </div>
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  async function simpanCatatan(idx) {
+    const item = dataKuisSiswa[idx];
+    const textarea = document.getElementById(`catatan-${idx}`);
+    const btn = document.getElementById(`btnSimpan-${idx}`);
+    const msg = document.getElementById(`msgStatus-${idx}`);
+
+    const teksBaru = textarea.value.trim();
+
+    if (!teksBaru) {
+      msg.style.color = 'var(--red)';
+      msg.textContent = 'Isi rincian kuis terlebih dahulu!';
+      return;
+    }
+
+    btn.disabled = true;
+    msg.style.color = 'var(--cyan)';
+    msg.textContent = 'Menyimpan ke Spreadsheet...';
+
+    const payload = {
+      action: 'update-catatan-kuis',
+      rowId: item.rowId, // Baris unik di spreadsheet
+      catatan: teksBaru,
+      nama: item.namaSiswa,
+      kelas: item.kelas
+    };
+
+    try {
+      await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      });
+
+      msg.style.color = 'var(--green)';
+      msg.textContent = 'Tersimpan & Valid ✓';
+      item.catatan = teksBaru;
+      
+      setTimeout(() => {
+        renderListKuis();
+      }, 1200);
+
+    } catch (err) {
+      msg.style.color = 'var(--red)';
+      msg.textContent = 'Gagal menyimpan. Coba lagi.';
+      btn.disabled = false;
+    }
+  }
+</script>
+</body>
+</html>
