@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>J.A.R.V.I.S. // MONITOR KUIS GURU</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #03070f; 
+    --bg2: #050d1a;
+    --panel: rgba(8,22,40,.65); 
+    --panel-solid: #08182b;
+    --border: rgba(70,190,255,.28); 
+    --border-strong: rgba(90,220,255,.55);
+    --cyan: #4fe6ff; 
+    --cyan-soft: #8fefff; 
+    --cyan-dim: #1f7fa3;
+    --amber: #ffb020; 
+    --red: #ff4d6a; 
+    --green: #34ff9e; 
+    --blue: #5aa7ff;
+    --text: #d3edff; 
+    --text-dim: #5f84a8; 
+    --text-faint: #3a5470;
+    --radius: 8px;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    background:
+      radial-gradient(ellipse at 20% -10%, rgba(30,100,150,.18), transparent 55%),
+      radial-gradient(ellipse at 100% 10%, rgba(255,120,60,.06), transparent 45%),
+      var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    min-height: 100vh;
+    position: relative;
+    padding: 32px 16px 100px;
+  }
+
+  body::before {
+    content: ""; position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(79,230,255,.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(79,230,255,.035) 1px, transparent 1px);
+    background-size: 42px 42px; pointer-events: none; z-index: 0;
+    mask-image: radial-gradient(ellipse at 50% 0%, black 0%, transparent 75%);
+  }
+
+  body::after {
+    content: ""; position: fixed; inset: 0;
+    background: repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0, rgba(0,0,0,0) 3px, rgba(0,0,0,.14) 4px);
+    pointer-events: none; z-index: 5; opacity: .3;
+  }
+
+  .page {
+    position: relative; z-index: 1;
+    max-width: 860px;
+    margin: 0 auto;
+  }
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--cyan-soft);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    padding: 7px 16px;
+    border-radius: 999px;
+    margin-bottom: 20px;
+  }
+  .tag::before {
+    content: "";
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--amber);
+    box-shadow: 0 0 8px var(--amber);
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.35;} }
+
+  header h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: clamp(20px, 3.4vw, 27px);
+    letter-spacing: 1.5px;
+    line-height: 1.3;
+    margin: 0 0 8px;
+    color: var(--cyan-soft);
+    text-shadow: 0 0 18px rgba(79,230,255,.35);
+    text-transform: uppercase;
+  }
+  header p {
+    margin: 0 0 24px;
+    color: var(--text-dim);
+    font-size: 15px;
+  }
+
+  /* AUTH STATUS BAR */
+  #auth-statusbar {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; background: rgba(52,255,158,.05);
+    border: 1px solid rgba(52,255,158,.22); border-radius: 6px;
+    padding: 9px 14px; margin-bottom: 20px; font-family: 'Share Tech Mono', monospace;
+  }
+  .auth-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: #34ff9e;
+    box-shadow: 0 0 8px #34ff9e; flex-shrink: 0; animation: pulse 2s ease-in-out infinite;
+  }
+  .auth-status-text { font-size: 11.5px; letter-spacing: .1em; color: #34ff9e; text-transform: uppercase; }
+  .auth-status-sub { font-size: 10.5px; color: #3a6a3a; letter-spacing: .05em; margin-top: 1px; }
+  .auth-logout-btn {
+    font-family: 'Orbitron', sans-serif; font-size: 9.5px; font-weight: 700;
+    letter-spacing: .13em; text-transform: uppercase; color: #ff4d6a;
+    background: rgba(255,77,106,.07); border: 1px solid rgba(255,77,106,.35);
+    border-radius: 999px; padding: 6px 14px; cursor: pointer; transition: .15s;
+  }
+  .auth-logout-btn:hover { background: rgba(255,77,106,.15); border-color: rgba(255,77,106,.7); }
+
+  /* FILTER CONTAINER */
+  .filter-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    backdrop-filter: blur(8px);
+    margin-bottom: 24px;
+  }
+  .filter-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
+  }
+
+  label {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--cyan);
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  select, input {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 500;
+    font-size: 14.5px;
+    color: var(--text);
+    background: rgba(79,230,255,.04);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 9px 12px;
+    width: 100%;
+  }
+  select option { background-color: #08182b; color: #d3edff; }
+
+  /* CARD KUIS */
+  .kuis-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    margin-bottom: 14px;
+    backdrop-filter: blur(6px);
+    position: relative;
+  }
+  .kuis-card.is-canceled {
+    border-color: rgba(255,77,106,.4);
+    background: rgba(255,77,106,.03);
+  }
+
+  .kuis-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(79,230,255,.12);
+    padding-bottom: 10px;
+    margin-bottom: 12px;
+  }
+  .siswa-info {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--cyan-soft);
+  }
+  .siswa-kelas {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .skor-badge {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-weight: 700;
+  }
+  .skor-1 { background: rgba(52,255,158,.15); color: var(--green); border: 1px solid var(--green); }
+  .skor-05 { background: rgba(255,176,32,.15); color: var(--amber); border: 1px solid var(--amber); }
+  .skor-0 { background: rgba(255,77,106,.15); color: var(--red); border: 1px solid var(--red); }
+
+  .refleksi-box {
+    background: rgba(0,0,0,.25);
+    border: 1px solid rgba(79,230,255,.1);
+    border-radius: 4px;
+    padding: 10px 12px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+  .refleksi-empty {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12.5px;
+    color: var(--amber);
+    font-style: italic;
+  }
+
+  .card-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .btn-batal {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--red);
+    background: rgba(255,77,106,.08);
+    border: 1px solid rgba(255,77,106,.35);
+    border-radius: 4px;
+    padding: 7px 14px;
+    cursor: pointer;
+    transition: .15s;
+  }
+  .btn-batal:hover { background: rgba(255,77,106,.2); border-color: var(--red); }
+
+  .btn-pulihkan {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--green);
+    background: rgba(52,255,158,.08);
+    border: 1px solid rgba(52,255,158,.35);
+    border-radius: 4px;
+    padding: 7px 14px;
+    cursor: pointer;
+    transition: .15s;
+  }
+  .btn-pulihkan:hover { background: rgba(52,255,158,.2); border-color: var(--green); }
+
+  .status-pill {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+  .pill-valid { background: rgba(52,255,158,.1); color: var(--green); border: 1px solid rgba(52,255,158,.3); }
+  .pill-batal { background: rgba(255,77,106,.1); color: var(--red); border: 1px solid rgba(255,77,106,.3); }
+  .pill-pending { background: rgba(255,176,32,.1); color: var(--amber); border: 1px solid rgba(255,176,32,.3); }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--text-dim);
+    background: var(--panel);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+  }
+
+  /* LOGIN OVERLAY */
+  #login-overlay {
+    position: fixed; inset: 0; z-index: 99999;
+    background: radial-gradient(ellipse at 20% -10%, rgba(30,100,150,.22), transparent 55%), #03070f;
+    display: flex; align-items: center; justify-content: center; flex-direction: column;
+  }
+  .login-box {
+    background: rgba(8,22,40,.7); border: 1px solid rgba(79,230,255,.32);
+    border-radius: 10px; padding: 40px 36px; width: 100%; max-width: 360px; text-align: center;
+  }
+  .login-title { font-family: 'Orbitron', sans-serif; font-size: 16px; color: var(--cyan); margin-bottom: 20px; }
+  .login-input {
+    width: 100%; padding: 11px; background: rgba(4,14,28,.8); border: 1px solid var(--border);
+    border-radius: 5px; color: #d3edff; font-family: 'Share Tech Mono', monospace; font-size: 15px; margin-bottom: 12px;
+  }
+  .login-btn {
+    width: 100%; padding: 12px; background: var(--cyan); color: #03070f; font-family: 'Orbitron', sans-serif;
+    font-weight: 700; border: none; border-radius: 5px; cursor: pointer;
+  }
+
+  /* NAV BAR */
+  .jarvis-nav {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 9999;
+    display: flex; gap: 8px; background: rgba(4,14,28,.85); border: 1px solid rgba(79,230,255,.38);
+    border-radius: 999px; padding: 8px 14px; backdrop-filter: blur(16px);
+    box-shadow: 0 0 28px rgba(79,230,255,.14), 0 6px 32px rgba(0,0,0,.7);
+  }
+  .jarvis-nav a {
+    display: flex; align-items: center; gap: 7px;
+    font-family: 'Share Tech Mono','Courier New',monospace;
+    font-size: 11.5px; letter-spacing: .12em; text-transform: uppercase;
+    color: #4a7fa0; text-decoration: none;
+    padding: 7px 16px; border-radius: 999px;
+    border: 1px solid transparent;
+    transition: color .2s, border-color .2s, background .2s, box-shadow .2s;
+    white-space: nowrap;
+  }
+  .jarvis-nav a:hover {
+    color: #4fe6ff;
+    border-color: rgba(79,230,255,.45);
+    background: rgba(79,230,255,.08);
+  }
+  body { padding-bottom: 80px !important; }
+
+  @media(max-width:600px){
+    .filter-grid { grid-template-columns: 1fr; }
+  }
+  @media(max-width:520px){
+    .jarvis-nav { bottom: 12px; padding: 6px 8px; gap: 4px; }
+    .jarvis-nav a { padding: 6px 10px; font-size: 10px; gap: 5px; }
+    .jarvis-nav a .nav-label { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN OVERLAY -->
+<div id="login-overlay">
+  <div class="login-box">
+    <div class="login-title">PANEL GURU // MONITOR KUIS</div>
+    <input class="login-input" type="password" id="pwd-input" placeholder="Masukkan Password Guru" />
+    <div id="login-error" style="color:var(--red); font-family:'Share Tech Mono'; font-size:11px; display:none; margin-bottom:10px;">⚠ Password salah!</div>
+    <button class="login-btn" onclick="doLogin()">MASUK PORTAL →</button>
+  </div>
+</div>
+
+<div class="page">
+  <header>
+    <span class="tag">J.A.R.V.I.S. // DASHBOARD MODERASI GURU</span>
+    <h1>Monitor & Validasi Kuis Siswa</h1>
+    <p>Pantau hasil deskripsi kuis harian yang diisi siswa secara real-time dan batalkan validitas jika isian tidak sesuai.</p>
+  </header>
+
+  <!-- AUTH STATUS BAR -->
+  <div id="auth-statusbar">
+    <div style="display:flex; align-items:center; gap:10px;">
+      <div class="auth-dot"></div>
+      <div>
+        <div class="auth-status-text">▣ Sesi Moderasi Guru Aktif</div>
+        <div class="auth-status-sub" id="auth-waktu-login">Memuat...</div>
+      </div>
+    </div>
+    <button class="auth-logout-btn" onclick="doLogout()">⏻ Keluar</button>
+  </div>
+
+  <!-- FILTER CONTROLS -->
+  <div class="filter-box">
+    <div class="filter-grid">
+      <div>
+        <label for="filterKelas">Filter Kelas</label>
+        <select id="filterKelas" onchange="muatDataKuisGuru()">
+          <option value="SEMUA">Semua Kelas</option>
+        </select>
+      </div>
+      <div>
+        <label for="filterStatus">Status Validitas</label>
+        <select id="filterStatus" onchange="terapkanFilterLokal()">
+          <option value="SEMUA">Semua Status</option>
+          <option value="VALID">✅ Valid (Sudah Diisi)</option>
+          <option value="PENDING">⏳ Belum Diisi Siswa</option>
+          <option value="DIBATALKAN">❌ Dibatalkan Guru</option>
+        </select>
+      </div>
+      <div>
+        <label for="filterTanggal">Tanggal Spesifik</label>
+        <input type="date" id="filterTanggal" onchange="muatDataKuisGuru()" />
+      </div>
+    </div>
+  </div>
+
+  <!-- KUIS MONITOR LIST -->
+  <div id="monitorContainer">
+    <div class="empty-state">⏳ Memuat data kuis siswa...</div>
+  </div>
+</div>
+
+<!-- NAVIGASI ASLI J.A.R.V.I.S. -->
+<nav class="jarvis-nav">
+  <a href="https://erys7pro-pems.github.io/Perangkat-Ajar-Digital/dashboard.html">⬡ <span class="nav-label">Dashboard</span></a>
+  <a href="https://erys7pro-pems.github.io/Perangkat-Ajar-Digital/kegiatan-akan-datang.html">◈ <span class="nav-label">Agenda</span></a>
+  <a href="https://erys7pro-pems.github.io/Perangkat-Ajar-Digital/PROMES_XI_BIO.html">◉ <span class="nav-label">Promes XI</span></a>
+</nav>
+
+<script>
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxQRNsIZtMSnqqLBNBa3V0_CaEUaC1SQjNr8kgOlW7e-k7Ss8-5RDRBOZj27dwVvBn2/exec";
+  const CORRECT_PASSWORD = "SAYAGURUICLT";
+  const SESSION_KEY = "jarvis_auth_guru_kuis";
+
+  let masterKuis = [];
+
+  // --- LOGIN GUARD ---
+  function doLogin() {
+    const input = document.getElementById('pwd-input');
+    if (input.value === CORRECT_PASSWORD) {
+      sessionStorage.setItem(SESSION_KEY, "1");
+      sessionStorage.setItem(SESSION_KEY + '_waktu', new Date().toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}));
+      document.getElementById('login-overlay').remove();
+      initPage();
+    } else {
+      document.getElementById('login-error').style.display = 'block';
+    }
+  }
+
+  function doLogout() {
+    if (!confirm('Keluar dari panel moderasi guru?')) return;
+    sessionStorage.removeItem(SESSION_KEY);
+    location.reload();
+  }
+
+  document.getElementById('pwd-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
+
+  if (sessionStorage.getItem(SESSION_KEY) === "1") {
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('login-overlay').remove();
+      initPage();
+    });
+  }
+
+  // --- INIT DATA ---
+  async function initPage() {
+    document.getElementById('auth-waktu-login').textContent = 'Sesi Aktif sejak ' + (sessionStorage.getItem(SESSION_KEY + '_waktu') || 'baru saja');
+    
+    try {
+      const res = await fetch(APPS_SCRIPT_URL);
+      const data = await res.json();
+      const kelasList = [...new Set((data.siswa || []).map(s => s.kelas))].sort();
+      
+      const selKelas = document.getElementById('filterKelas');
+      kelasList.forEach(k => {
+        const opt = document.createElement('option');
+        opt.value = k; opt.textContent = k;
+        selKelas.appendChild(opt);
+      });
+    } catch(e){}
+
+    muatDataKuisGuru();
+  }
+
+  async function muatDataKuisGuru() {
+    const container = document.getElementById('monitorContainer');
+    const kelas = document.getElementById('filterKelas').value;
+    const tanggal = document.getElementById('filterTanggal').value;
+
+    container.innerHTML = '<div class="empty-state">⏳ Memuat data kuis dari Spreadsheet...</div>';
+
+    try {
+      const res = await fetch(`${APPS_SCRIPT_URL}?action=get-kuis-guru&kelas=${encodeURIComponent(kelas)}&tanggal=${encodeURIComponent(tanggal)}&_=${Date.now()}`);
+      masterKuis = await res.json();
+      terapkanFilterLokal();
+    } catch (err) {
+      container.innerHTML = '<div class="empty-state" style="color:var(--red);">⚠️ Gagal memuat data dari Spreadsheet.</div>';
+    }
+  }
+
+  function terapkanFilterLokal() {
+    const statusFilter = document.getElementById('filterStatus').value;
+    const container = document.getElementById('monitorContainer');
+
+    let filtered = masterKuis.filter(item => {
+      const isFilled = item.catatan && item.catatan.trim().length > 0;
+      const isCanceled = item.statusOverride === 'Dibatalkan Guru';
+
+      if (statusFilter === 'VALID') return isFilled && !isCanceled;
+      if (statusFilter === 'PENDING') return !isFilled && !isCanceled;
+      if (statusFilter === 'DIBATALKAN') return isCanceled;
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      container.innerHTML = '<div class="empty-state">🟢 Tidak ada data kuis harian yang sesuai filter.</div>';
+      return;
+    }
+
+    container.innerHTML = '';
+    filtered.forEach((item) => {
+      const isFilled = item.catatan && item.catatan.trim().length > 0;
+      const isCanceled = item.statusOverride === 'Dibatalkan Guru';
+
+      let statusBadge = '';
+      if (isCanceled) {
+        statusBadge = '<span class="status-pill pill-batal">❌ Dibatalkan Guru</span>';
+      } else if (isFilled) {
+        statusBadge = '<span class="status-pill pill-valid">✅ Valid</span>';
+      } else {
+        statusBadge = '<span class="status-pill pill-pending">⏳ Belum Diisi Siswa</span>';
+      }
+
+      let badgeSkor = 'skor-0';
+      if (item.skor == '1') badgeSkor = 'skor-1';
+      else if (item.skor == '0.5') badgeSkor = 'skor-05';
+
+      const card = document.createElement('div');
+      card.className = `kuis-card ${isCanceled ? 'is-canceled' : ''}`;
+      card.innerHTML = `
+        <div class="kuis-meta">
+          <div>
+            <div class="siswa-info">${item.namaSiswa}</div>
+            <div class="siswa-kelas">Kelas ${item.kelas} &nbsp;·&nbsp; 📅 ${item.tanggal} &nbsp;·&nbsp; Pertemuan ${item.idJadwal || '-'}</div>
+          </div>
+          <div style="text-align:right;">
+            <span class="skor-badge ${badgeSkor}">SKOR: ${item.skor}</span>
+            <div style="margin-top:6px;">${statusBadge}</div>
+          </div>
+        </div>
+
+        <div class="refleksi-box">
+          <strong style="color:var(--cyan); font-size:11px; text-transform:uppercase; font-family:'Orbitron';">Deskripsi / Refleksi Siswa:</strong><br>
+          ${isFilled ? item.catatan : '<span class="refleksi-empty">(Siswa belum melengkapi deskripsi pertanyaan/jawaban)</span>'}
+        </div>
+
+        <div class="card-actions">
+          <span style="font-family:'Share Tech Mono'; font-size:11px; color:var(--text-faint);">Baris Sheet #${item.rowId}</span>
+          <div>
+            ${isCanceled ? 
+              `<button class="btn-pulihkan" onclick="ubahStatusKuis(${item.rowId}, '')">↺ Pulihkan Validitas</button>` : 
+              `<button class="btn-batal" onclick="ubahStatusKuis(${item.rowId}, 'Dibatalkan Guru')">✕ Batalkan Validitas</button>`
+            }
+          </div>
+        </div>
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  async function ubahStatusKuis(rowId, statusBaru) {
+    if (statusBaru === 'Dibatalkan Guru' && !confirm('Batalkan validitas isian kuis siswa ini? Isian siswa akan terkunci di portal mereka.')) return;
+
+    try {
+      await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'toggle-status-kuis',
+          rowId: rowId,
+          status: statusBaru
+        })
+      });
+
+      const target = masterKuis.find(k => k.rowId === rowId);
+      if (target) target.statusOverride = statusBaru;
+
+      terapkanFilterLokal();
+    } catch (err) {
+      alert('Gagal mengubah status validitas.');
+    }
+  }
+</script>
+</body>
+</html>
