@@ -81,6 +81,14 @@ header{position:sticky;top:0;z-index:20;background:var(--hdr);color:var(--hdr-in
 .menu-del:hover{opacity:1;color:#ff8077;}
 #add-menu-btn{flex-shrink:0;padding:8px 14px;border:0;background:transparent;color:var(--hdr-muted);cursor:pointer;font-size:14px;font-weight:600;}
 #add-menu-btn:hover{color:#fff;}
+/* Status ring di pojok kanan atas tab menu: oranye = pengumuman baru, biru = panel baru (header selalu gelap, jadi warna terang) */
+:root{--ring-ann:#ffa726;--ring-pan:#62c2ff;}
+.menu-ring{position:absolute;top:3px;right:3px;width:14px;height:14px;pointer-events:none;line-height:0;}
+.menu-ring svg{width:100%;height:100%;display:block;transform:rotate(-90deg);overflow:visible;}
+.menu-ring .rg-ann{stroke:var(--ring-ann);} .menu-ring .rg-pan{stroke:var(--ring-pan);}
+.menu-ring circle{animation:ringPulse 2.4s ease-in-out infinite;}
+@keyframes ringPulse{0%,100%{opacity:.72;}50%{opacity:1;}}
+.menu-tab.has-ring{padding-right:22px;}
 .menu-tab[draggable="true"]{cursor:grab;}
 .menu-tab.dragging{opacity:.4;}
 .menu-tab.drag-over{background:rgba(255,255,255,.18);}
@@ -284,6 +292,7 @@ main{padding:24px 16px 64px;max-width:1100px;margin:0 auto;}
   .brand h1{font-size:21px;}
 }
 @media (prefers-reduced-motion: reduce){
+  .menu-ring circle{animation:none !important;}
   .modal-overlay,.modal-overlay .modal,.modal-overlay .lightbox-wrap{animation:none !important;transition:none !important;}
   .menu-tab,.layout-open,.lp-btn{transition:none !important;}
   .panels-grid.menu-switch,#app.role-switch,.panel-card.flash::after,.dot.sync{animation:none !important;}
@@ -660,6 +669,34 @@ main{padding:24px 16px 64px;max-width:1100px;margin:0 auto;}
   }
 
   // ---- Render ----
+  // ---- Status ring di pojok kanan atas tab menu: oranye = ada pengumuman baru, biru = ada panel baru ----
+  // "Baru" mengikuti aturan yang sama dengan label BARU! dan feed Pembaruan (3 hari, terlihat murid).
+  function menuNewCounts(){
+    var c = {};
+    function slot(id){ return c[id] || (c[id] = {ann:0, pan:0}); }
+    updateItems().forEach(function(it){ if(it.kind==='panel') slot(it.menuId).pan++; });
+    state.panels.forEach(function(p){
+      if(p.type==='announcement' && isFresh(p) && !isExpired(p) && panelEff(p)) slot(p.menuId).ann++;
+    });
+    return c;
+  }
+  function menuRingHtml(cnt){
+    if(!cnt || (!cnt.ann && !cnt.pan)) return '';
+    var R = 4.6, C = 2*Math.PI*R, label = [];
+    if(cnt.ann) label.push(cnt.ann+' pengumuman baru');
+    if(cnt.pan) label.push(cnt.pan+' panel baru');
+    var circles;
+    if(cnt.ann && cnt.pan){ // dua busur setengah lingkaran (oranye di kanan, biru di kiri) dengan celah kecil
+      var seg = (C/2 - 1.6).toFixed(2), gap = (C - (C/2 - 1.6)).toFixed(2);
+      circles = '<circle class="rg-ann" cx="6" cy="6" r="'+R+'" stroke-dasharray="'+seg+' '+gap+'"/>'+
+                '<circle class="rg-pan" cx="6" cy="6" r="'+R+'" stroke-dasharray="'+seg+' '+gap+'" stroke-dashoffset="-'+(C/2).toFixed(2)+'"/>';
+    } else {
+      circles = '<circle class="'+(cnt.ann ? 'rg-ann' : 'rg-pan')+'" cx="6" cy="6" r="'+R+'"/>';
+    }
+    return '<span class="menu-ring" role="img" aria-label="'+label.join(', ')+'" title="'+label.join(' \u00b7 ')+'"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.4">'+circles+'</svg></span>';
+  }
+  function hasRing(cnt){ return !!(cnt && (cnt.ann || cnt.pan)); }
+
   // ---- Animasi pergeseran halus (teknik FLIP): elemen yang berpindah posisi meluncur dari posisi lama ke baru ----
   function flipSnapshot(root, selector, attr){
     var m = {};
@@ -706,13 +743,14 @@ main{padding:24px 16px 64px;max-width:1100px;margin:0 auto;}
     if(state.menus.length && !state.menus.some(function(m){ return m.id===state.activeMenu; })) state.activeMenu = state.menus[0].id;
     var menusList = g ? state.menus : state.menus.filter(function(m){ return viewerAllowedAccess().indexOf(itemAccess(m))!==-1; });
     if(!menusList.some(function(m){ return m.id===state.activeMenu; })) state.activeMenu = menusList.length ? menusList[0].id : null;
+    var ringCounts = menuNewCounts();
     var menusHtml = menusList.map(function(m){
       var idx = state.menus.indexOf(m);
       var arrows = (g && m.id===state.activeMenu) ?
         '<span class="menu-move'+(idx<=0?' disabled':'')+'" data-movemenu="left" data-id="'+m.id+'" title="Geser menu ke kiri">\u25c0</span>'+
         '<span class="menu-move'+(idx>=state.menus.length-1?' disabled':'')+'" data-movemenu="right" data-id="'+m.id+'" title="Geser menu ke kanan">\u25b6</span>' : '';
       var mAcc = itemAccess(m);
-      return '<div role="button" tabindex="0" class="menu-tab'+(m.id===state.activeMenu?' active':'')+(g&&mAcc==='teacher'?' teacher-only':'')+(g&&mAcc==='staff'?' staff-only':'')+'"'+(g?' draggable="true" title="Seret untuk mengubah urutan menu"':'')+' data-switch="'+m.id+'" data-key="m'+m.id+'">'+esc(m.name)+newTag(m.newAt, mAcc==='student')+arrows+(g?visToggle('menu',m.id,mAcc)+'<span class="menu-del" data-delmenu="'+m.id+'">\u00d7</span>':'')+'</div>';
+      return '<div role="button" tabindex="0" class="menu-tab'+(m.id===state.activeMenu?' active':'')+(g&&mAcc==='teacher'?' teacher-only':'')+(g&&mAcc==='staff'?' staff-only':'')+(hasRing(ringCounts[m.id])?' has-ring':'')+'"'+(g?' draggable="true" title="Seret untuk mengubah urutan menu"':'')+' data-switch="'+m.id+'" data-key="m'+m.id+'">'+esc(m.name)+newTag(m.newAt, mAcc==='student')+arrows+(g?visToggle('menu',m.id,mAcc)+'<span class="menu-del" data-delmenu="'+m.id+'">\u00d7</span>':'')+menuRingHtml(ringCounts[m.id])+'</div>';
     }).join('');
     var histCount = historyItems().length;
     // Pengumuman yang sudah lewat batas waktu dipindahkan ke riwayat (tidak tampil di papan)
