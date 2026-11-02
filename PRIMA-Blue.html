@@ -680,18 +680,29 @@ main{padding:24px 16px 64px;max-width:1100px;margin:0 auto;}
     });
     return c;
   }
+  var RING_MAX_SEG = 12; // batas jumlah garis agar tetap terbaca di ring kecil; angka sebenarnya selalu ada di tooltip
   function menuRingHtml(cnt){
     if(!cnt || (!cnt.ann && !cnt.pan)) return '';
     var R = 4.6, C = 2*Math.PI*R, label = [];
     if(cnt.ann) label.push(cnt.ann+' pengumuman baru');
     if(cnt.pan) label.push(cnt.pan+' panel baru');
-    var circles;
-    if(cnt.ann && cnt.pan){ // dua busur setengah lingkaran (oranye di kanan, biru di kiri) dengan celah kecil
-      var seg = (C/2 - 1.6).toFixed(2), gap = (C - (C/2 - 1.6)).toFixed(2);
-      circles = '<circle class="rg-ann" cx="6" cy="6" r="'+R+'" stroke-dasharray="'+seg+' '+gap+'"/>'+
-                '<circle class="rg-pan" cx="6" cy="6" r="'+R+'" stroke-dasharray="'+seg+' '+gap+'" stroke-dashoffset="-'+(C/2).toFixed(2)+'"/>';
+    // satu garis (busur) untuk tiap pengumuman/panel baru: oranye dulu, lalu biru, searah jarum jam dari atas
+    var nAnn = cnt.ann, nPan = cnt.pan, total = nAnn + nPan;
+    if(total > RING_MAX_SEG){ // terlalu banyak untuk digambar satu per satu: bagi proporsional, masing-masing minimal 1 garis
+      nAnn = Math.round(RING_MAX_SEG * cnt.ann / total);
+      if(cnt.ann && !nAnn) nAnn = 1;
+      if(cnt.pan && nAnn >= RING_MAX_SEG) nAnn = RING_MAX_SEG - 1;
+      nPan = RING_MAX_SEG - nAnn;
+      total = RING_MAX_SEG;
+    }
+    var circles = '';
+    if(total === 1){
+      circles = '<circle class="'+(nAnn ? 'rg-ann' : 'rg-pan')+'" cx="6" cy="6" r="'+R+'"/>';
     } else {
-      circles = '<circle class="'+(cnt.ann ? 'rg-ann' : 'rg-pan')+'" cx="6" cy="6" r="'+R+'"/>';
+      var gap = total <= 6 ? 1.8 : 1.1, step = C / total, len = (step - gap).toFixed(2);
+      for(var i=0; i<total; i++){
+        circles += '<circle class="'+(i < nAnn ? 'rg-ann' : 'rg-pan')+'" cx="6" cy="6" r="'+R+'" stroke-dasharray="'+len+' '+(C - len).toFixed(2)+'" stroke-dashoffset="-'+(i*step + gap/2).toFixed(2)+'"/>';
+      }
     }
     return '<span class="menu-ring" role="img" aria-label="'+label.join(', ')+'" title="'+label.join(' \u00b7 ')+'"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.4">'+circles+'</svg></span>';
   }
