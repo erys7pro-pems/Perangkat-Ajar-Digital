@@ -740,12 +740,16 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
   }
 
   // ---- Render ----
-  // ---- Status ring di pojok kanan atas tab menu: oranye = ada pengumuman baru, biru = ada panel baru ----
-  // "Baru" mengikuti aturan yang sama dengan label BARU! dan feed Pembaruan (3 hari, terlihat murid).
+  // ---- Status ring di pojok kanan atas tab menu: oranye = pengumuman baru, biru = panel baru & sub-panel baru ----
+  // "Baru" mengikuti aturan yang sama dengan label Baru dan feed Pembaruan (3 hari, terlihat murid). Sub-panel yang dibuat bersamaan
+  // dengan panelnya tidak dihitung terpisah (panelnya sudah dihitung).
   function menuNewCounts(){
     var c = {};
-    function slot(id){ return c[id] || (c[id] = {ann:0, pan:0}); }
-    updateItems().forEach(function(it){ if(it.kind==='panel') slot(it.menuId).pan++; });
+    function slot(id){ return c[id] || (c[id] = {ann:0, pan:0, sub:0}); }
+    updateItems().forEach(function(it){
+      if(it.kind==='panel') slot(it.menuId).pan++;
+      else if(it.kind==='sub') slot(it.menuId).sub++;
+    });
     state.panels.forEach(function(p){
       if(p.type==='announcement' && isFresh(p) && !isExpired(p) && panelEff(p)) slot(p.menuId).ann++;
     });
@@ -753,16 +757,18 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
   }
   var RING_MAX_SEG = 12; // batas jumlah garis agar tetap terbaca di ring kecil; angka sebenarnya selalu ada di tooltip
   function menuRingHtml(cnt){
-    if(!cnt || (!cnt.ann && !cnt.pan)) return '';
+    if(!hasRing(cnt)) return '';
     var R = 4.6, C = 2*Math.PI*R, label = [];
     if(cnt.ann) label.push(cnt.ann+' pengumuman baru');
     if(cnt.pan) label.push(cnt.pan+' panel baru');
-    // satu garis (busur) untuk tiap pengumuman/panel baru: oranye dulu, lalu biru, searah jarum jam dari atas
-    var nAnn = cnt.ann, nPan = cnt.pan, total = nAnn + nPan;
+    if(cnt.sub) label.push(cnt.sub+' sub-panel baru');
+    // satu garis (busur) untuk tiap pengumuman (oranye) dan tiap panel/sub-panel baru (biru): oranye dulu, lalu biru, searah jarum jam dari atas
+    var blue = cnt.pan + cnt.sub;
+    var nAnn = cnt.ann, nPan = blue, total = nAnn + nPan;
     if(total > RING_MAX_SEG){ // terlalu banyak untuk digambar satu per satu: bagi proporsional, masing-masing minimal 1 garis
       nAnn = Math.round(RING_MAX_SEG * cnt.ann / total);
       if(cnt.ann && !nAnn) nAnn = 1;
-      if(cnt.pan && nAnn >= RING_MAX_SEG) nAnn = RING_MAX_SEG - 1;
+      if(blue && nAnn >= RING_MAX_SEG) nAnn = RING_MAX_SEG - 1;
       nPan = RING_MAX_SEG - nAnn;
       total = RING_MAX_SEG;
     }
@@ -777,7 +783,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     }
     return '<span class="menu-ring" role="img" aria-label="'+label.join(', ')+'" title="'+label.join(' \u00b7 ')+'"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.4">'+circles+'</svg></span>';
   }
-  function hasRing(cnt){ return !!(cnt && (cnt.ann || cnt.pan)); }
+  function hasRing(cnt){ return !!(cnt && (cnt.ann || cnt.pan || cnt.sub)); }
 
   // ---- Animasi pergeseran halus (teknik FLIP): elemen yang berpindah posisi meluncur dari posisi lama ke baru ----
   function flipSnapshot(root, selector, attr){
