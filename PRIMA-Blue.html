@@ -81,6 +81,16 @@ header{position:sticky;top:0;z-index:20;background:var(--hdr);color:var(--hdr-in
 .menu-del:hover{opacity:1;color:#ff8077;}
 #add-menu-btn{flex-shrink:0;padding:8px 14px;border:0;background:transparent;color:var(--hdr-muted);cursor:pointer;font-size:14px;font-weight:600;}
 #add-menu-btn:hover{color:#fff;}
+/* Dropdown & notifikasi kecil */
+.modal select{width:100%;padding:9px 10px;border:1px solid var(--line-strong);border-radius:2px;background:var(--panel);color:var(--text);font-size:15px;}
+.modal select:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent);}
+.field-hint{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.5;}
+.field-hint.warn{color:var(--amber);font-weight:600;}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:300;display:flex;align-items:center;gap:14px;max-width:min(92vw,560px);padding:12px 16px;background:var(--panel);border:1px solid var(--line-strong);border-left:4px solid var(--accent);border-radius:2px;color:var(--text);font-size:14px;line-height:1.45;box-shadow:0 8px 28px rgba(0,0,0,.28);animation:toastIn .24s cubic-bezier(.22,.9,.32,1.1);}
+.toast.out{opacity:0;transform:translateX(-50%) translateY(8px);transition:opacity .2s,transform .2s;}
+.toast-act{flex-shrink:0;font-size:13px;font-weight:600;color:var(--accent);background:transparent;border:1px solid var(--accent);border-radius:2px;padding:6px 12px;cursor:pointer;}
+.toast-act:hover{background:var(--panel-2);}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(10px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
 /* Status ring di pojok kanan atas tab menu: oranye = pengumuman baru, biru = panel baru (header selalu gelap, jadi warna terang) */
 :root{--ring-ann:#ffa726;--ring-pan:#62c2ff;}
 .menu-ring{position:absolute;top:3px;right:3px;width:14px;height:14px;pointer-events:none;line-height:0;}
@@ -292,6 +302,7 @@ main{padding:24px 16px 64px;max-width:1100px;margin:0 auto;}
   .brand h1{font-size:21px;}
 }
 @media (prefers-reduced-motion: reduce){
+  .toast{animation:none !important;}
   .menu-ring circle{animation:none !important;}
   .modal-overlay,.modal-overlay .modal,.modal-overlay .lightbox-wrap{animation:none !important;transition:none !important;}
   .menu-tab,.layout-open,.lp-btn{transition:none !important;}
@@ -1083,6 +1094,9 @@ main{padding:24px 16px 64px;max-width:1100px;margin:0 auto;}
       if(fl.type==='textarea'){
         return '<label>'+fl.label+'</label><textarea data-f="'+fl.name+'" placeholder="'+(fl.placeholder||'')+'">'+esc(fl.value||'')+'</textarea>';
       }
+      if(fl.type==='select'){
+        return '<label>'+fl.label+'</label><select data-f="'+fl.name+'">'+(fl.options||[]).map(function(o){ return '<option value="'+esc(o.value)+'"'+(o.value===fl.value?' selected':'')+'>'+esc(o.label)+'</option>'; }).join('')+'</select>'+(fl.hint?'<div class="field-hint" data-hint="'+fl.name+'">'+esc(fl.hint)+'</div>':'');
+      }
       return '<label>'+fl.label+'</label><input data-f="'+fl.name+'" type="'+(fl.type||'text')+'" value="'+esc(fl.value||'')+'" placeholder="'+(fl.placeholder||'')+'">';
     }).join('');
     ov.innerHTML = '<div class="modal"><h4 class="hud-font">'+title+'</h4>'+(sub?'<div class="sub">'+sub+'</div>':'')+f+'<div class="modal-actions"><button class="btn" data-cancel>Batal</button><button class="btn btn-primary" data-save>'+(saveLabel||'Simpan')+'</button></div></div>';
@@ -1313,28 +1327,82 @@ main{padding:24px 16px 64px;max-width:1100px;margin:0 auto;}
     });
   }
 
+  // ---- Pindahkan panel ke menu lain (dropdown di pop-up edit panel) ----
+  var ACCESS_RANK = {student:0, staff:1, teacher:2};
+  function menuAccessSuffix(m){ var a = itemAccess(m); return a==='teacher' ? ' \u2014 khusus guru' : a==='staff' ? ' \u2014 khusus petugas' : ''; }
+  function moveFieldFor(p){
+    if(state.menus.length < 2) return null; // hanya ada satu menu: tidak ada tujuan lain
+    return {name:'menuId', label:'Pindahkan ke menu', type:'select', value:p.menuId,
+      options: state.menus.map(function(m){ return {value:m.id, label:m.name+menuAccessSuffix(m)+(m.id===p.menuId?' (saat ini)':'')}; }),
+      hint:'Panel dipindahkan ke akhir daftar panel di menu tujuan, lengkap dengan sub-panelnya.'};
+  }
+  // Peringatan langsung bila menu tujuan lebih terbatas aksesnya daripada panel (panel hanya terlihat jika menu & panelnya sama-sama terlihat)
+  function wireMoveHint(ov, p){
+    var sel = ov.querySelector('[data-f="menuId"]'), hint = ov.querySelector('[data-hint="menuId"]');
+    if(!sel || !hint) return;
+    var base = hint.textContent;
+    sel.addEventListener('change', function(){
+      var m = state.menus.find(function(x){ return x.id===sel.value; });
+      var pa = ACCESS_RANK[itemAccess(p)], ma = m ? ACCESS_RANK[itemAccess(m)] : 0, warn = '';
+      if(m && m.id!==p.menuId && ma > pa){
+        warn = ma===2 ? ' Menu tujuan khusus guru: panel ini tidak akan terlihat oleh murid maupun petugas.'
+                      : ' Menu tujuan khusus petugas: panel ini tidak akan terlihat oleh murid.';
+      }
+      hint.textContent = base + warn;
+      hint.classList.toggle('warn', !!warn);
+    });
+  }
+  function applyPanelMove(p, destId){
+    if(!destId || destId===p.menuId) return false;
+    var dest = state.menus.find(function(m){ return m.id===destId; });
+    if(!dest) return false;
+    p.menuId = destId; // newAt sengaja tidak diubah: memindahkan bukan membuat panel baru
+    state.panels = state.panels.filter(function(x){ return x!==p; });
+    state.panels.push(p);
+    showToast('Panel "'+p.title+'" dipindahkan ke menu "'+dest.name+'".', 'Buka menu', function(){ goToItem(destId, p.id); });
+    return true;
+  }
+  var toastTimer = null;
+  function showToast(text, actionLabel, onAction){
+    var old = document.querySelector('.toast'); if(old) old.remove();
+    clearTimeout(toastTimer);
+    var t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role','status');
+    t.innerHTML = '<span class="toast-msg"></span>'+(actionLabel ? '<button class="toast-act"></button>' : '');
+    t.querySelector('.toast-msg').textContent = text;
+    function hide(){ t.classList.add('out'); setTimeout(function(){ t.remove(); }, 220); }
+    if(actionLabel){ var b = t.querySelector('.toast-act'); b.textContent = actionLabel; b.onclick = function(){ hide(); if(onAction) onAction(); }; }
+    document.body.appendChild(t);
+    toastTimer = setTimeout(hide, 7000);
+  }
+
   function editPanelModal(panelId){
     if(!isGuru()) return;
     var p = state.panels.find(function(x){ return x.id===panelId; });
     if(!p) return;
+    var mf = moveFieldFor(p); // dropdown pindah menu: selalu paling atas
+    var lead = mf ? [mf] : [];
     if(p.type==='announcement'){
-      openModal('Edit panel pengumuman', 'Tanda "Baru" otomatis hilang setelah 3 hari. Setelah lewat batas waktu, pengumuman ditandai "Sudah diumumkan".', [
+      var ovA = openModal('Edit panel pengumuman', 'Tanda "Baru" otomatis hilang setelah 3 hari. Setelah lewat batas waktu, pengumuman ditandai "Sudah diumumkan".', lead.concat([
         {name:'title', label:'Judul pengumuman', placeholder:'Contoh: Libur Nasional', value:p.title},
         {name:'body', label:'Isi pengumuman', type:'textarea', placeholder:'Tulis isi pengumuman di sini...', value:p.body},
         {name:'deadline', label:'Batas waktu', type:'date', value:p.deadline||''}
-      ], function(v){
+      ]), function(v){
         if(!v.title) return;
         p.title = v.title; p.body = v.body; p.deadline = v.deadline||null;
+        applyPanelMove(p, v.menuId);
         save();
       }, 'Simpan perubahan');
+      wireMoveHint(ovA, p);
     } else {
-      openModal('Edit panel', null, [
+      var ovI = openModal('Edit panel', null, lead.concat([
         {name:'title', label:'Judul panel', placeholder:'Contoh: Bahan Bacaan', value:p.title}
-      ], function(v){
+      ]), function(v){
         if(!v.title) return;
         p.title = v.title;
+        applyPanelMove(p, v.menuId);
         save();
       }, 'Simpan perubahan');
+      wireMoveHint(ovI, p);
     }
   }
   function delPanel(id){
