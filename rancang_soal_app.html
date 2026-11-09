@@ -30,6 +30,10 @@ td input,td select,td textarea{border:0;background:transparent;padding:4px;min-h
 .pb{height:10px;background:var(--bd);border-radius:6px;overflow:hidden;min-width:80px}.pb i{display:block;height:100%;background:var(--ac)}
 .m{color:var(--mu);font-size:13px}.wr{color:var(--wr);font-weight:600}.ok{color:var(--ok);font-weight:600}
 .q{border:1px solid var(--bd);border-radius:8px;padding:12px;margin-bottom:10px}.q .h{font-size:12px;color:var(--mu);margin-bottom:6px}
+.q{position:relative;border:1px solid hsl(var(--c) 55% 50%);border-left-width:6px;background:hsl(var(--c) 70% 50%/.09)}
+.q .h{padding-right:42%}.q .bd{position:absolute;top:8px;right:8px;max-width:40%;background:hsl(var(--c) 65% 34%);color:#fff;font-size:11px;font-weight:600;line-height:1.3;padding:3px 9px;border-radius:5px}
+.q.nm{border-color:var(--bd);background:var(--card)}.q.nm .bd{background:var(--mu)}
+.lg{display:inline-block;color:#fff;font-size:11px;font-weight:600;padding:2px 9px;border-radius:5px;margin:2px 4px 2px 0}
 .o{display:grid;grid-template-columns:26px 1fr;gap:6px;align-items:center;margin-top:5px}
 </style>
 </head>
@@ -106,16 +110,17 @@ ${S.rows.map((r,i)=>`<tr><td>${noTxt(r,st[i])}</td>
 function ksum(){const e=$('#ksum');if(!e)return;const t=+S.meta.total||0,n=tot();e.innerHTML=`Total soal terencana: <b>${n}</b>${t?` dari target ${t} (<span class="${n===t?'ok':'wr'}">${n-t>0?'+':''}${n-t}</span>)`:''} · Total skor: <b>${S.rows.reduce((a,r)=>a+J(r)*(+r.skor||0),0)}</b>`}
 
 /* 3 INPUT SOAL */
+const hc=m=>{const i=S.materi.indexOf((m||'').trim()),n=S.materi.length;return i<0?null:Math.round(210-210*(n>1?i/(n-1):0))};
 function r2(){if(!S.rows.length){$('#t2').innerHTML='<div class="card">Susun kisi-kisi dulu pada tab 2.</div>';return}
 const st=starts();let done=0;
 const body=S.rows.map((r,ri)=>{const arr=S.soal[r.id]=S.soal[r.id]||[];let h='';
 for(let i=0;i<J(r);i++){const q=arr[i]=arr[i]||{};if(filled(r,i))done++;
-h+=`<div class="q"><div class="h"><b>Soal No. ${st[ri]+i}</b> · ${esc(r.level.split(' ')[0])} · ${r.diff} · ${r.bentuk} · skor ${r.skor||0}<br>Materi: <b>${esc(r.materi)||'<i>(belum dipilih)</i>'}</b><br>Indikator: ${esc(r.indikator)||'<i>(belum diisi)</i>'}</div>
+h+=`<div class="q${hc(r.materi)===null?' nm':''}" style="--c:${hc(r.materi)??0}"><span class="bd">${esc(r.materi)||'Materi belum dipilih'}</span><div class="h"><b>Soal No. ${st[ri]+i}</b> · ${esc(r.level.split(' ')[0])} · ${r.diff} · ${r.bentuk} · skor ${r.skor||0}<br>Indikator: ${esc(r.indikator)||'<i>(belum diisi)</i>'}</div>
 <label>Teks soal</label><textarea data-s="${r.id}" data-i="${i}" data-f="q">${esc(q.q)}</textarea>
 ${isPG(r.bentuk)?['a','b','c','d','e'].map(k=>`<div class="o"><b>${k.toUpperCase()}.</b><input data-s="${r.id}" data-i="${i}" data-f="${k}" value="${esc(q[k])}" placeholder="Opsi ${k.toUpperCase()}${k==='e'?' (opsional)':''}"></div>`).join('')+`<div class="o" style="grid-template-columns:auto 1fr"><b>Kunci:</b><input data-s="${r.id}" data-i="${i}" data-f="key" value="${esc(q.key)}" placeholder="${r.bentuk==='Pilihan Ganda'?'mis. B':'mis. A, C'}"></div>`
 :`<label style="margin-top:6px">Kunci jawaban / pedoman penskoran</label><textarea data-s="${r.id}" data-i="${i}" data-f="key">${esc(q.key)}</textarea>`}
 </div>`}return h}).join('');
-$('#t2').innerHTML=`<div class="card"><h2>Input Soal</h2><p class="m">Terisi lengkap: <b id="dn">${done}</b> / ${tot()} soal</p></div>${body}`}
+$('#t2').innerHTML=`<div class="card"><h2>Input Soal</h2><p class="m">Terisi lengkap: <b id="dn">${done}</b> / ${tot()} soal</p>${S.materi.length?`<p class="m" style="margin-bottom:0">Warna materi (urutan ajar): ${S.materi.map((m,i)=>`<span class="lg" style="background:hsl(${hc(m)} 65% 34%)">${i+1}. ${esc(m)}</span>`).join('')}</p>`:''}</div>${body}`}
 function upd2(){let n=0;S.rows.forEach(r=>{for(let i=0;i<J(r);i++)if(filled(r,i))n++});const e=$('#dn');if(e)e.textContent=n}
 
 /* 4 REKAP */
