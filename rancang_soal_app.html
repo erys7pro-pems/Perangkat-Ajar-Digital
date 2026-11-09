@@ -7,6 +7,9 @@
 <style>
 :root{--bg:#f6f7f9;--card:#fff;--tx:#1d2330;--mu:#667085;--bd:#d9dde4;--ac:#0f766e;--ac2:#e6f4f2;--wr:#b42318;--ok:#15803d}
 @media(prefers-color-scheme:dark){:root{--bg:#14171c;--card:#1d2128;--tx:#e8eaee;--mu:#9aa3b2;--bd:#343a46;--ac:#2dd4bf;--ac2:#16332f;--wr:#f97066;--ok:#4ade80}}
+:root{color-scheme:light}@media(prefers-color-scheme:dark){:root{color-scheme:dark}}
+select,option,optgroup{background-color:var(--card);color:var(--tx)}
+td select{background-color:var(--card)}
 *{box-sizing:border-box}body{margin:0;font:15px/1.5 system-ui,sans-serif;background:var(--bg);color:var(--tx)}
 header{padding:16px 20px;border-bottom:1px solid var(--bd);background:var(--card)}h1{margin:0;font-size:20px}header p{margin:2px 0 0;color:var(--mu);font-size:13px}
 nav{display:flex;gap:4px;padding:8px 20px;overflow-x:auto;background:var(--card);border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:5}
