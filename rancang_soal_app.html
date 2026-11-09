@@ -72,7 +72,7 @@ function r0(){$('#t0').innerHTML=`<div class="card"><h2>Identitas Perangkat Soal
 <h3>Level Kognitif (%)</h3>${tgrid(S.tLv,LV,'data-tl')}<p id="s2" class="m"></p>
 <h3>Bentuk Soal (%)</h3>${tgrid(S.tBt,BT,'data-tb')}<p id="s3" class="m"></p>
 <div class="bar"><button class="b" data-act="gen">⚡ Generate kisi-kisi otomatis</button></div>
-<p class="m">Hasilnya: baris kisi-kisi per materi dengan level, kesulitan, bentuk, jumlah, dan skor awal terisi. Soal tingkat tinggi cenderung dipasangkan dengan kesulitan sukar dan bentuk uraian. Semua dapat diubah di tab Kisi-kisi.</p></div>
+<p class="m">Hasilnya: satu baris = satu soal (jumlah 1), dengan materi, level, kesulitan, bentuk, dan skor awal terisi, diurutkan per materi. Soal tingkat tinggi cenderung dipasangkan dengan kesulitan sukar dan bentuk uraian. Semua dapat diubah di tab Kisi-kisi.</p></div>
 <div class="card"><h2>Proyek</h2><div class="bar" style="margin:0"><button class="b s" data-act="exp-json">Simpan proyek (.json)</button><label class="b s" style="margin:0;cursor:pointer">Buka proyek<input type="file" accept=".json" id="imp" hidden></label><button class="b s" data-act="reset">Mulai baru</button></div></div>`;tsum()}
 function tsum(){[['s1',S.target,DF],['s2',S.tLv,LV],['s3',S.tBt,BT]].forEach(([id,o,l])=>{const e=$('#'+id);if(!e)return;const t=l.reduce((a,k)=>a+(+o[k]||0),0);e.innerHTML=`Jumlah: <span class="${t===100?'ok':'wr'}">${t}%</span>`})}
 function apportion(o,list,N){const t=list.reduce((a,k)=>a+(+o[k]||0),0);if(!t)return null;const q=list.map(k=>(+o[k]||0)/t*N),c=q.map(Math.floor);let r=N-c.reduce((a,b)=>a+b,0);q.map((v,i)=>[v-c[i],i]).sort((a,b)=>b[0]-a[0]).slice(0,r).forEach(([,i])=>c[i]++);return list.flatMap((k,i)=>Array(c[i]).fill(k))}
@@ -84,9 +84,9 @@ if(!d||!l||!b)return alert('Setiap kelompok target harus berjumlah lebih dari 0%
 const bad=[[S.target,DF],[S.tLv,LV],[S.tBt,BT]].some(([o,x])=>x.reduce((a,k)=>a+(+o[k]||0),0)!==100);
 if(bad&&!confirm('Ada kelompok target yang totalnya bukan 100%; akan dinormalkan otomatis. Lanjutkan?'))return;
 if(S.rows.length&&!confirm('Kisi-kisi dan soal yang sudah ada akan diganti. Lanjutkan?'))return;
-const mp={};
-for(let i=0;i<N;i++){const m=M[i%M.length],k=[m,l[i],d[i],b[i]].join('|');(mp[k]=mp[k]||{id:uid(),materi:m,tp:'',indikator:'',level:l[i],diff:d[i],bentuk:b[i],jumlah:0,skor:SKR[b[i]]}).jumlah++}
-S.rows=Object.values(mp).sort((x,y)=>M.indexOf(x.materi)-M.indexOf(y.materi)||LV.indexOf(x.level)-LV.indexOf(y.level)||DF.indexOf(x.diff)-DF.indexOf(y.diff));
+const rw=[];
+for(let i=0;i<N;i++)rw.push({id:uid(),materi:M[i%M.length],tp:'',indikator:'',level:l[i],diff:d[i],bentuk:b[i],jumlah:1,skor:SKR[b[i]]});
+S.rows=rw.sort((x,y)=>M.indexOf(x.materi)-M.indexOf(y.materi)||LV.indexOf(x.level)-LV.indexOf(y.level)||DF.indexOf(x.diff)-DF.indexOf(y.diff));
 S.soal={};save();go(1)}
 const matCell=r=>{const L=S.materi;return L.length?`<select data-r="${r.id}" data-f="materi">${[...(L.includes(r.materi)?[]:[r.materi||'']),...L].map(x=>`<option${x===r.materi?' selected':''}>${esc(x)}</option>`).join('')}</select>`:`<textarea data-r="${r.id}" data-f="materi">${esc(r.materi)}</textarea>`};
 
