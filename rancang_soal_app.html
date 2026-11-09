@@ -110,7 +110,7 @@ function r2(){if(!S.rows.length){$('#t2').innerHTML='<div class="card">Susun kis
 const st=starts();let done=0;
 const body=S.rows.map((r,ri)=>{const arr=S.soal[r.id]=S.soal[r.id]||[];let h='';
 for(let i=0;i<J(r);i++){const q=arr[i]=arr[i]||{};if(filled(r,i))done++;
-h+=`<div class="q"><div class="h"><b>Soal No. ${st[ri]+i}</b> · ${esc(r.level.split(' ')[0])} · ${r.diff} · ${r.bentuk} · skor ${r.skor||0}<br>Indikator: ${esc(r.indikator)||'<i>(belum diisi)</i>'}</div>
+h+=`<div class="q"><div class="h"><b>Soal No. ${st[ri]+i}</b> · ${esc(r.level.split(' ')[0])} · ${r.diff} · ${r.bentuk} · skor ${r.skor||0}<br>Materi: <b>${esc(r.materi)||'<i>(belum dipilih)</i>'}</b><br>Indikator: ${esc(r.indikator)||'<i>(belum diisi)</i>'}</div>
 <label>Teks soal</label><textarea data-s="${r.id}" data-i="${i}" data-f="q">${esc(q.q)}</textarea>
 ${isPG(r.bentuk)?['a','b','c','d','e'].map(k=>`<div class="o"><b>${k.toUpperCase()}.</b><input data-s="${r.id}" data-i="${i}" data-f="${k}" value="${esc(q[k])}" placeholder="Opsi ${k.toUpperCase()}${k==='e'?' (opsional)':''}"></div>`).join('')+`<div class="o" style="grid-template-columns:auto 1fr"><b>Kunci:</b><input data-s="${r.id}" data-i="${i}" data-f="key" value="${esc(q.key)}" placeholder="${r.bentuk==='Pilihan Ganda'?'mis. B':'mis. A, C'}"></div>`
 :`<label style="margin-top:6px">Kunci jawaban / pedoman penskoran</label><textarea data-s="${r.id}" data-i="${i}" data-f="key">${esc(q.key)}</textarea>`}
