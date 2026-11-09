@@ -45,8 +45,10 @@ const TABS=['1 · Identitas','2 · Kisi-kisi','3 · Input Soal','4 · Rekap Pers
 const LV=['C1 Mengingat','C2 Memahami','C3 Menerapkan','C4 Menganalisis','C5 Mengevaluasi','C6 Mencipta'],DF=['Mudah','Sedang','Sukar'],BT=['Pilihan Ganda','Pilihan Ganda Kompleks','Isian Singkat','Uraian'];
 const MF=[['sekolah','Satuan pendidikan'],['mapel','Mata pelajaran'],['kelas','Kelas / Fase'],['semester','Semester'],['tahun','Tahun ajaran'],['jenis','Jenis asesmen (PTS/PAS/dll)'],['kurikulum','Kurikulum'],['waktu','Alokasi waktu'],['penyusun','Penyusun'],['total','Target jumlah soal total']];
 const KEY='perancang-soal-v1';let S;
+const DLV={'C1 Mengingat':10,'C2 Memahami':20,'C3 Menerapkan':30,'C4 Menganalisis':20,'C5 Mengevaluasi':15,'C6 Mencipta':5},DBT={'Pilihan Ganda':70,'Pilihan Ganda Kompleks':10,'Isian Singkat':0,'Uraian':20},SKR={'Pilihan Ganda':1,'Pilihan Ganda Kompleks':2,'Isian Singkat':2,'Uraian':5};
+function norm(){S.meta=S.meta||{};S.rows=S.rows||[];S.soal=S.soal||{};S.materi=S.materi||[];S.target=S.target||{Mudah:30,Sedang:50,Sukar:20};S.tLv=S.tLv||{...DLV};S.tBt=S.tBt||{...DBT}}
 try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
-S=S||{meta:{},target:{Mudah:30,Sedang:50,Sukar:20},rows:[],soal:{}};
+S=S||{};norm();
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 const uid=()=>'r'+Math.random().toString(36).slice(2,8);
 const isPG=b=>b==='Pilihan Ganda'||b==='Pilihan Ganda Kompleks';
@@ -62,17 +64,38 @@ $('#nav').innerHTML=TABS.map((t,i)=>`<button data-tab="${i}">${t}</button>`).joi
 function go(i){document.querySelectorAll('nav button').forEach((b,j)=>b.classList.toggle('on',i===j));document.querySelectorAll('section').forEach((s,j)=>s.classList.toggle('on',i===j));[r0,r1,r2,r3,r4][i]();scrollTo(0,0)}
 
 /* 1 IDENTITAS */
+const tgrid=(o,list,at)=>`<div class="g">${list.map(d=>`<div><label>${d}</label><input type="number" min="0" max="100" ${at}="${d}" value="${o[d]??0}"></div>`).join('')}</div>`;
 function r0(){$('#t0').innerHTML=`<div class="card"><h2>Identitas Perangkat Soal</h2><div class="g">${MF.map(([k,l])=>`<div><label>${l}</label><input data-m="${k}" ${k==='total'?'type="number" min="0"':''} value="${esc(S.meta[k])}"></div>`).join('')}</div></div>
-<div class="card"><h2>Target Proporsi Tingkat Kesulitan (%)</h2><p class="m">Umumnya 30 : 50 : 20 (mudah : sedang : sukar). Total harus 100%.</p><div class="g">${DF.map(d=>`<div><label>${d}</label><input type="number" min="0" max="100" data-t="${d}" value="${S.target[d]}"></div>`).join('')}</div><p id="tsum" class="m"></p>
-<div class="bar"><button class="b s" data-act="exp-json">Simpan proyek (.json)</button><label class="b s" style="margin:0;cursor:pointer">Buka proyek<input type="file" accept=".json" id="imp" hidden></label><button class="b s" data-act="reset">Mulai baru</button></div></div>`;tsum()}
-function tsum(){const s=DF.reduce((a,d)=>a+(+S.target[d]||0),0);const e=$('#tsum');if(e)e.innerHTML=`Jumlah: <span class="${s===100?'ok':'wr'}">${s}%</span>`}
+<div class="card"><h2>Materi</h2><p class="m">Tulis satu materi per baris. Daftar ini menjadi pilihan di tab Kisi-kisi dan disebar merata saat generate.</p><textarea data-mat rows="5" placeholder="Satu materi per baris">${esc(S.materi.join('\n'))}</textarea><p class="m">${S.materi.length} materi</p></div>
+<div class="card"><h2>Target Proporsi &amp; Generate Otomatis</h2><p class="m">Atur persentase tiap kelompok (masing-masing berjumlah 100%), lalu klik generate. Jumlah soal mengikuti “Target jumlah soal total” di panel Identitas.</p>
+<h3>Tingkat Kesulitan (%)</h3>${tgrid(S.target,DF,'data-t')}<p id="s1" class="m"></p>
+<h3>Level Kognitif (%)</h3>${tgrid(S.tLv,LV,'data-tl')}<p id="s2" class="m"></p>
+<h3>Bentuk Soal (%)</h3>${tgrid(S.tBt,BT,'data-tb')}<p id="s3" class="m"></p>
+<div class="bar"><button class="b" data-act="gen">⚡ Generate kisi-kisi otomatis</button></div>
+<p class="m">Hasilnya: baris kisi-kisi per materi dengan level, kesulitan, bentuk, jumlah, dan skor awal terisi. Soal tingkat tinggi cenderung dipasangkan dengan kesulitan sukar dan bentuk uraian. Semua dapat diubah di tab Kisi-kisi.</p></div>
+<div class="card"><h2>Proyek</h2><div class="bar" style="margin:0"><button class="b s" data-act="exp-json">Simpan proyek (.json)</button><label class="b s" style="margin:0;cursor:pointer">Buka proyek<input type="file" accept=".json" id="imp" hidden></label><button class="b s" data-act="reset">Mulai baru</button></div></div>`;tsum()}
+function tsum(){[['s1',S.target,DF],['s2',S.tLv,LV],['s3',S.tBt,BT]].forEach(([id,o,l])=>{const e=$('#'+id);if(!e)return;const t=l.reduce((a,k)=>a+(+o[k]||0),0);e.innerHTML=`Jumlah: <span class="${t===100?'ok':'wr'}">${t}%</span>`})}
+function apportion(o,list,N){const t=list.reduce((a,k)=>a+(+o[k]||0),0);if(!t)return null;const q=list.map(k=>(+o[k]||0)/t*N),c=q.map(Math.floor);let r=N-c.reduce((a,b)=>a+b,0);q.map((v,i)=>[v-c[i],i]).sort((a,b)=>b[0]-a[0]).slice(0,r).forEach(([,i])=>c[i]++);return list.flatMap((k,i)=>Array(c[i]).fill(k))}
+function gen(){const N=+S.meta.total||0,M=S.materi;
+if(N<1)return alert('Isi dulu “Target jumlah soal total” pada panel Identitas.');
+if(!M.length)return alert('Isi dulu daftar Materi.');
+const d=apportion(S.target,DF,N),l=apportion(S.tLv,LV,N),b=apportion(S.tBt,BT,N);
+if(!d||!l||!b)return alert('Setiap kelompok target harus berjumlah lebih dari 0%.');
+const bad=[[S.target,DF],[S.tLv,LV],[S.tBt,BT]].some(([o,x])=>x.reduce((a,k)=>a+(+o[k]||0),0)!==100);
+if(bad&&!confirm('Ada kelompok target yang totalnya bukan 100%; akan dinormalkan otomatis. Lanjutkan?'))return;
+if(S.rows.length&&!confirm('Kisi-kisi dan soal yang sudah ada akan diganti. Lanjutkan?'))return;
+const mp={};
+for(let i=0;i<N;i++){const m=M[i%M.length],k=[m,l[i],d[i],b[i]].join('|');(mp[k]=mp[k]||{id:uid(),materi:m,tp:'',indikator:'',level:l[i],diff:d[i],bentuk:b[i],jumlah:0,skor:SKR[b[i]]}).jumlah++}
+S.rows=Object.values(mp).sort((x,y)=>M.indexOf(x.materi)-M.indexOf(y.materi)||LV.indexOf(x.level)-LV.indexOf(y.level)||DF.indexOf(x.diff)-DF.indexOf(y.diff));
+S.soal={};save();go(1)}
+const matCell=r=>{const L=S.materi;return L.length?`<select data-r="${r.id}" data-f="materi">${[...(L.includes(r.materi)?[]:[r.materi||'']),...L].map(x=>`<option${x===r.materi?' selected':''}>${esc(x)}</option>`).join('')}</select>`:`<textarea data-r="${r.id}" data-f="materi">${esc(r.materi)}</textarea>`};
 
 /* 2 KISI-KISI */
 function r1(){const st=starts();
 $('#t1').innerHTML=`<div class="card"><h2>Kisi-kisi Soal</h2><p class="m">Satu baris = satu indikator. Isi jumlah butir soal per indikator; nomor soal dihitung otomatis.</p>
 <div class="w"><table><tr><th>No Soal</th><th>Materi</th><th>Tujuan Pembelajaran (TP)</th><th>Indikator Soal</th><th>Level Kognitif</th><th>Kesulitan</th><th>Bentuk</th><th>Jml</th><th>Skor/butir</th><th></th></tr>
 ${S.rows.map((r,i)=>`<tr><td>${noTxt(r,st[i])}</td>
-<td><textarea data-r="${r.id}" data-f="materi">${esc(r.materi)}</textarea></td>
+<td>${matCell(r)}</td>
 <td><textarea data-r="${r.id}" data-f="tp">${esc(r.tp)}</textarea></td>
 <td><textarea data-r="${r.id}" data-f="indikator">${esc(r.indikator)}</textarea></td>
 <td>${sel(LV,r.level,`data-r="${r.id}" data-f="level"`)}</td><td>${sel(DF,r.diff,`data-r="${r.id}" data-f="diff"`)}</td><td>${sel(BT,r.bentuk,`data-r="${r.id}" data-f="bentuk"`)}</td>
@@ -132,6 +155,9 @@ const fn=s=>((S.meta.mapel||'soal')+'-'+s).replace(/[^\w-]+/g,'_');
 document.addEventListener('input',e=>{const d=e.target.dataset;if(!d)return;
 if(d.m!==undefined){S.meta[d.m]=e.target.value}
 else if(d.t){S.target[d.t]=+e.target.value;tsum()}
+else if(d.tl){S.tLv[d.tl]=+e.target.value;tsum()}
+else if(d.tb){S.tBt[d.tb]=+e.target.value;tsum()}
+else if(d.mat!==undefined){S.materi=e.target.value.split('\n').map(x=>x.trim()).filter(Boolean)}
 else if(d.r){const r=S.rows.find(x=>x.id===d.r);r[d.f]=e.target.value;if(['jumlah'].includes(d.f))ksum();if(d.f==='skor')ksum()}
 else if(d.s){const a=S.soal[d.s];a[+d.i]=a[+d.i]||{};a[+d.i][d.f]=e.target.value;upd2()}
 else return;save()});
@@ -140,15 +166,16 @@ document.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)r
 if(t.dataset.tab!==undefined)return go(+t.dataset.tab);
 if(t.dataset.del){S.rows=S.rows.filter(r=>r.id!==t.dataset.del);delete S.soal[t.dataset.del];save();return r1()}
 const a=t.dataset.act;if(!a)return;
-if(a==='add'){S.rows.push({id:uid(),materi:'',tp:'',indikator:'',level:LV[2],diff:'Sedang',bentuk:BT[0],jumlah:1,skor:1});save();r1()}
+if(a==='gen')gen();
+if(a==='add'){S.rows.push({id:uid(),materi:S.materi[0]||'',tp:'',indikator:'',level:LV[2],diff:'Sedang',bentuk:BT[0],jumlah:1,skor:1});save();r1()}
 if(a==='dup'&&S.rows.length){S.rows.push({...S.rows[S.rows.length-1],id:uid()});save();r1()}
 if(a==='exp-json')dl(new Blob([JSON.stringify(S,null,1)],{type:'application/json'}),fn('proyek')+'.json');
-if(a==='reset'&&confirm('Hapus semua data dan mulai baru?')){S={meta:{},target:{Mudah:30,Sedang:50,Sukar:20},rows:[],soal:{}};save();r0()}
+if(a==='reset'&&confirm('Hapus semua data dan mulai baru?')){S={};norm();save();r0()}
 if(a==='x-all')exportDoc([kisiHtml(),soalHtml(),kunciHtml()],fn('lengkap'));
 if(a==='x-kisi')exportDoc([kisiHtml()],fn('kisi-kisi'));
 if(a==='x-soal')exportDoc([soalHtml()],fn('naskah'));
 if(a==='x-kunci')exportDoc([kunciHtml()],fn('kunci'))});
-document.addEventListener('change',e=>{if(e.target.id!=='imp')return;const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{S=JSON.parse(rd.result);save();r0()}catch(x){alert('File proyek tidak valid.')}};rd.readAsText(f)});
+document.addEventListener('change',e=>{if(e.target.id!=='imp')return;const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{S=JSON.parse(rd.result);norm();save();r0()}catch(x){alert('File proyek tidak valid.')}};rd.readAsText(f)});
 go(0);
 </script>
 </body>
