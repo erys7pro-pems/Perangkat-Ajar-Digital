@@ -27,6 +27,7 @@ button.s{background:none;color:var(--tx);border:1px solid var(--bd)}button.d{bac
 .bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.w{overflow-x:auto}
 table{border-collapse:collapse;width:100%;font-size:13px}th,td{border:1px solid var(--bd);padding:4px;vertical-align:top;text-align:left}th{background:var(--ac2);font-size:12px}
 td input,td select,td textarea{border:0;background:transparent;padding:4px;min-height:0}td textarea{min-height:48px}
+ #t1 td textarea{overflow:hidden;resize:none;min-height:34px;min-width:150px;line-height:1.4}
 .pb{height:10px;background:var(--bd);border-radius:6px;overflow:hidden;min-width:80px}.pb i{display:block;height:100%;background:var(--ac)}
 .m{color:var(--mu);font-size:13px}.wr{color:var(--wr);font-weight:600}.ok{color:var(--ok);font-weight:600}
 .q{border:1px solid var(--bd);border-radius:8px;padding:12px;margin-bottom:10px}.q .h{font-size:12px;color:var(--mu);margin-bottom:6px}
@@ -95,6 +96,9 @@ S.soal={};save();go(1)}
 const matCell=r=>{const L=S.materi;return L.length?`<select data-r="${r.id}" data-f="materi">${[...(L.includes(r.materi)?[]:[r.materi||'']),...L].map(x=>`<option${x===r.materi?' selected':''}>${esc(x)}</option>`).join('')}</select>`:`<textarea data-r="${r.id}" data-f="materi">${esc(r.materi)}</textarea>`};
 
 /* 2 KISI-KISI */
+const autosize=el=>{el.style.height='auto';el.style.height=el.scrollHeight+'px'};
+const fit=()=>document.querySelectorAll('#t1 textarea').forEach(autosize);
+addEventListener('resize',()=>{if($('#t1').classList.contains('on'))fit()});
 function r1(){const st=starts();
 $('#t1').innerHTML=`<div class="card"><h2>Kisi-kisi Soal</h2><p class="m">Satu baris = satu indikator. Isi jumlah butir soal per indikator; nomor soal dihitung otomatis.</p>
 <div class="w"><table><tr><th>No Soal</th><th>Materi</th><th>Tujuan Pembelajaran (TP)</th><th>Indikator Soal</th><th>Level Kognitif</th><th>Kesulitan</th><th>Bentuk</th><th>Jml</th><th>Skor/butir</th><th></th></tr>
@@ -106,7 +110,7 @@ ${S.rows.map((r,i)=>`<tr><td>${noTxt(r,st[i])}</td>
 <td style="width:60px"><input type="number" min="0" data-r="${r.id}" data-f="jumlah" value="${r.jumlah}"></td>
 <td style="width:70px"><input type="number" min="0" data-r="${r.id}" data-f="skor" value="${r.skor}"></td>
 <td><button class="d" data-del="${r.id}" title="Hapus">×</button></td></tr>`).join('')||'<tr><td colspan="10" class="m">Belum ada baris. Klik “Tambah indikator”.</td></tr>'}</table></div>
-<p id="ksum" class="m"></p><div class="bar"><button class="b" data-act="add">+ Tambah indikator</button><button class="b s" data-act="dup">Gandakan baris terakhir</button></div></div>`;ksum()}
+<p id="ksum" class="m"></p><div class="bar"><button class="b" data-act="add">+ Tambah indikator</button><button class="b s" data-act="dup">Gandakan baris terakhir</button></div></div>`;ksum();fit()}
 function ksum(){const e=$('#ksum');if(!e)return;const t=+S.meta.total||0,n=tot();e.innerHTML=`Total soal terencana: <b>${n}</b>${t?` dari target ${t} (<span class="${n===t?'ok':'wr'}">${n-t>0?'+':''}${n-t}</span>)`:''} · Total skor: <b>${S.rows.reduce((a,r)=>a+J(r)*(+r.skor||0),0)}</b>`}
 
 /* 3 INPUT SOAL */
@@ -158,6 +162,7 @@ const fn=s=>((S.meta.mapel||'soal')+'-'+s).replace(/[^\w-]+/g,'_');
 
 /* EVENTS */
 document.addEventListener('input',e=>{const d=e.target.dataset;if(!d)return;
+if(e.target.tagName==='TEXTAREA'&&e.target.closest('#t1'))autosize(e.target);
 if(d.m!==undefined){S.meta[d.m]=e.target.value}
 else if(d.t){S.target[d.t]=+e.target.value;tsum()}
 else if(d.tl){S.tLv[d.tl]=+e.target.value;tsum()}
