@@ -22,8 +22,8 @@ h2{font-size:17px;margin:0 0 12px}h3{font-size:15px;margin:0 0 8px}
 label{display:block;font-size:12px;color:var(--mu);margin-bottom:3px}
 input,select,textarea{width:100%;padding:7px 9px;border:1px solid var(--bd);border-radius:7px;background:var(--bg);color:var(--tx);font:inherit}
 textarea{resize:vertical;min-height:60px}
-button.b{background:var(--ac);color:var(--bg);border:0;padding:8px 14px;border-radius:8px;cursor:pointer;font:inherit;font-weight:600}
-button.s{background:none;color:var(--tx);border:1px solid var(--bd)}button.d{background:none;border:0;color:var(--wr);cursor:pointer;font-size:18px}
+button.b,label.b{display:inline-block;background:var(--ac);color:var(--bg);border:0;padding:8px 14px;border-radius:8px;cursor:pointer;font:inherit;font-weight:600}
+button.s,label.s{background:none;color:var(--tx);border:1px solid var(--bd)}button.d{background:none;border:0;color:var(--wr);cursor:pointer;font-size:18px}
 .bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.w{overflow-x:auto}
 table{border-collapse:collapse;width:100%;font-size:13px}th,td{border:1px solid var(--bd);padding:4px;vertical-align:top;text-align:left}th{background:var(--ac2);font-size:12px}
 td input,td select,td textarea{border:0;background:transparent;padding:4px;min-height:0}td textarea{min-height:48px}
@@ -185,7 +185,7 @@ if(a==='x-all')exportDoc([kisiHtml(),soalHtml(),kunciHtml()],fn('lengkap'));
 if(a==='x-kisi')exportDoc([kisiHtml()],fn('kisi-kisi'));
 if(a==='x-soal')exportDoc([soalHtml()],fn('naskah'));
 if(a==='x-kunci')exportDoc([kunciHtml()],fn('kunci'))});
-document.addEventListener('change',e=>{if(e.target.id!=='imp')return;const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{S=JSON.parse(rd.result);norm();save();r0()}catch(x){alert('File proyek tidak valid.')}};rd.readAsText(f)});
+document.addEventListener('change',e=>{if(e.target.id!=='imp')return;const f=e.target.files[0];if(!f)return;if((S.rows.length||S.materi.length)&&!confirm('Data saat ini akan diganti dengan isi file. Lanjutkan?')){e.target.value='';return}const rd=new FileReader();rd.onload=()=>{try{const o=JSON.parse(rd.result);if(!o||typeof o!=='object'||!Array.isArray(o.rows||[]))throw 0;S=o;norm();save();r0();alert('Proyek berhasil dimuat.')}catch(x){alert('File proyek tidak valid.')}};rd.readAsText(f);e.target.value=''});
 go(0);
 </script>
 </body>
