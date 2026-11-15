@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kisi-kisi PHB 2 Biologi XII/F · MAN IC Lampung Timur</title>
+<style>
+:root{--bg:#f6f7f4;--surface:#fff;--text:#1d2420;--muted:#5c675f;--line:#dde2db;--accent:#1f7a5a;--accent-soft:#e2f2ea;
+--c1:#2b7fd0;--c2:#0f9a8a;--c3:#6aa312;--c4:#d68a00;--c5:#d9532b;--c6:#a43fb5;
+--mudah:#2f9a4f;--sedang:#c98400;--sukar:#cf3f3f;color-scheme:light;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121715;--surface:#1a211e;--text:#e8eeea;--muted:#9fada4;--line:#2d3732;--accent:#4cc79a;--accent-soft:#1b3a2e;
+--c1:#5aa6f0;--c2:#3cc7b5;--c3:#97d13f;--c4:#f0b23a;--c5:#f27f58;--c6:#cf7be0;--mudah:#58c778;--sedang:#e8b03a;--sukar:#f26d6d;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#121715;--surface:#1a211e;--text:#e8eeea;--muted:#9fada4;--line:#2d3732;--accent:#4cc79a;--accent-soft:#1b3a2e;
+--c1:#5aa6f0;--c2:#3cc7b5;--c3:#97d13f;--c4:#f0b23a;--c5:#f27f58;--c6:#cf7be0;--mudah:#58c778;--sedang:#e8b03a;--sukar:#f26d6d;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:900px;margin:0 auto;padding:20px 16px 40px}
+header{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+h1{font-size:1.6rem;line-height:1.2;margin:.2rem 0 .3rem}
+.sub{color:var(--muted);margin:0}
+.eyebrow{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:700}
+.icon-btn{border:1px solid var(--line);background:var(--surface);color:var(--text);border-radius:10px;padding:8px 12px;cursor:pointer;font:inherit}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.meta span{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px 12px;font-size:.85rem;color:var(--muted)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0 18px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;text-align:center}
+.stat b{display:block;font-size:1.5rem;color:var(--accent)}
+.stat small{color:var(--muted)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:16px}
+.search{width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--text);font:inherit}
+.grp{margin-top:12px}
+.grp h3{margin:0 0 6px;font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--bg);color:var(--text);border-radius:999px;padding:5px 12px;cursor:pointer;font:inherit;font-size:.88rem}
+.chip small{color:var(--muted);margin-left:4px}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.chip[aria-pressed="true"] small{color:#ffffffcc}
+.bar{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0 12px;color:var(--muted);font-size:.9rem}
+.bar button{margin-left:6px}
+.card{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--c);border-radius:14px;padding:14px;margin-bottom:10px;display:grid;grid-template-columns:auto 1fr;gap:4px 12px}
+.no{grid-row:span 3;width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-weight:700;color:var(--c);background:color-mix(in srgb,var(--c) 15%,transparent)}
+.card h2{font-size:1.02rem;margin:0}
+.ind{margin:0;color:var(--text)}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.tag{font-size:.78rem;padding:2px 10px;border-radius:999px;border:1px solid color-mix(in srgb,var(--t) 45%,transparent);color:var(--t);background:color-mix(in srgb,var(--t) 12%,transparent);font-weight:600}
+.tag.n{--t:var(--muted);font-weight:500}
+details{grid-column:2;margin-top:2px}
+summary{cursor:pointer;color:var(--accent);font-size:.86rem;font-weight:600}
+details p{margin:6px 0 0;color:var(--muted);font-size:.9rem}
+.empty{text-align:center;color:var(--muted);padding:30px 10px}
+footer{color:var(--muted);font-size:.82rem;text-align:center;margin-top:20px}
+@media (max-width:560px){.stats{grid-template-columns:repeat(2,1fr)}h1{font-size:1.3rem}.card{grid-template-columns:1fr}.no{grid-row:auto}details{grid-column:1}}
+@media print{.panel,.bar button,.icon-btn{display:none}body{background:#fff;color:#000}.card{break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <div class="eyebrow">Kisi-kisi penulisan soal</div>
+    <h1>PHB 2 Biologi · XII/F</h1>
+    <p class="sub">Semester Ganjil · TA 2026/2027 · MAN IC Lampung Timur</p>
+  </div>
+  <button class="icon-btn" id="theme" aria-label="Ganti tema">◐</button>
+</header>
+<div class="meta"><span>Kurikulum Merdeka</span><span>Penyusun: Ery Santosa, S.Pd</span><span>Alokasi waktu: 90 menit</span></div>
+<div class="stats" id="stats"></div>
+
+<div class="panel">
+  <input class="search" id="q" type="search" placeholder="Cari materi atau indikator soal…" aria-label="Cari materi atau indikator">
+  <div id="filters"></div>
+</div>
+
+<div class="bar"><span id="count"></span><span><button class="icon-btn" id="open">Buka semua TP</button><button class="icon-btn" id="reset">Reset filter</button></span></div>
+<div id="list"></div>
+<footer>Sumber: dokumen kisi-kisi penulisan soal PHB 2 Biologi XII/F. Kunci jawaban tidak disertakan.</footer>
+</div>
+<script>
+var TP={1:['12.4','Mengaitkan mekanisme evolusi dengan proses terjadi keanekaragaman dan kelangsungan hidup organisme berdasarkan mekanisme evolusi'],
+2:['12.5','Menerapkan prinsip-prinsip pertumbuhan dan perkembangan melalui contoh praktik pertumbuhan tumbuhan'],
+3:['12.6','Menerapkan prinsip pertumbuhan dan perkembangan melalui pengamatan KMS dan KKA yang dikaitkan dengan pola makan']};
+var LV={C1:'Mengingat',C2:'Memahami',C3:'Menerapkan',C4:'Menganalisis',C5:'Mengevaluasi',C6:'Mencipta'};
+var BT={PG:'Pilihan Ganda',PGK:'Pilihan Ganda Kompleks'};
+var CL={Mudah:'var(--mudah)',Sedang:'var(--sedang)',Sukar:'var(--sukar)'};
+// [no, materi, tp, indikator, level, kesulitan, bentuk, skor]
+var D=[
+[1,'Mutasi Gen dan Kromosom',1,'Peserta didik dapat mengidentifikasi perbedaan mutasi substitusi, insersi, dan delesi','C1','Mudah','PG',1],
+[2,'Rekombinasi Seksual (Pindah Silang dan Assortment Independent)',1,'Disajikan ilustrasi kromosom homolog pada profase I meiosis, peserta didik dapat menjelaskan mekanisme pindah silang (crossing over)','C2','Mudah','PG',1],
+[3,'Konsep Spesies Biologis',1,'Peserta didik dapat menjelaskan definisi spesies berdasarkan konsep spesies biologis (Biological Species Concept).','C2','Mudah','PG',1],
+[4,'Mekanisme Isolasi Reproduksi',1,'Disajikan kasus perbedaan perilaku kawin antarorganisme, peserta didik dapat menentukan jenis isolasi perilaku','C3','Sedang','PG',1],
+[5,'Pola Spesiasi',1,'Disajikan ilustrasi diferensiasi populasi akibat perbedaan relung ekologi, peserta didik dapat mengidentifikasi pola spesiasi yang sesuai.','C3','Sedang','PG',1],
+[6,'Adaptasi dan Evolusi Fungsional',1,'Disajikan gambar variasi bentuk paruh burung, peserta didik dapat menganalisis hubungan variasi morfologi dengan jenis sumber makanan dan relung ekologis','C4','Sedang','PG',1],
+[7,'Studi Kasus Adaptasi dan Resistensi',1,'Disajikan data perubahan frekuensi alel yang berhubungan dengan resistensi, peserta didik dapat menganalisis perubahan genetik populasi akibat tekanan seleksi','C4','Sedang','PG',1],
+[8,'Dampak Kegagalan Mekanisme Adaptasi',1,'Disajikan data penurunan populasi akibat perubahan iklim, peserta didik dapat mengevaluasi pernyataan mengenai kemampuan adaptasi dan batas toleransi fisiologis organisme','C5','Sukar','PGK',2],
+[9,'Studi Kasus Adaptasi dan Resistensi',1,'Disajikan kasus peningkatan resistensi bakteri terhadap antibiotik, peserta didik dapat memilih kombinasi strategi pengendalian yang dirancang untuk mengurangi tekanan seleksi dan penyebaran bakteri resisten','C6','Sukar','PGK',2],
+[10,'Definisi dan Perbedaan Pertumbuhan & Perkembangan',2,'Peserta didik dapat menyebutkan karakteristik pertumbuhan yang bersifat kuantitatif dan irreversibel','C1','Mudah','PG',1],
+[11,'Definisi dan Perbedaan Pertumbuhan & Perkembangan',2,'Disajikan ilustrasi perubahan ukuran dan diferensiasi sel, peserta didik dapat menjelaskan perbedaan pertambahan ukuran dengan perubahan menuju kematangan fungsi','C2','Mudah','PG',1],
+[12,'Parameter Pengukuran Pertumbuhan',2,'Peserta didik dapat menjelaskan penggunaan pertambahan massa basah dan massa kering sebagai parameter pertumbuhan','C2','Mudah','PG',1],
+[13,'Faktor Internal Pertumbuhan & Perkembangan (Genetik dan Hormon/Zat Pengatur Tumbuh)',2,'Disajikan kasus pemanjangan batang tumbuhan, peserta didik dapat menentukan peran hormon auksin dalam proses pemanjangan sel.','C3','Sedang','PG',1],
+[14,'Faktor Internal Pertumbuhan & Perkembangan (Genetik dan Hormon/Zat Pengatur Tumbuh)',2,'Disajikan perbandingan dua varietas tumbuhan dengan karakteristik pertumbuhan berbeda, peserta didik dapat menerapkan konsep faktor genetik untuk menjelaskan perbedaan tersebut.','C3','Sedang','PG',1],
+[15,'Faktor Eksternal Pertumbuhan dan Perkembangan (Lingkungan)',2,'Disajikan data pertumbuhan tumbuhan pada intensitas cahaya berbeda, peserta didik dapat menganalisis pengaruh cahaya terhadap pemanjangan batang dan pembentukan klorofil.','C4','Sedang','PG',1],
+[16,'Faktor Eksternal Pertumbuhan dan Perkembangan (Lingkungan)',2,'Disajikan gambar perbedaan morfologi tanaman yang tumbuh pada kondisi pencahayaan berbeda, peserta didik dapat menganalisis respons fotomorfogenesis.','C4','Sedang','PG',1],
+[17,'Struktur Biji',2,'Disajikan gambar struktur biji monokotil dan dikotil, peserta didik dapat mengevaluasi pernyataan mengenai perbedaan struktur serta fungsi bagian-bagian biji.','C5','Sukar','PGK',2],
+[18,'Mekanisme Perkecambahan',2,'Disajikan permasalahan rendahnya persentase perkecambahan biji, peserta didik dapat memilih rancangan perlakuan yang sesuai untuk meningkatkan keberhasilan perkecambahan.','C6','Sukar','PGK',2],
+[19,'Penyusunan Rumusan Masalah dan Hipotesis',2,'Peserta didik dapat mengidentifikasi pengertian rumusan masalah dalam suatu penelitian ilmiah.','C1','Mudah','PG',1],
+[20,'Penentuan Variabel Penelitian',2,'Peserta didik dapat menjelaskan pengertian variabel bebas dalam penelitian.','C2','Mudah','PG',1],
+[21,'Penentuan Variabel Penelitian',2,'Disajikan kasus penelitian pengaruh intensitas cahaya terhadap pertumbuhan tanaman, peserta didik dapat menentukan variabel bebas, terikat, dan kontrol.','C3','Sedang','PG',1],
+[22,'Perkembangan Psikomotorik & Mental',3,'Peserta didik dapat mengidentifikasi pengertian perkembangan psikomotorik pada manusia.','C1','Sedang','PG',1],
+[23,'KMS (Kartu Menuju Sehat)',3,'Peserta didik dapat menjelaskan fungsi KMS dalam pemantauan pertumbuhan anak.','C2','Sedang','PG',1],
+[24,'KKA (Keluarga Kembang Anak)',3,'Disajikan data usia dan kemampuan motorik anak, peserta didik dapat menentukan kesesuaian capaian perkembangan berdasarkan informasi KKA.','C3','Sedang','PG',1],
+[25,'Peran Zat Gizi Mikro (Micronutrients)',3,'Disajikan kasus anak dengan gejala anemia, peserta didik dapat menganalisis hubungan kekurangan zat besi dengan gangguan pembentukan hemoglobin dan distribusi oksigen.','C4','Sukar','PGK',2]
+];
+var G=[
+ {k:'tp',t:'Tujuan pembelajaran',i:2,o:[1,2,3],l:function(v){return 'TP '+TP[v][0];}},
+ {k:'lv',t:'Level kognitif',i:4,o:['C1','C2','C3','C4','C5','C6'],l:function(v){return v+' '+LV[v];}},
+ {k:'sl',t:'Tingkat kesulitan',i:5,o:['Mudah','Sedang','Sukar'],l:function(v){return v;}},
+ {k:'bt',t:'Bentuk soal',i:6,o:['PG','PGK'],l:function(v){return BT[v];}}
+];
+var F={tp:[],lv:[],sl:[],bt:[]}, Q='';
+function $(id){return document.getElementById(id);}
+function sum(a){return a.reduce(function(s,r){return s+r[7];},0);}
+$('stats').innerHTML=[[D.length,'butir soal'],[sum(D),'total skor'],[90,'menit'],[3,'tujuan pembelajaran']].map(function(s){return '<div class="stat"><b>'+s[0]+'</b><small>'+s[1]+'</small></div>';}).join('');
+function match(r){
+  if(Q && (r[1]+' '+r[3]).toLowerCase().indexOf(Q)<0) return false;
+  return G.every(function(g){return !F[g.k].length || F[g.k].indexOf(r[g.i])>-1;});
+}
+function drawFilters(){
+  $('filters').innerHTML=G.map(function(g){
+    return '<div class="grp"><h3>'+g.t+'</h3><div class="chips">'+g.o.map(function(v){
+      var n=D.filter(function(r){return r[g.i]===v;}).length;
+      return '<button class="chip" data-g="'+g.k+'" data-v="'+v+'" aria-pressed="'+(F[g.k].indexOf(v)>-1)+'">'+g.l(v)+'<small>'+n+'</small></button>';
+    }).join('')+'</div></div>';
+  }).join('');
+}
+function draw(){
+  var rows=D.filter(match);
+  $('count').textContent='Menampilkan '+rows.length+' dari '+D.length+' soal · skor '+sum(rows)+' dari '+sum(D);
+  $('list').innerHTML=rows.length?rows.map(function(r){
+    return '<article class="card" style="--c:var(--'+r[4].toLowerCase()+')"><div class="no" aria-label="Soal nomor '+r[0]+'">'+r[0]+'</div>'+
+    '<div><h2>'+r[1]+'</h2></div><p class="ind">'+r[3]+'</p>'+
+    '<div class="tags"><span class="tag" style="--t:var(--'+r[4].toLowerCase()+')">'+r[4]+' '+LV[r[4]]+'</span>'+
+    '<span class="tag" style="--t:'+CL[r[5]]+'">'+r[5]+'</span><span class="tag n">'+BT[r[6]]+'</span><span class="tag n">Skor '+r[7]+'</span></div>'+
+    '<details><summary>TP '+TP[r[2]][0]+'</summary><p>'+TP[r[2]][0]+'. '+TP[r[2]][1]+'</p></details></article>';
+  }).join(''):'<div class="empty">Tidak ada soal yang cocok dengan filter ini.</div>';
+}
+$('filters').addEventListener('click',function(e){
+  var b=e.target.closest('.chip'); if(!b) return;
+  var g=b.dataset.g, v=b.dataset.v; var raw=G.filter(function(x){return x.k===g;})[0].o.filter(function(o){return String(o)===v;})[0];
+  var a=F[g], i=a.indexOf(raw); if(i>-1) a.splice(i,1); else a.push(raw);
+  drawFilters(); draw();
+});
+$('q').addEventListener('input',function(e){Q=e.target.value.trim().toLowerCase(); draw();});
+$('reset').addEventListener('click',function(){F={tp:[],lv:[],sl:[],bt:[]}; Q=''; $('q').value=''; drawFilters(); draw();});
+var allOpen=false;
+$('open').addEventListener('click',function(){
+  allOpen=!allOpen; document.querySelectorAll('details').forEach(function(d){d.open=allOpen;});
+  this.textContent=allOpen?'Tutup semua TP':'Buka semua TP';
+});
+$('theme').addEventListener('click',function(){
+  var r=document.documentElement, dark=r.dataset.theme?r.dataset.theme==='dark':matchMedia('(prefers-color-scheme: dark)').matches;
+  r.dataset.theme=dark?'light':'dark';
+});
+drawFilters(); draw();
+</script>
+</body>
+</html>
