@@ -381,6 +381,32 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
 .menu-move:hover{opacity:1;color:var(--cyan);}
 .menu-move.disabled{opacity:.2;cursor:default;}
 .menu-move.disabled:hover{color:inherit;opacity:.2;}
+
+/* Relasi antar panel / sub-panel */
+.rel-btn{flex-shrink:0;display:inline-block;margin-left:7px;background:none;border:1px solid var(--violet);color:var(--violet);font-family:'Orbitron',sans-serif;font-size:8.5px;letter-spacing:.06em;padding:2px 7px;line-height:1.4;cursor:pointer;vertical-align:middle;}
+.rel-btn:hover{background:rgba(123,97,255,.14);box-shadow:0 0 8px rgba(123,97,255,.3);}
+.sub-card>.rel-btn{margin:7px 0 0;display:block;}
+.rel-item{display:flex;align-items:flex-start;gap:10px;border-top:1px solid var(--line);padding:11px 0;}
+.rel-item:first-child{border-top:none;}
+.rel-kind{flex-shrink:0;font-family:'Orbitron',sans-serif;font-size:8.5px;letter-spacing:.06em;color:var(--violet);border:1px solid var(--violet);padding:2px 6px;margin-top:2px;}
+.rel-main{flex:1;min-width:0;}
+.rel-note{margin-top:5px;font-size:11px;color:var(--amber);}
+.rel-acts{display:flex;align-items:center;gap:4px;flex-shrink:0;}
+.rel-acts .btn{padding:6px 10px;font-size:10px;}
+
+/* Tombol daftar menu saat tab menu tidak muat */
+.menu-wrap{display:flex;align-items:stretch;gap:8px;max-width:1100px;margin:0 auto;}
+.menu-wrap .menu-row{flex:1;min-width:0;max-width:none;margin:0;}
+.menu-more{display:none;flex-shrink:0;align-items:center;gap:6px;padding:0 12px;border:1px solid var(--cyan-dim);background:var(--panel);color:var(--cyan);cursor:pointer;font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:.08em;clip-path:polygon(8px 0,100% 0,100% 100%,0 100%,0 8px);}
+.menu-more.show{display:flex;}
+.menu-more:hover{background:rgba(43,227,255,.1);box-shadow:0 0 10px rgba(43,227,255,.2);}
+.menu-list{display:flex;flex-direction:column;gap:6px;margin-top:10px;max-height:60vh;overflow-y:auto;}
+.menu-list-item{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:10px 12px;border:1px solid var(--line);background:var(--bg);color:var(--text);cursor:pointer;font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:.06em;}
+.menu-list-item:hover{border-color:var(--cyan-dim);color:var(--cyan);}
+.menu-list-item.active{border-color:var(--cyan);color:var(--cyan);background:rgba(43,227,255,.08);}
+.menu-list-item .ml-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.menu-list-item .ml-sfx{font-size:9px;color:var(--amber);}
+.menu-list-item .ml-new{font-size:9px;color:var(--violet);border:1px solid var(--violet);padding:1px 6px;}
 </style>
 </head>
 <body>
@@ -893,7 +919,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
             '</div>'+
           '</div>'+
         '</div>'+
-        '<div class="menu-row">'+menusHtml+(g?'<button id="add-menu-btn" data-addmenu>+ MENU</button>':'')+'</div>'+
+        '<div class="menu-wrap"><div class="menu-row">'+menusHtml+(g?'<button id="add-menu-btn" data-addmenu>+ MENU</button>':'')+'</div><button class="menu-more" id="menu-more-btn" title="Lihat semua menu">\u2630 MENU</button></div>'+
       '</header>'+
       '<main>'+
         updateFeedHtml()+
@@ -922,11 +948,14 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     app.querySelectorAll('[data-switch]').forEach(function(el){ el.addEventListener('click', function(){ state.activeMenu = el.getAttribute('data-switch'); render(); persistLocal(); }); });
     app.querySelectorAll('[data-delmenu]').forEach(function(el){ el.addEventListener('click', function(e){ e.stopPropagation(); delMenu(el.getAttribute('data-delmenu')); }); });
     var am = document.getElementById('add-menu-btn'); if(am) am.addEventListener('click', addMenuModal);
+    var mm = document.getElementById('menu-more-btn'); if(mm) mm.addEventListener('click', menuListModal);
+    updateMenuOverflow();
     var ap = app.querySelector('[data-addpanel]'); if(ap) ap.addEventListener('click', addPanelModal);
     app.querySelectorAll('[data-delpanel]').forEach(function(el){ el.addEventListener('click', function(){ delPanel(el.getAttribute('data-delpanel')); }); });
     app.querySelectorAll('[data-addsub]').forEach(function(el){ el.addEventListener('click', function(){ addSubModal(el.getAttribute('data-addsub')); }); });
     app.querySelectorAll('[data-delsub]').forEach(function(el){ el.addEventListener('click', function(){ delSub(el.getAttribute('data-delsub'), el.getAttribute('data-panel')); }); });
     app.querySelectorAll('[data-movepanel]').forEach(function(el){ el.addEventListener('click', function(){ movePanelPosition(el.getAttribute('data-pid'), el.getAttribute('data-movepanel')==='up'?-1:1); }); });
+    wireRel(app);
     var lyb = app.querySelector('[data-layout]'); if(lyb) lyb.addEventListener('click', layoutModal);
     app.querySelectorAll('[data-viewsubs]').forEach(function(el){ el.addEventListener('click', function(){ openPanelDetail(el.getAttribute('data-viewsubs')); }); });
     app.querySelectorAll('[data-editpanel]').forEach(function(el){ el.addEventListener('click', function(){ editPanelModal(el.getAttribute('data-editpanel')); }); });
@@ -944,6 +973,127 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     var rbo = document.getElementById('role-btn-logout'); if(rbo) rbo.addEventListener('click', function(){ setRole('murid'); if(hasApi()) loadFromApi(); });
     var hb = document.getElementById('hist-btn'); if(hb) hb.addEventListener('click', historyModal);
     wireDragAndDrop(app);
+  }
+
+
+  // ---- Relasi: hubungan antar panel/sub-panel (tersimpan di field "rel" pada item pemilik, berlaku dua arah) ----
+  function findP(id){ return state.panels.find(function(x){ return x.id===id; }); }
+  function subVisible(p, s){ return panelVisible(p) && (isGuru() || viewerAllowedAccess().indexOf(itemAccess(s))!==-1); }
+  function nodeOf(k, id, pid){
+    if(k==='p'){ var p = findP(id); return (p && panelVisible(p)) ? {k:'p', id:id, pid:id, p:p, title:p.title} : null; }
+    var pp = findP(pid), s = pp && pp.subpanels.find(function(x){ return x.id===id; });
+    return (s && subVisible(pp, s)) ? {k:'s', id:id, pid:pid, p:pp, s:s, title:s.title} : null;
+  }
+  function relSrc(n){ return n.k==='p' ? n.p : n.s; }
+  function allNodes(){
+    var out = [];
+    state.panels.forEach(function(p){
+      var n = nodeOf('p', p.id); if(n) out.push(n);
+      (p.subpanels||[]).forEach(function(s){ var m = nodeOf('s', s.id, p.id); if(m) out.push(m); });
+    });
+    return out;
+  }
+  // Relasi keluar (disimpan di item ini) + relasi masuk (item lain yang menunjuk ke item ini); target yang tidak terlihat/terhapus otomatis disaring
+  function relList(k, id, pid){
+    var self = nodeOf(k, id, pid), out = [];
+    if(!self) return out;
+    (relSrc(self).rel||[]).forEach(function(r){ var t = nodeOf(r.k, r.id, r.pid); if(t) out.push({n:t, note:r.note||'', owner:self, ref:r}); });
+    allNodes().forEach(function(n){
+      if(n.k===k && n.id===id) return;
+      (relSrc(n).rel||[]).forEach(function(r){ if(r.k===k && r.id===id) out.push({n:n, note:r.note||'', owner:n, ref:r}); });
+    });
+    return out;
+  }
+  function relBtn(k, id, pid){
+    var n = relList(k, id, pid).length;
+    if(!n && !isGuru()) return '';
+    return '<button class="rel-btn" data-relbtn="'+k+'" data-relid="'+id+'" data-relpid="'+(pid||'')+'" title="Lihat hubungan dengan panel/sub-panel lain">\u21c4 RELASI'+(n?' '+n:'')+'</button>';
+  }
+  function wireRel(root){
+    root.querySelectorAll('[data-relbtn]').forEach(function(b){
+      b.addEventListener('click', function(e){ e.stopPropagation(); openRelModal(b.getAttribute('data-relbtn'), b.getAttribute('data-relid'), b.getAttribute('data-relpid')); });
+    });
+  }
+  function relWhere(n){ var m = menuById(n.p.menuId); return (m?m.name:'-')+(n.k==='s' ? ' \u203a '+n.p.title : ''); }
+  function openRelModal(k, id, pid){
+    var self = nodeOf(k, id, pid); if(!self) return;
+    var g = isGuru();
+    var ov = document.createElement('div'); ov.className = 'modal-overlay'; document.body.appendChild(ov);
+    ov.addEventListener('click', function(e){ if(e.target===ov) closeOverlay(ov); });
+    function draw(){
+      var list = relList(k, id, pid);
+      var rows = list.length ? list.map(function(r, i){
+        return '<div class="rel-item"><span class="rel-kind">'+(r.n.k==='p'?'PANEL':'SUB-PANEL')+'</span><div class="rel-main"><div class="sub-title">'+esc(r.n.title)+'</div><div class="sub-subtitle">'+esc(relWhere(r.n))+'</div>'+(r.note?'<div class="rel-note">'+esc(r.note)+'</div>':'')+'</div>'+
+          '<div class="rel-acts"><button class="btn" data-go="'+i+'">BUKA</button>'+(g?'<button class="icon-btn" data-rm="'+i+'" title="Hapus relasi">\u00d7</button>':'')+'</div></div>';
+      }).join('') : '<div class="hist-empty">BELUM ADA RELASI</div>';
+      var add = '';
+      if(g){
+        var used = {}; list.forEach(function(r){ used[r.n.k+':'+r.n.id] = 1; });
+        var opts = allNodes().filter(function(n){ return !(n.k===k && n.id===id) && !used[n.k+':'+n.id]; }).map(function(n){
+          return '<option value="'+n.k+'|'+n.id+'|'+n.pid+'">'+esc((n.k==='p'?'Panel':'Sub')+' \u00b7 '+relWhere(n)+' \u203a '+n.title)+'</option>';
+        }).join('');
+        add = '<div class="lm-sep"></div><label>Hubungkan dengan</label><select data-rsel>'+opts+'</select>'+
+          '<label>Keterangan hubungan (opsional)</label><input data-rnote placeholder="Contoh: prasyarat, lanjutan materi, pelengkap">'+
+          '<div class="modal-actions"><button class="btn btn-primary" data-radd'+(opts?'':' disabled')+'>+ HUBUNGKAN</button></div>';
+      }
+      ov.innerHTML = '<div class="modal wide"><h4 class="hud-font">RELASI</h4><div class="sub">'+(k==='p'?'Panel':'Sub-panel')+' \u201c'+esc(self.title)+'\u201d terhubung dengan '+list.length+' item. Hubungan berlaku dua arah.</div>'+
+        '<div class="hist-list">'+rows+'</div>'+add+'<div class="modal-actions"><button class="btn" data-close>TUTUP</button></div></div>';
+      ov.querySelector('[data-close]').onclick = function(){ closeOverlay(ov); };
+      ov.querySelectorAll('[data-go]').forEach(function(b){ b.onclick = function(){
+        var n = list[+b.getAttribute('data-go')].n;
+        closeOverlay(ov, function(){ goToItem(n.p.menuId, n.p.id); if(n.k==='s') setTimeout(function(){ openPanelDetail(n.p.id); }, 300); });
+      }; });
+      ov.querySelectorAll('[data-rm]').forEach(function(b){ b.onclick = function(){
+        var r = list[+b.getAttribute('data-rm')], o = relSrc(r.owner);
+        o.rel = (o.rel||[]).filter(function(x){ return x!==r.ref; });
+        if(!o.rel.length) delete o.rel;
+        save(); draw();
+      }; });
+      var ab = ov.querySelector('[data-radd]');
+      if(ab) ab.onclick = function(){
+        var v = ov.querySelector('[data-rsel]').value; if(!v) return;
+        var a = v.split('|'), ref = {k:a[0], id:a[1]};
+        if(a[0]==='s') ref.pid = a[2];
+        var note = ov.querySelector('[data-rnote]').value.trim(); if(note) ref.note = note;
+        var o = relSrc(self); (o.rel = o.rel||[]).push(ref);
+        save(); draw();
+      };
+    }
+    draw();
+  }
+
+
+  // ---- Daftar semua menu: tombol di ujung kanan baris menu, muncul hanya jika tab menu tidak muat ----
+  function updateMenuOverflow(){
+    var row = document.querySelector('.menu-row'), b = document.getElementById('menu-more-btn');
+    if(!row || !b) return;
+    b.classList.remove('show'); // ukur tanpa tombol dulu supaya bisa hilang lagi saat layar melebar
+    var over = row.scrollWidth > row.clientWidth + 1;
+    b.classList.toggle('show', over);
+    var a = row.querySelector('.menu-tab.active');
+    if(over && a){ // tab aktif selalu terlihat
+      var rr = row.getBoundingClientRect(), ar = a.getBoundingClientRect();
+      if(ar.left < rr.left) row.scrollLeft -= rr.left - ar.left;
+      else if(ar.right > rr.right) row.scrollLeft += ar.right - rr.right;
+    }
+  }
+  function menuListModal(){
+    var g = isGuru();
+    var list = g ? state.menus : state.menus.filter(function(m){ return viewerAllowedAccess().indexOf(itemAccess(m))!==-1; });
+    var counts = menuNewCounts();
+    var ov = document.createElement('div'); ov.className = 'modal-overlay'; document.body.appendChild(ov);
+    ov.addEventListener('click', function(e){ if(e.target===ov) closeOverlay(ov); });
+    ov.innerHTML = '<div class="modal"><h4 class="hud-font">SEMUA MENU</h4><div class="sub">'+list.length+' menu. Pilih salah satu untuk berpindah.</div><div class="menu-list">'+
+      list.map(function(m){
+        var c = counts[m.id], n = c ? c.ann+c.pan+c.sub : 0;
+        return '<button class="menu-list-item'+(m.id===state.activeMenu?' active':'')+'" data-mid="'+m.id+'"><span class="ml-name">'+esc(m.name)+'</span>'+
+          (g && itemAccess(m)!=='student' ? '<span class="ml-sfx">'+(itemAccess(m)==='teacher'?'khusus guru':'khusus petugas')+'</span>' : '')+(n?'<span class="ml-new">'+n+' baru</span>':'')+'</button>';
+      }).join('')+'</div><div class="modal-actions"><button class="btn" data-close>TUTUP</button></div></div>';
+    ov.querySelector('[data-close]').onclick = function(){ closeOverlay(ov); };
+    ov.querySelectorAll('[data-mid]').forEach(function(b){ b.onclick = function(){
+      var id = b.getAttribute('data-mid');
+      closeOverlay(ov, function(){ state.activeMenu = id; render(); persistLocal(); });
+    }; });
   }
 
   // ---- Drag & drop wiring (native HTML5 DnD) ----
@@ -1063,6 +1213,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
       return '<div class="sub-card'+(g&&sAcc==='teacher'?' teacher-only':'')+(g&&sAcc==='staff'?' staff-only':'')+'">'+
         '<div class="sub-title">'+esc(s.title)+newTag(s.newAt, panelEff(p) && sAcc==='student')+'</div>'+
         (s.subtitle?'<div class="sub-subtitle">'+esc(s.subtitle)+'</div>':'')+
+        relBtn('s',s.id,p.id)+
         (s.image?'<img src="'+esc(s.image)+'" alt="">':'')+
         (s.linkUrl?'<a class="sub-link" href="'+esc(s.linkUrl)+'" target="_blank" rel="noopener">'+esc(s.linkLabel||s.linkUrl)+'</a>':'')+
       '</div>';
@@ -1071,7 +1222,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     var showBtn = hasMore || (g && subsList.length > 0);
     var btnLabel = hasMore ? ('\u2261 LIHAT SEMUA SUB-PANEL ('+subsList.length+')') : '\u2261 KELOLA SUB-PANEL';
     return '<div class="panel-card type-info'+(g&&pAcc==='teacher'?' teacher-only':'')+(g&&pAcc==='staff'?' staff-only':'')+'" data-pid="'+p.id+'" data-key="p'+p.id+'">'+
-      '<div class="panel-head"><div class="panel-head-left">'+(g?'<span class="drag-handle" draggable="true" data-dragpanel="'+p.id+'" title="Seret untuk urutkan">\u283f</span>':'')+'<h3 class="hud-font">'+esc(p.title)+'</h3>'+newTag(p.newAt, panelEff(p))+'</div>'+
+      '<div class="panel-head"><div class="panel-head-left">'+(g?'<span class="drag-handle" draggable="true" data-dragpanel="'+p.id+'" title="Seret untuk urutkan">\u283f</span>':'')+'<h3 class="hud-font">'+esc(p.title)+'</h3>'+newTag(p.newAt, panelEff(p))+relBtn('p',p.id)+'</div>'+
       (g?'<div class="panel-head-right">'+visToggle('panel',p.id,pAcc)+
         '<button class="icon-btn" data-editpanel="'+p.id+'" title="Edit judul panel">\u270e</button>'+
         '<button class="move-btn" data-movepanel="up" data-pid="'+p.id+'" title="Pindah ke atas">\u25b2</button>'+
@@ -1094,7 +1245,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     var hfDone = hfOn && hfAlreadyDone(p.id);
     return '<div class="panel-card type-announcement'+(expired?' expired':'')+(isGuru()&&annAcc==='teacher'?' teacher-only':'')+(isGuru()&&annAcc==='staff'?' staff-only':'')+'" data-key="p'+p.id+'">'+
       (fresh?'<div class="new-badge">BARU!</div>':'')+
-      '<div class="panel-head"><h3 class="hud-font">'+esc(p.title)+'</h3>'+(isGuru()?'<div class="panel-head-right">'+visToggle('panel',p.id,annAcc)+
+      '<div class="panel-head"><div class="panel-head-left"><h3 class="hud-font">'+esc(p.title)+'</h3>'+relBtn('p',p.id)+'</div>'+(isGuru()?'<div class="panel-head-right">'+visToggle('panel',p.id,annAcc)+
         '<button class="icon-btn hf-admin-btn'+(hfOn?' active':'')+'" data-hftoggle="'+p.id+'" title="'+(hfOn?'Matikan tombol Highfive untuk pengumuman ini':'Aktifkan tombol Highfive untuk pengumuman ini')+'">\u270b</button>'+
         '<button class="icon-btn" data-editpanel="'+p.id+'" title="Edit pengumuman">\u270e</button><button class="icon-btn" data-delpanel="'+p.id+'">\u00d7</button></div>':'')+'</div>'+
       '<div class="panel-body">'+
@@ -1540,6 +1691,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
         '<div><div class="sub-title">'+esc(s.title)+newTag(s.newAt, panelEff(p) && sAcc==='student')+'</div>'+(s.subtitle?'<div class="sub-subtitle">'+esc(s.subtitle)+'</div>':'')+'</div>'+
         (g?'<div class="sub-head-right">'+visToggle('sub',s.id,sAcc,p.id)+'<button class="icon-btn" data-editsub="'+s.id+'" title="Edit sub-panel">\u270e</button><button class="icon-btn" data-delsub="'+s.id+'">\u00d7</button></div>':'')+
       '</div>'+
+      relBtn('s',s.id,p.id)+
       (s.image?'<img src="'+esc(s.image)+'" alt="">':'')+
       (s.linkUrl?'<a class="sub-link" href="'+esc(s.linkUrl)+'" target="_blank" rel="noopener">'+esc(s.linkLabel||s.linkUrl)+'</a>':'')+
       (g?'<div class="sub-tile-move"><button class="move-btn" data-movesub="left" title="Pindah ke kiri"'+(idx===0?' disabled':'')+'>\u25c0</button><button class="move-btn" data-movesub="right" title="Pindah ke kanan"'+(idx===total-1?' disabled':'')+'>\u25b6</button></div>':'')+
@@ -1577,6 +1729,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
       row.querySelectorAll('[data-editsub]').forEach(function(btn){
         btn.addEventListener('click', function(){ editSubModal(panelId, btn.closest('[data-subid]').getAttribute('data-subid'), refresh); });
       });
+      wireRel(row);
       row.querySelectorAll('[data-vis]').forEach(function(el){
         el.addEventListener('click', function(e){ e.stopPropagation(); toggleVisibility(el.getAttribute('data-vis'), el.getAttribute('data-id'), el.getAttribute('data-panel')); refresh(); });
       });
@@ -1827,6 +1980,8 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     }
   }
 
+  window.addEventListener('resize', updateMenuOverflow);
+  if(document.fonts && document.fonts.ready) document.fonts.ready.then(updateMenuOverflow);
   render();
   loadFromApi();
   fetchHighfiveCounts();
