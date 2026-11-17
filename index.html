@@ -1032,7 +1032,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
         var opts = allNodes().filter(function(n){ return !(n.k===k && n.id===id) && !used[n.k+':'+n.id]; }).map(function(n){
           return '<option value="'+n.k+'|'+n.id+'|'+n.pid+'">'+esc((n.k==='p'?'Panel':'Sub')+' \u00b7 '+relWhere(n)+' \u203a '+n.title)+'</option>';
         }).join('');
-        add = '<div class="lm-sep"></div><label>Hubungkan dengan</label><select data-rsel>'+opts+'</select>'+
+        add = '<div class="lm-sep"></div><label>Hubungkan dengan</label><input data-rsearch type="search" placeholder="Cari panel atau sub-panel..." autocomplete="off"><select data-rsel size="6" style="margin-top:6px">'+opts+'</select><div class="field-hint" data-rcount></div>'+
           '<label>Keterangan hubungan (opsional)</label><input data-rnote placeholder="Contoh: prasyarat, lanjutan materi, pelengkap">'+
           '<div class="modal-actions"><button class="btn btn-primary" data-radd'+(opts?'':' disabled')+'>+ HUBUNGKAN</button></div>';
       }
@@ -1050,6 +1050,22 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
         save(); draw();
       }; });
       var ab = ov.querySelector('[data-radd]');
+      var sb = ov.querySelector('[data-rsearch]'), sel = ov.querySelector('[data-rsel]');
+      if(sb && sel){
+        var all = [].map.call(sel.options, function(o){ return {v:o.value, t:o.textContent}; });
+        var cnt = ov.querySelector('[data-rcount]');
+        var filt = function(){
+          var words = sb.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+          var hit = all.filter(function(o){ var t = o.t.toLowerCase(); return words.every(function(w){ return t.indexOf(w)!==-1; }); });
+          sel.innerHTML = hit.map(function(o){ return '<option value="'+esc(o.v)+'">'+esc(o.t)+'</option>'; }).join('');
+          if(hit.length) sel.selectedIndex = 0;
+          if(ab) ab.disabled = !hit.length;
+          cnt.textContent = hit.length ? hit.length+' item ditemukan' : 'Tidak ada yang cocok';
+        };
+        sb.addEventListener('input', filt);
+        sb.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); if(ab && !ab.disabled) ab.click(); } });
+        filt();
+      }
       if(ab) ab.onclick = function(){
         var v = ov.querySelector('[data-rsel]').value; if(!v) return;
         var a = v.split('|'), ref = {k:a[0], id:a[1]};
