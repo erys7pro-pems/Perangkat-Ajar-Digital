@@ -417,6 +417,19 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
 .subs-row > .empty-hint{grid-column:1 / -1;}
 @media (max-width:700px){ .subs-row > .sub-tile, .subs-row > .sub-tile[data-per="3"]{grid-column:span 3;} .subs-row > .sub-tile[data-per="1"]{grid-column:span 6;} }
 @media (max-width:520px){ .subs-row > .sub-tile, .subs-row > .sub-tile[data-per]{grid-column:1 / -1;} }
+
+/* Pindahkan sub-panel (pilih menu -> pilih panel) */
+.sub-tile-move .move-btn.mv-to{width:auto;padding:0 9px;margin-right:auto;font-family:'Orbitron',sans-serif;font-size:9px;letter-spacing:.06em;}
+.mv-steps{display:flex;gap:8px;align-items:center;margin:12px 0 4px;font-family:'Orbitron',sans-serif;font-size:9.5px;letter-spacing:.08em;color:var(--muted);}
+.mv-steps .cur{color:var(--cyan);} .mv-steps .done{color:var(--cyan-dim);}
+.mv-label{margin:10px 0 6px;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.mv-back{padding:5px 9px;font-size:10px;}
+.mv-count{font-size:9px;color:var(--muted);}
+.menu-list.mv{max-height:38vh;}
+.menu-list-item:disabled{opacity:.45;cursor:not-allowed;}
+.mv-sum{margin-top:12px;font-size:11.5px;line-height:1.5;border:1px solid var(--cyan-dim);padding:8px 10px;background:rgba(43,227,255,.06);}
+.mv-sum:empty{display:none;}
+.mv-warn{color:var(--amber);margin-top:4px;}
 </style>
 </head>
 <body>
@@ -1122,6 +1135,79 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     }; });
   }
 
+
+  // ---- Pindahkan sub-panel ke panel lain (menu yang sama atau menu lain): langkah 1 pilih menu, langkah 2 pilih panel ----
+  function applySubMove(fromPid, subId, toPid){
+    var from = findP(fromPid), to = findP(toPid);
+    if(!from || !to || from===to) return false;
+    var i = from.subpanels.findIndex(function(x){ return x.id===subId; });
+    if(i<0) return false;
+    var sub = from.subpanels.splice(i, 1)[0];
+    (to.subpanels = to.subpanels||[]).push(sub); // newAt tidak diubah: memindahkan bukan membuat sub-panel baru
+    // perbarui relasi yang menunjuk sub-panel ini (pid ikut berubah)
+    function fix(r){ if(r.k==='s' && r.id===subId) r.pid = toPid; }
+    state.panels.forEach(function(p){ (p.rel||[]).forEach(fix); (p.subpanels||[]).forEach(function(x){ (x.rel||[]).forEach(fix); }); });
+    save();
+    var dm = menuById(to.menuId);
+    showToast('Sub-panel "'+sub.title+'" dipindahkan ke "'+(dm?dm.name:'-')+' \u203a '+to.title+'".', 'Buka panel', function(){
+      goToItem(to.menuId, to.id); setTimeout(function(){ openPanelDetail(to.id); }, 300);
+    });
+    return true;
+  }
+  function moveSubModal(fromPid, subId, afterMove){
+    if(!isGuru()) return;
+    var from = findP(fromPid), s = from && from.subpanels.find(function(x){ return x.id===subId; });
+    if(!s) return;
+    var sel = {menuId:null, panelId:null};
+    var ov = document.createElement('div'); ov.className = 'modal-overlay'; document.body.appendChild(ov);
+    ov.addEventListener('click', function(e){ if(e.target===ov) closeOverlay(ov); });
+    function sfx(it){ var a = itemAccess(it); return a==='student' ? '' : '<span class="ml-sfx">'+(a==='teacher'?'khusus guru':'khusus petugas')+'</span>'; }
+    function draw(){
+      var h = '<div class="modal"><h4 class="hud-font">PINDAHKAN SUB-PANEL</h4><div class="sub">\u201c'+esc(s.title)+'\u201d dari panel \u201c'+esc(from.title)+'\u201d</div>'+
+        '<div class="mv-steps"><span class="'+(sel.menuId?'done':'cur')+'">1 \u00b7 MENU</span><span>\u203a</span><span class="'+(sel.menuId?'cur':'')+'">2 \u00b7 PANEL</span></div>';
+      if(!sel.menuId){
+        h += '<div class="mv-label">Pilih menu tujuan</div><div class="menu-list mv">'+state.menus.map(function(m){
+          var n = state.panels.filter(function(x){ return x.menuId===m.id && x.type!=='announcement'; }).length;
+          return '<button class="menu-list-item'+(m.id===from.menuId?' active':'')+'" data-pm="'+m.id+'"><span class="ml-name">'+esc(m.name)+'</span>'+sfx(m)+(m.id===from.menuId?'<span class="ml-new">menu saat ini</span>':'')+'<span class="mv-count">'+n+' panel</span></button>';
+        }).join('')+'</div><div class="modal-actions"><button class="btn" data-close>BATAL</button></div></div>';
+      } else {
+        var m = menuById(sel.menuId);
+        var ps = state.panels.filter(function(x){ return x.menuId===sel.menuId && x.type!=='announcement'; });
+        h += '<div class="mv-label"><button class="btn mv-back" data-back>\u2039 GANTI MENU</button><span>Menu: <b>'+esc(m?m.name:'-')+'</b></span></div>'+
+          (ps.length ? '<input data-psearch type="search" placeholder="Cari panel..." autocomplete="off"><div class="menu-list mv" style="margin-top:8px">'+ps.map(function(x){
+            var cur = x.id===from.id;
+            return '<button class="menu-list-item" data-pp="'+x.id+'"'+(cur?' disabled':'')+'><span class="ml-name">'+esc(x.title)+'</span>'+sfx(x)+(cur?'<span class="ml-new">panel asal</span>':'<span class="mv-count">'+(x.subpanels||[]).length+' sub-panel</span>')+'</button>';
+          }).join('')+'</div>' : '<div class="hist-empty">MENU INI BELUM PUNYA PANEL INFORMASI</div>')+
+          '<div class="mv-sum" data-sum></div><div class="modal-actions"><button class="btn" data-close>BATAL</button><button class="btn btn-primary" data-do disabled>PINDAHKAN</button></div></div>';
+      }
+      ov.innerHTML = h;
+      ov.querySelectorAll('[data-close]').forEach(function(b){ b.onclick = function(){ closeOverlay(ov); }; });
+      ov.querySelectorAll('[data-pm]').forEach(function(b){ b.onclick = function(){ sel.menuId = b.getAttribute('data-pm'); sel.panelId = null; draw(); }; });
+      var back = ov.querySelector('[data-back]'); if(back) back.onclick = function(){ sel.menuId = null; sel.panelId = null; draw(); };
+      var sb = ov.querySelector('[data-psearch]');
+      if(sb){
+        sb.addEventListener('input', function(){
+          var words = sb.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+          ov.querySelectorAll('[data-pp]').forEach(function(b){ var t = b.textContent.toLowerCase(); b.style.display = words.every(function(w){ return t.indexOf(w)!==-1; }) ? '' : 'none'; });
+        });
+      }
+      ov.querySelectorAll('[data-pp]').forEach(function(b){ b.onclick = function(){ sel.panelId = b.getAttribute('data-pp'); upd(); }; });
+      var go = ov.querySelector('[data-do]');
+      if(go) go.onclick = function(){ closeOverlay(ov, function(){ if(applySubMove(fromPid, subId, sel.panelId) && afterMove) afterMove(); }); };
+    }
+    function upd(){
+      var d = sel.panelId && findP(sel.panelId), sumEl = ov.querySelector('[data-sum]'), go = ov.querySelector('[data-do]');
+      ov.querySelectorAll('[data-pp]').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-pp')===sel.panelId); });
+      if(!d){ sumEl.innerHTML = ''; go.disabled = true; return; }
+      var dm = menuById(d.menuId);
+      var rank = Math.max(ACCESS_RANK[itemAccess(dm)]||0, ACCESS_RANK[itemAccess(d)]||0), sr = ACCESS_RANK[itemAccess(s)]||0;
+      var warn = rank>sr ? (rank===2 ? 'Tujuan khusus guru: sub-panel ini tidak akan terlihat oleh murid maupun petugas.' : 'Tujuan khusus petugas: sub-panel ini tidak akan terlihat oleh murid.') : '';
+      sumEl.innerHTML = 'Pindah ke: <b>'+esc(dm.name)+' \u203a '+esc(d.title)+'</b>, ditaruh di urutan terakhir. Relasi sub-panel ikut terbawa.'+(warn?'<div class="mv-warn">'+esc(warn)+'</div>':'');
+      go.disabled = false;
+    }
+    draw();
+  }
+
   // ---- Drag & drop wiring (native HTML5 DnD) ----
   function wireDragAndDrop(app){
     var draggedPanelId = null;
@@ -1726,7 +1812,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
       relBtn('s',s.id,p.id)+
       (s.image?'<img src="'+esc(s.image)+'" alt="">':'')+
       (s.linkUrl?'<a class="sub-link" href="'+esc(s.linkUrl)+'" target="_blank" rel="noopener">'+esc(s.linkLabel||s.linkUrl)+'</a>':'')+
-      (g?'<div class="sub-tile-move"><button class="move-btn" data-movesub="left" title="Pindah ke kiri"'+(idx===0?' disabled':'')+'>\u25c0</button><button class="move-btn" data-movesub="right" title="Pindah ke kanan"'+(idx===total-1?' disabled':'')+'>\u25b6</button></div>':'')+
+      (g?'<div class="sub-tile-move"><button class="move-btn mv-to" data-movesubto title="Pindahkan ke panel atau menu lain">\u2197 PINDAH</button><button class="move-btn" data-movesub="left\" title="Pindah ke kiri"'+(idx===0?' disabled':'')+'>\u25c0</button><button class="move-btn" data-movesub="right" title="Pindah ke kanan"'+(idx===total-1?' disabled':'')+'>\u25b6</button></div>':'')+
     '</div>';
   }
 
@@ -1764,6 +1850,9 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
         btn.addEventListener('click', function(){ editSubModal(panelId, btn.closest('[data-subid]').getAttribute('data-subid'), refresh); });
       });
       wireRel(row);
+      row.querySelectorAll('[data-movesubto]').forEach(function(btn){
+        btn.addEventListener('click', function(){ moveSubModal(panelId, btn.closest('[data-subid]').getAttribute('data-subid'), refresh); });
+      });
       row.querySelectorAll('[data-vis]').forEach(function(el){
         el.addEventListener('click', function(e){ e.stopPropagation(); toggleVisibility(el.getAttribute('data-vis'), el.getAttribute('data-id'), el.getAttribute('data-panel')); refresh(); });
       });
