@@ -168,7 +168,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
 .sub-card:first-child{border-top:none;}
 .sub-card img{max-width:100%;display:block;margin-top:8px;border:1px solid var(--line);filter:saturate(.85) contrast(1.05);cursor:zoom-in;}
 .sub-title{font-weight:700;font-size:13px;color:var(--text);}
-.sub-subtitle{color:var(--muted);font-size:11.5px;margin-top:2px;}
+.sub-subtitle{color:var(--muted);font-size:11.5px;margin-top:2px;white-space:pre-line;overflow-wrap:anywhere;line-height:1.5;}
 .sub-link{color:var(--cyan);font-size:11.5px;display:inline-block;margin-top:7px;text-decoration:none;border-bottom:1px solid var(--cyan-dim);}
 .sub-link:hover{text-shadow:0 0 6px rgba(43,227,255,.6);}
 .add-sub-btn{margin-top:8px;font-size:11px;background:none;border:1px dashed var(--line);color:var(--muted);padding:7px 10px;cursor:pointer;font-family:'Orbitron',sans-serif;letter-spacing:.06em;width:100%;}
@@ -208,7 +208,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
 }
 .type-choice button:hover{border-color:var(--cyan);color:var(--cyan);}
 .type-choice .ico{font-size:20px;}
-.modal textarea{width:100%;padding:9px 10px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px;font-family:'Share Tech Mono',monospace;resize:vertical;min-height:70px;}
+.modal textarea{width:100%;box-sizing:border-box;max-width:100%;padding:9px 10px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px;font-family:'Share Tech Mono',monospace;resize:vertical;min-height:70px;}
 .modal textarea:focus{outline:none;border-color:var(--cyan);}
 .modal input[type="date"]{color-scheme:dark;}
 :root[data-theme="light"] .modal input[type="date"]{color-scheme:light;}
@@ -1336,7 +1336,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     var ov = document.createElement('div'); ov.className='modal-overlay';
     var f = fields.map(function(fl){
       if(fl.type==='textarea'){
-        return '<label>'+fl.label+'</label><textarea data-f="'+fl.name+'" placeholder="'+(fl.placeholder||'')+'">'+esc(fl.value||'')+'</textarea>';
+        return '<label>'+fl.label+'</label><textarea data-f="'+fl.name+'"'+(fl.rows?' rows="'+fl.rows+'"':'')+' placeholder="'+(fl.placeholder||'')+'">'+esc(fl.value||'')+'</textarea>';
       }
       if(fl.type==='select'){
         return '<label>'+fl.label+'</label><select data-f="'+fl.name+'">'+(fl.options||[]).map(function(o){ return '<option value="'+esc(o.value)+'"'+(o.value===fl.value?' selected':'')+'>'+esc(o.label)+'</option>'; }).join('')+'</select>'+(fl.hint?'<div class="field-hint" data-hint="'+fl.name+'">'+esc(fl.hint)+'</div>':'');
@@ -1659,7 +1659,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     if(!isGuru()) return;
     openModal('SUB-PANEL BARU', null, [
       {name:'title', label:'Judul', placeholder:'Judul sub-panel'},
-      {name:'subtitle', label:'Sub-judul', placeholder:'Opsional'},
+      {name:'subtitle', label:'Sub-judul / detail', type:'textarea', rows:5, placeholder:'Opsional. Enter = paragraf baru; tarik sudut kanan bawah kotak untuk melebarkan.'},
       {name:'linkUrl', label:'Hyperlink (URL)', placeholder:'https://...'},
       {name:'linkLabel', label:'Teks link', placeholder:'Opsional'},
       {name:'image', label:'URL gambar', placeholder:'https://...jpg'}
@@ -1686,7 +1686,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     if(!s) return;
     openModal('EDIT SUB-PANEL', null, [
       {name:'title', label:'Judul', placeholder:'Judul sub-panel', value:s.title},
-      {name:'subtitle', label:'Sub-judul', placeholder:'Opsional', value:s.subtitle},
+      {name:'subtitle', label:'Sub-judul / detail', type:'textarea', rows:5, placeholder:'Opsional. Enter = paragraf baru; tarik sudut kanan bawah kotak untuk melebarkan.', value:s.subtitle},
       {name:'linkUrl', label:'Hyperlink (URL)', placeholder:'https://...', value:s.linkUrl},
       {name:'linkLabel', label:'Teks link', placeholder:'Opsional', value:s.linkLabel},
       {name:'image', label:'URL gambar', placeholder:'https://...jpg', value:s.image}
@@ -1763,7 +1763,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     if(addBtn) addBtn.onclick = function(){
       openModal('SUB-PANEL BARU', null, [
         {name:'title', label:'Judul', placeholder:'Judul sub-panel'},
-        {name:'subtitle', label:'Sub-judul', placeholder:'Opsional'},
+        {name:'subtitle', label:'Sub-judul / detail', type:'textarea', rows:5, placeholder:'Opsional. Enter = paragraf baru; tarik sudut kanan bawah kotak untuk melebarkan.'},
         {name:'linkUrl', label:'Hyperlink (URL)', placeholder:'https://...'},
         {name:'linkLabel', label:'Teks link', placeholder:'Opsional'},
         {name:'image', label:'URL gambar', placeholder:'https://...jpg'}
