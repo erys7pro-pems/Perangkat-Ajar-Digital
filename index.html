@@ -407,6 +407,16 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
 .menu-list-item .ml-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .menu-list-item .ml-sfx{font-size:9px;color:var(--amber);}
 .menu-list-item .ml-new{font-size:9px;color:var(--violet);border:1px solid var(--violet);padding:1px 6px;}
+
+/* Sub-panel di pop-up panel: grid 6 kolom, jumlah per baris diatur guru (panel.subRows / panel.subCols) */
+.subs-row{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;overflow:visible;}
+.subs-row > .sub-tile{flex:none;min-width:0;grid-column:span 2;}
+.subs-row > .sub-tile[data-per="1"]{grid-column:span 6;}
+.subs-row > .sub-tile[data-per="2"]{grid-column:span 3;}
+.subs-row > .sub-tile[data-per="3"]{grid-column:span 2;}
+.subs-row > .empty-hint{grid-column:1 / -1;}
+@media (max-width:700px){ .subs-row > .sub-tile, .subs-row > .sub-tile[data-per="3"]{grid-column:span 3;} .subs-row > .sub-tile[data-per="1"]{grid-column:span 6;} }
+@media (max-width:520px){ .subs-row > .sub-tile, .subs-row > .sub-tile[data-per]{grid-column:1 / -1;} }
 </style>
 </head>
 <body>
@@ -956,7 +966,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     app.querySelectorAll('[data-delsub]').forEach(function(el){ el.addEventListener('click', function(){ delSub(el.getAttribute('data-delsub'), el.getAttribute('data-panel')); }); });
     app.querySelectorAll('[data-movepanel]').forEach(function(el){ el.addEventListener('click', function(){ movePanelPosition(el.getAttribute('data-pid'), el.getAttribute('data-movepanel')==='up'?-1:1); }); });
     wireRel(app);
-    var lyb = app.querySelector('[data-layout]'); if(lyb) lyb.addEventListener('click', layoutModal);
+    var lyb = app.querySelector('[data-layout]'); if(lyb) lyb.addEventListener('click', function(){ layoutModal(); });
     app.querySelectorAll('[data-viewsubs]').forEach(function(el){ el.addEventListener('click', function(){ openPanelDetail(el.getAttribute('data-viewsubs')); }); });
     app.querySelectorAll('[data-editpanel]').forEach(function(el){ el.addEventListener('click', function(){ editPanelModal(el.getAttribute('data-editpanel')); }); });
     app.querySelectorAll('[data-hftoggle]').forEach(function(el){ el.addEventListener('click', function(){ toggleHighfive(el.getAttribute('data-hftoggle')); }); });
@@ -1488,9 +1498,10 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
   // ---- Komposisi panel per baris (per menu) ----
   // menu.rows = daftar jumlah panel untuk baris 1, 2, 3, ... (tiap nilai 1/2/3); menu.cols = jumlah untuk baris berikutnya (default 3).
   function currentMenu(){ return state.menus.find(function(x){ return x.id===state.activeMenu; }); }
-  function menuPlan(m){
-    var rows = (m && Array.isArray(m.rows) ? m.rows : []).map(Number).filter(function(n){ return n===1||n===2||n===3; }).slice(0,50);
-    var rest = m ? Number(m.cols) : 3;
+  function menuPlan(m, rk, ck){
+    rk = rk||'rows'; ck = ck||'cols';
+    var rows = (m && Array.isArray(m[rk]) ? m[rk] : []).map(Number).filter(function(n){ return n===1||n===2||n===3; }).slice(0,50);
+    var rest = m ? Number(m[ck]) : 3;
     if(!(rest===1||rest===2||rest===3)) rest = 3;
     return {rows:rows, rest:rest};
   }
@@ -1516,27 +1527,31 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
   function layoutButtonHtml(){
     return '<button class="layout-open" data-layout title="Atur jumlah panel di tiap baris">'+LAYOUT_ICONS[3]+'<span>TATA LETAK</span><span class="lo-sum">'+esc(planSummary(menuPlan(currentMenu())))+'</span></button>';
   }
-  function layoutModal(){
+  // cfg (opsional) memakai modal ini untuk objek lain: {obj, rows, cols, count, label, noun, title, hint, after}; tanpa cfg = tata letak panel di menu aktif
+  function layoutModal(cfg){
+    cfg = cfg || {};
     if(!isGuru()) return;
-    var m0 = currentMenu(); if(!m0) return;
+    var m0 = cfg.obj || currentMenu(); if(!m0) return;
     var menuId = m0.id;
-    var plan0 = menuPlan(m0);
+    var rk = cfg.rows||'rows', ck = cfg.cols||'cols', noun = cfg.noun||'panel';
+    var label = cfg.label || ('Menu "'+m0.name+'"');
+    var plan0 = menuPlan(m0, rk, ck);
     var draft = {rows: plan0.rows.slice(), rest: plan0.rest};
-    var count = document.querySelectorAll('.panels-grid > .panel-card').length;
+    var count = cfg.count!=null ? cfg.count : document.querySelectorAll('.panels-grid > .panel-card').length;
     var ov = document.createElement('div'); ov.className = 'modal-overlay';
-    ov.innerHTML = '<div class="modal layout-modal"><h4 class="hud-font">TATA LETAK PANEL</h4><div class="sub" id="lm-sub"></div>'+
+    ov.innerHTML = '<div class="modal layout-modal"><h4 class="hud-font">'+(cfg.title||'TATA LETAK PANEL')+'</h4><div class="sub" id="lm-sub"></div>'+
       '<div id="lm-body"></div>'+
-      '<div class="modal-actions"><button class="btn ghost" data-reset title="Kembalikan ke 3 panel per baris">RESET</button><button class="btn" data-cancel>BATAL</button><button class="btn btn-primary" data-apply>TERAPKAN</button></div></div>';
+      '<div class="modal-actions"><button class="btn ghost" data-reset title="Kembalikan ke 3 per baris">RESET</button><button class="btn" data-cancel>BATAL</button><button class="btn btn-primary" data-apply>TERAPKAN</button></div></div>';
     document.body.appendChild(ov);
     function seg(sel, attr){
       return '<div class="layout-picker" role="group">'+[1,2,3].map(function(n){
-        return '<button class="lp-btn'+(sel===n?' active':'')+'" '+attr+'="'+n+'" aria-pressed="'+(sel===n)+'" title="'+LAYOUT_NAMES[n]+'">'+LAYOUT_ICONS[n]+'</button>';
+        return '<button class="lp-btn'+(sel===n?' active':'')+'" '+attr+'="'+n+'" aria-pressed="'+(sel===n)+'" title="'+n+' '+noun+' di baris ini">'+LAYOUT_ICONS[n]+'</button>';
       }).join('')+'</div>';
     }
     function draw(){
-      ov.querySelector('#lm-sub').textContent = 'Menu "'+m0.name+'" punya '+count+' panel. Atur jumlah panel di tiap baris; baris yang tidak diatur memakai pengaturan "baris berikutnya".';
+      ov.querySelector('#lm-sub').textContent = label+' punya '+count+' '+noun+'. Atur jumlah '+noun+' di tiap baris; baris yang tidak diatur memakai pengaturan "baris berikutnya".';
       var sizes = planSizes(draft, count);
-      var prev = '<div class="lm-prev">'+(count ? sizes.map(function(k,i){ return '<span style="grid-column:span '+(6/k)+'">'+(i+1)+'</span>'; }).join('') : '<span style="grid-column:1/-1;border-style:dashed">belum ada panel</span>')+'</div>';
+      var prev = '<div class="lm-prev">'+(count ? sizes.map(function(k,i){ return '<span style="grid-column:span '+(6/k)+'">'+(i+1)+'</span>'; }).join('') : '<span style="grid-column:1/-1;border-style:dashed">belum ada '+noun+'</span>')+'</div>';
       var covered = 0, rowsHtml = '';
       draft.rows.forEach(function(k, i){
         var unused = covered >= count;
@@ -1546,7 +1561,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
       ov.querySelector('#lm-body').innerHTML = prev + rowsHtml +
         (draft.rows.length < 50 ? '<button class="lm-add" data-addrow>+ TAMBAH BARIS</button>' : '')+
         '<div class="lm-sep"></div><div class="lm-row"><span class="lm-rl">BARIS BERIKUTNYA</span>'+seg(draft.rest,'data-restsize')+'</div>'+
-        '<div class="lm-hint">Default: 3 panel per baris. Panel pengumuman selalu menempati posisi pertama.</div>';
+        '<div class="lm-hint">'+(cfg.hint||'Default: 3 panel per baris. Panel pengumuman selalu menempati posisi pertama.')+'</div>';
     }
     draw();
     ov.addEventListener('click', function(e){
@@ -1560,11 +1575,12 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
       else if(t.hasAttribute('data-reset')){ draft.rows = []; draft.rest = 3; draw(); }
       else if(t.hasAttribute('data-cancel')){ closeOverlay(ov); }
       else if(t.hasAttribute('data-apply')){
-        var m = state.menus.find(function(x){ return x.id===menuId; });
+        var m = cfg.obj || state.menus.find(function(x){ return x.id===menuId; });
         if(m){
-          if(draft.rows.length) m.rows = draft.rows.slice(); else delete m.rows;
-          if(draft.rest!==3) m.cols = draft.rest; else delete m.cols;
+          if(draft.rows.length) m[rk] = draft.rows.slice(); else delete m[rk];
+          if(draft.rest!==3) m[ck] = draft.rest; else delete m[ck];
           save();
+          if(cfg.after) cfg.after();
         }
         closeOverlay(ov);
       }
@@ -1722,7 +1738,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     ov.innerHTML = '<div class="modal subpanel-modal">'+
       '<div class="sp-head"><div class="sp-title"><h4 class="hud-font">'+esc(p0.title)+'</h4>'+
       '<div class="sub">Sub-panel dalam panel ini, berjejer di bawah</div></div>'+
-      '<div class="modal-actions">'+(g?'<button class="btn" data-addsub-here>+ SUB-PANEL</button>':'')+'<button class="btn btn-primary" data-cancel>TUTUP</button></div></div>'+
+      '<div class="modal-actions">'+(g?'<button class="btn" data-sublayout title="Atur jumlah sub-panel di tiap baris">\u25a6 TATA LETAK</button>':'')+(g?'<button class="btn" data-addsub-here>+ SUB-PANEL</button>':'')+'<button class="btn btn-primary" data-cancel>TUTUP</button></div></div>'+
       '<div class="subs-row"></div></div>';
     document.body.appendChild(ov);
     var row = ov.querySelector('.subs-row');
@@ -1735,6 +1751,8 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
       var list = g ? p.subpanels : p.subpanels.filter(function(x){ return viewerAllowedAccess().indexOf(itemAccess(x))!==-1; });
       var prevTiles = row.children.length ? flipSnapshot(row, '.sub-tile[data-subid]', 'data-subid') : null;
       row.innerHTML = list.length ? list.map(function(s, i){ return subTileHtml(p, s, i, list.length); }).join('') : '<div class="empty-hint">Belum ada sub-panel.</div>';
+      var perRow = planSizes(menuPlan(p, 'subRows', 'subCols'), list.length);
+      row.querySelectorAll('.sub-tile').forEach(function(t, i){ t.setAttribute('data-per', perRow[i]); });
       if(prevTiles) flipPlay(row, '.sub-tile[data-subid]', 'data-subid', prevTiles);
       row.querySelectorAll('.sub-card img').forEach(function(im){
         im.addEventListener('click', function(){ openImageLightbox(im.getAttribute('src')); });
@@ -1759,6 +1777,11 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     }
     refresh();
 
+    var lyBtn = ov.querySelector('[data-sublayout]');
+    if(lyBtn) lyBtn.onclick = function(){
+      var p = state.panels.find(function(x){ return x.id===panelId; }); if(!p) return;
+      layoutModal({obj:p, rows:'subRows', cols:'subCols', count:p.subpanels.length, label:'Panel "'+p.title+'"', noun:'sub-panel', title:'TATA LETAK SUB-PANEL', hint:'Default: 3 sub-panel per baris. Urutan mengikuti urutan sub-panel (geser dengan tombol \u25c0 \u25b6).', after:refresh});
+    };
     var addBtn = ov.querySelector('[data-addsub-here]');
     if(addBtn) addBtn.onclick = function(){
       openModal('SUB-PANEL BARU', null, [
