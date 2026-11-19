@@ -430,6 +430,10 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
 .mv-sum{margin-top:12px;font-size:11.5px;line-height:1.5;border:1px solid var(--cyan-dim);padding:8px 10px;background:rgba(43,227,255,.06);}
 .mv-sum:empty{display:none;}
 .mv-warn{color:var(--amber);margin-top:4px;}
+
+.panel-head h3.title-link{cursor:pointer;transition:color .15s;}
+.panel-head h3.title-link:hover{color:var(--cyan);text-decoration:underline;text-underline-offset:4px;}
+.panel-head h3.title-link:focus-visible{outline:1px solid var(--cyan);outline-offset:3px;}
 </style>
 </head>
 <body>
@@ -980,7 +984,10 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     app.querySelectorAll('[data-movepanel]').forEach(function(el){ el.addEventListener('click', function(){ movePanelPosition(el.getAttribute('data-pid'), el.getAttribute('data-movepanel')==='up'?-1:1); }); });
     wireRel(app);
     var lyb = app.querySelector('[data-layout]'); if(lyb) lyb.addEventListener('click', function(){ layoutModal(); });
-    app.querySelectorAll('[data-viewsubs]').forEach(function(el){ el.addEventListener('click', function(){ openPanelDetail(el.getAttribute('data-viewsubs')); }); });
+    app.querySelectorAll('[data-viewsubs]').forEach(function(el){
+      el.addEventListener('click', function(){ openPanelDetail(el.getAttribute('data-viewsubs')); });
+      el.addEventListener('keydown', function(e){ if((e.key==='Enter' || e.key===' ') && el.tagName==='H3'){ e.preventDefault(); openPanelDetail(el.getAttribute('data-viewsubs')); } });
+    });
     app.querySelectorAll('[data-editpanel]').forEach(function(el){ el.addEventListener('click', function(){ editPanelModal(el.getAttribute('data-editpanel')); }); });
     app.querySelectorAll('[data-hftoggle]').forEach(function(el){ el.addEventListener('click', function(){ toggleHighfive(el.getAttribute('data-hftoggle')); }); });
     app.querySelectorAll('[data-highfive]').forEach(function(el){ el.addEventListener('click', function(){ doHighfive(el.getAttribute('data-highfive'), el); }); });
@@ -1334,7 +1341,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     var showBtn = hasMore || (g && subsList.length > 0);
     var btnLabel = hasMore ? ('\u2261 LIHAT SEMUA SUB-PANEL ('+subsList.length+')') : '\u2261 KELOLA SUB-PANEL';
     return '<div class="panel-card type-info'+(g&&pAcc==='teacher'?' teacher-only':'')+(g&&pAcc==='staff'?' staff-only':'')+'" data-pid="'+p.id+'" data-key="p'+p.id+'">'+
-      '<div class="panel-head"><div class="panel-head-left">'+(g?'<span class="drag-handle" draggable="true" data-dragpanel="'+p.id+'" title="Seret untuk urutkan">\u283f</span>':'')+'<h3 class="hud-font">'+esc(p.title)+'</h3>'+newTag(p.newAt, panelEff(p))+relBtn('p',p.id)+'</div>'+
+      '<div class="panel-head"><div class="panel-head-left">'+(g?'<span class="drag-handle" draggable="true" data-dragpanel="'+p.id+'" title="Seret untuk urutkan">\u283f</span>':'')+'<h3 class="hud-font title-link" data-viewsubs="'+p.id+'" role="button" tabindex="0" title="Buka panel">'+esc(p.title)+'</h3>'+newTag(p.newAt, panelEff(p))+relBtn('p',p.id)+'</div>'+
       (g?'<div class="panel-head-right">'+visToggle('panel',p.id,pAcc)+
         '<button class="icon-btn" data-editpanel="'+p.id+'" title="Edit judul panel">\u270e</button>'+
         '<button class="move-btn" data-movepanel="up" data-pid="'+p.id+'" title="Pindah ke atas">\u25b2</button>'+
