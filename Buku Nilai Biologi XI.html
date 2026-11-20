@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>J.A.R.V.I.S. · Buku Nilai Biologi XI</title>
+<title>J.A.R.V.I.S. · Buku Nilai Biologi XI · PHB 1 &amp; 2</title>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Rajdhani:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#030d18;--panel:#071a2b;--line:#12496b;--cy:#5ce1ff;--cy2:#2a9fc4;--am:#ffb43c;--gr:#7dffb0;--tx:#d4f1fb;--mut:#7ea9bd;
@@ -51,12 +51,12 @@ input{flex:1;min-width:160px}
 .legend b{display:inline-block;width:10px;height:10px;margin-right:5px;background:var(--cy)}
 .legend .a{background:var(--am)}.legend .g{background:var(--gr)}.legend .d{background:none;border:1px dashed var(--am)}
 .wrap{overflow-x:auto}
-table{width:100%;border-collapse:collapse;min-width:820px}
+table{width:100%;border-collapse:collapse;min-width:900px}
 th,td{text-align:left;padding:8px 10px;border-bottom:1px solid #0e3550;white-space:nowrap}
 th{color:var(--cy);cursor:pointer;user-select:none;font-weight:600}
 tr.row{cursor:pointer}tr.row:hover td,tr.sel td{background:#0b2a42}
 .tag{padding:2px 8px;border:1px solid;font-size:14px}
-.tag.l{color:var(--cy);border-color:var(--cy2)}.tag.t{color:var(--gr);border-color:var(--gr)}.tag.r{color:var(--am);border-color:var(--am)}
+.tag.l{color:var(--cy);border-color:var(--cy2)}.tag.t{color:var(--gr);border-color:var(--gr)}.tag.m{color:var(--mut);border-color:var(--mut)}.tag.r{color:var(--am);border-color:var(--am)}
 #detail{display:none}#detail.open{display:block;border-color:var(--cy)}
 .kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:10px}
 .kv div{border-left:2px solid var(--line);padding-left:10px}
@@ -77,23 +77,21 @@ tr.row{cursor:pointer}tr.row:hover td,tr.sel td{background:#0b2a42}
   <div>
     <h1>BUKU NILAI BIOLOGI · KELAS XI</h1>
     <p class="meta">MAN Insan Cendekia Lampung Timur · <b id="kl"></b> · Semester 1 · TP 2026-2027 · Guru: Ery Santosa, S.Pd.</p>
-    <p class="meta">Asesmen <b>PHB 1</b> · nilai minimal tuntas <b>76</b> · PHB 2 belum terlaksana</p>
+    <p class="meta">Asesmen <b id="as"></b> · nilai minimal tuntas <b>76</b> · kuis harian maks. 20 (tanda * = dipotong), hanya simulasi jaring pengaman, nilai murni tidak ditambah</p>
   </div>
 </header>
 
 <nav class="tabs" id="tabs"></nav>
+<nav class="tabs" id="tabs2"></nav>
+<nav class="tabs" id="tabs3"></nav>
 <div class="stats" id="stats"></div>
 
-<section><h2>RINGKASAN PHB 1</h2><ul id="sum"></ul></section>
+<section><h2>RINGKASAN <span class="ph"></span></h2><ul id="sum"></ul></section>
 
 <section>
-  <h2>PHB 1 PER MURID</h2>
+  <h2><span class="ph"></span> PER MURID</h2>
   <div class="chart" id="chart"></div>
-  <div class="legend">
-    <span><b></b>PHB 1 asli ≥ 76</span><span><b class="a"></b>PHB 1 asli &lt; 76</span>
-    <span><b class="g"></b>Tambahan kuis</span><span><b class="d"></b>Kuis tersedia, tetap belum cukup</span>
-    <span>Garis putus-putus = 76 · klik batang untuk detail</span>
-  </div>
+  <div class="legend"><span><b></b>Tuntas murni ≥ 76</span><span><b class="a"></b>Nilai murni &lt; 76</span><span><b class="d"></b>Jaring pengaman kuis (simulasi, tidak menambah nilai)</span><span>Garis putus-putus = 76 · klik batang untuk detail</span></div>
 </section>
 
 <section id="detail" aria-live="polite"></section>
@@ -101,15 +99,11 @@ tr.row{cursor:pointer}tr.row:hover td,tr.sel td{background:#0b2a42}
 <section>
   <h2>DATA MURID</h2>
   <div class="bar" id="filters"><span id="kb" style="display:contents"></span>
-        <button data-s="aman">Tuntas dari nilai asli</button><button data-s="tambah">Tuntas dengan kuis</button><button data-s="kurang">Belum tuntas</button>
+        <button data-s="tuntas">Tuntas</button><button data-s="kuis">Aman dengan kuis</button><button data-s="kurang">Remedial</button><button data-s="belum">Belum mengikuti</button>
     <input id="q" type="search" placeholder="Cari nama murid…" aria-label="Cari nama murid">
   </div>
   <div class="wrap"><table>
-    <thead><tr>
-      <th data-c="n">No</th><th data-c="nama">Nama</th><th data-c="kelas">Kelas</th>
-      <th data-c="nilai">PHB 1 asli</th><th data-c="kuis">Kuis harian</th><th data-c="tambah">Ditambahkan</th>
-      <th data-c="akhir">PHB 1 akhir</th><th data-c="sel">Selisih ke 76</th><th data-c="rank">Keterangan</th>
-    </tr></thead>
+    <thead><tr><th data-c="n">No</th><th data-c="nama">Nama</th><th data-c="kelas">Kelas</th><th data-c="p1">PHB 1</th><th data-c="p2">PHB 2</th><th data-c="kuis">Kuis harian</th><th data-c="sel">Selisih ke 76</th><th data-c="rank">Keterangan</th></tr></thead>
     <tbody id="tb"></tbody>
   </table></div>
   <div class="empty" id="empty" hidden>Tidak ada murid yang cocok. Ubah filter atau kata pencarian.</div>
@@ -117,169 +111,196 @@ tr.row{cursor:pointer}tr.row:hover td,tr.sel td{background:#0b2a42}
 </main>
 
 <script>
-const MIN=76;
-// kelompok, no absen, nama, kelas, PHB 1 asli, kuis harian
+const MIN=76,CAP=20;
+// kelompok, no, nama, kelas, PHB 1, PHB 2 (0 = belum mengikuti), kuis mentah (null = belum dikirim)
 const D=[
-["AD",1,"Abdalmighty Ahmad Syaffathino","11 A",86,19],
-["AD",2,"Amara Nurkhaulani","11 A",81,4.5],
-["AD",3,"Ashila Shofia Nasywa","11 A",78,6.5],
-["AD",4,"Aurellia Adani","11 A",81,4],
-["AD",5,"Azka Faeyza Alfarid","11 A",72,15.5],
-["AD",6,"Azka Nawwafa Amani","11 A",78,2],
-["AD",7,"Echa Navalin Dexa","11 A",69,0],
-["AD",8,"Faeyza Nasywa Ashari","11 A",86,2],
-["AD",9,"Falih Fadhlurrohman","11 A",75,5.5],
-["AD",10,"Fatimatuzzahra Putri Praya","11 A",89,22.5],
-["AD",11,"Lailatul Fitroh","11 A",72,3],
-["AD",12,"Mecha Mar'Atus Soleha","11 A",86,6],
-["AD",13,"Muhammad Alden Arrafi","11 A",81,1.5],
-["AD",14,"Muhammad Fakhri Kamal","11 A",56,5],
-["AD",15,"Muhammad Yusuf Farras Yuliansyah","11 A",69,1],
-["AD",16,"Daffa Hazim Rafeyfa","11 D",50,2],
-["AD",17,"Fakhri Akbar Lesmana","11 D",61,6.5],
-["AD",18,"Farah Aulia Anggraini","11 D",61,0],
-["AD",19,"Fathir Rizky Aditya","11 D",72,4],
-["AD",20,"Ghifari Fajar Efendi","11 D",64,1.5],
-["AD",21,"Khansa Tsabita","11 D",86,0],
-["AD",22,"Mutia Ahsana Amala","11 D",69,4],
-["AD",23,"Syahdan Alvaro Juan","11 D",67,6],
-["AD",24,"Wahib Kaamil","11 D",58,11.5],
-["B",1,"Aisyah Az Zahra","11 B",58,1],
-["B",2,"Ajeng Triadianti","11 B",75,7.5],
-["B",3,"Alifa Dzatil Izzah","11 B",61,0],
-["B",4,"Anedza Wali Dipajuga","11 B",75,3.5],
-["B",5,"Arifah Fitri Hanifayanti Susilo","11 B",78,3],
-["B",6,"Assyifa Zahra Khairunnisa","11 B",78,11],
-["B",7,"Chalista Chalwa Mu'Nisa","11 B",78,1],
-["B",8,"Emira Giza Humaira","11 B",83,1],
-["B",9,"Hafiza Khaira Lubna","11 B",81,9],
-["B",10,"Javier Zhafran Habibie","11 B",58,1],
-["B",11,"Keysha Amirasyifa Sopwan","11 B",75,12],
-["B",12,"Lutfhia Al Zafiraa","11 B",89,10],
-["B",13,"Muhammad Alfian Saputra","11 B",56,1.5],
-["B",14,"Nadihan Bima Saktia Nugraha","11 B",53,2],
-["B",15,"Neda Kalia Alfaqi","11 B",72,20],
-["B",16,"Okseha Rojiza Walafia","11 B",72,1.5],
-["B",17,"Rasya Herian Candra","11 B",58,20],
-["B",18,"Rizkia Asly Syifadini","11 B",81,2],
-["B",19,"Ruby 'Aqila Badridduja","11 B",81,9],
-["B",20,"Sabrina Rahma Syarifa","11 B",67,0],
-["B",21,"Suci Wulandari","11 B",81,2],
-["B",22,"Syahroza Farras Shofa","11 B",81,9],
-["B",23,"Taqy Azzam Alghani Erlangga","11 B",72,5],
-["C",1,"Adyan Arkaan Atallah","11 C",69,15.5],
-["C",2,"Afham Ariya Wicaksana","11 C",75,4],
-["C",3,"Aline Ikhtiari Purnomo","11 C",69,3.5],
-["C",4,"Arhasan Aditya Raya Gani Putra","11 C",50,0],
-["C",5,"Azka Abimanyu Ibadurrahman","11 C",67,9.5],
-["C",6,"Hafidh Fakhri Arfadhia","11 C",78,9],
-["C",7,"Hayu Artaneisya","11 C",64,2.5],
-["C",8,"Ilham Falah Maulana","11 C",50,1.5],
-["C",9,"Jely Ananta Karena","11 C",61,1],
-["C",10,"Keisya Faiha Andzalna","11 C",83,2.5],
-["C",11,"Khansa Khairina Uzma","11 C",83,22.5],
-["C",12,"Labibah Mufida Hamid","11 C",75,2.5],
-["C",13,"M. Pijar Rakha Farant","11 C",75,8],
-["C",14,"Muhammad Athir Rizqullah Arrazy","11 C",61,16.5],
-["C",15,"Muhammad Sahril Adilla","11 C",56,6],
-["C",16,"Nashwa Alikha Krisanti","11 C",75,1.5],
-["C",17,"Nayla Syarifa Herlisto","11 C",67,0],
-["C",18,"Roid Nawwar Khalish","11 C",72,2],
-["C",19,"Tsabithah Nurul Athifah","11 C",78,8],
-["C",20,"Yusuf Rafif Zamzami","11 C",69,7],
-["C",21,"Zhafira Adelia Putri","11 C",89,14],
-["C",22,"Zulva Aulia","11 C",64,4]
-].map(([grp,n,nama,kelas,nilai,kuis],id)=>{
-  let cat="kurang",tambah=0;
-  if(nilai>=MIN)cat="aman";else if(nilai+kuis>=MIN){cat="tambah";tambah=MIN-nilai}
-  const akhir=nilai+tambah;
-  return{id,grp,n,nama,kelas,nilai,kuis,cat,tambah,akhir,sisa:kuis-tambah,sel:akhir-MIN,gap:MIN-nilai-kuis,rank:{aman:0,tambah:1,kurang:2}[cat]};
+["AD",1,"Abdalmighty Ahmad Syaffathino","11 A",86,0,20.5],
+["AD",2,"Amara Nurkhaulani","11 A",81,79,5.5],
+["AD",3,"Ashila Shofia Nasywa","11 A",78,79,15],
+["AD",4,"Aurellia Adani","11 A",81,68,10],
+["AD",5,"Azka Faeyza Alfarid","11 A",72,84,22],
+["AD",6,"Azka Nawwafa Amani","11 A",78,89,3],
+["AD",7,"Echa Navalin Dexa","11 A",69,79,1],
+["AD",8,"Faeyza Nasywa Ashari","11 A",86,92,6],
+["AD",9,"Falih Fadhlurrohman","11 A",75,0,13.5],
+["AD",10,"Fatimatuzzahra Putri Praya","11 A",89,0,23.5],
+["AD",11,"Lailatul Fitroh","11 A",72,82,10],
+["AD",12,"Mecha Mar'Atus Soleha","11 A",86,97,13],
+["AD",13,"Muhammad Alden Arrafi","11 A",81,0,2.5],
+["AD",14,"Muhammad Fakhri Kamal","11 A",56,0,8],
+["AD",15,"Muhammad Yusuf Farras Yuliansyah","11 A",69,0,5],
+["AD",16,"Daffa Hazim Rafeyfa","11 D",50,0,7],
+["AD",17,"Fakhri Akbar Lesmana","11 D",61,76,11],
+["AD",18,"Farah Aulia Anggraini","11 D",61,82,1],
+["AD",19,"Fathir Rizky Aditya","11 D",72,0,11.5],
+["AD",20,"Ghifari Fajar Efendi","11 D",64,87,4.5],
+["AD",21,"Khansa Tsabita","11 D",86,0,2],
+["AD",22,"Mutia Ahsana Amala","11 D",69,92,6],
+["AD",23,"Syahdan Alvaro Juan","11 D",67,0,10.5],
+["AD",24,"Wahib Kaamil","11 D",58,89,15.5],
+["B",1,"Aisyah Az Zahra","11 B",58,71,4],
+["B",2,"Ajeng Triadianti","11 B",75,92,11],
+["B",3,"Alifa Dzatil Izzah","11 B",61,68,1],
+["B",4,"Anedza Wali Dipajuga","11 B",75,74,9.5],
+["B",5,"Arifah Fitri Hanifayanti Susilo","11 B",78,82,5],
+["B",6,"Assyifa Zahra Khairunnisa","11 B",78,0,18],
+["B",7,"Chalista Chalwa Mu'Nisa","11 B",78,82,2],
+["B",8,"Emira Giza Humaira","11 B",83,0,1],
+["B",9,"Hafiza Khaira Lubna","11 B",81,0,10],
+["B",10,"Javier Zhafran Habibie","11 B",58,0,1],
+["B",11,"Keysha Amirasyifa Sopwan","11 B",75,89,21],
+["B",12,"Lutfhia Al Zafiraa","11 B",89,0,15.5],
+["B",13,"Muhammad Alfian Saputra","11 B",56,63,2.5],
+["B",14,"Nadihan Bima Saktia Nugraha","11 B",53,0,3],
+["B",15,"Neda Kalia Alfaqi","11 B",72,0,22],
+["B",16,"Okseha Rojiza Walafia","11 B",72,0,3.5],
+["B",17,"Rasya Herian Candra","11 B",58,0,20],
+["B",18,"Rizkia Asly Syifadini","11 B",81,0,4],
+["B",19,"Ruby 'Aqila Badridduja","11 B",81,0,14],
+["B",20,"Sabrina Rahma Syarifa","11 B",67,84,0],
+["B",21,"Suci Wulandari","11 B",81,79,5],
+["B",22,"Syahroza Farras Shofa","11 B",81,0,21],
+["B",23,"Taqy Azzam Alghani Erlangga","11 B",72,0,7.5],
+["C",1,"Adyan Arkaan Atallah","11 C",69,74,21],
+["C",2,"Afham Ariya Wicaksana","11 C",75,89,9.5],
+["C",3,"Aline Ikhtiari Purnomo","11 C",69,82,5],
+["C",4,"Arhasan Aditya Raya Gani Putra","11 C",50,0,4.5],
+["C",5,"Azka Abimanyu Ibadurrahman","11 C",67,0,14.5],
+["C",6,"Hafidh Fakhri Arfadhia","11 C",78,89,11],
+["C",7,"Hayu Artaneisya","11 C",64,71,2.5],
+["C",8,"Ilham Falah Maulana","11 C",50,76,7.5],
+["C",9,"Jely Ananta Karena","11 C",61,53,1],
+["C",10,"Keisya Faiha Andzalna","11 C",83,87,3.5],
+["C",11,"Khansa Khairina Uzma","11 C",83,97,26.5],
+["C",12,"Labibah Mufida Hamid","11 C",75,82,5],
+["C",13,"M. Pijar Rakha Farant","11 C",75,82,12],
+["C",14,"Muhammad Athir Rizqullah Arrazy","11 C",61,82,22],
+["C",15,"Muhammad Sahril Adilla","11 C",56,71,9],
+["C",16,"Nashwa Alikha Krisanti","11 C",75,82,2.5],
+["C",17,"Nayla Syarifa Herlisto","11 C",67,87,1],
+["C",18,"Roid Nawwar Khalish","11 C",72,97,5],
+["C",19,"Tsabithah Nurul Athifah","11 C",78,0,11],
+["C",20,"Yusuf Rafif Zamzami","11 C",69,82,11],
+["C",21,"Zhafira Adelia Putri","11 C",89,0,19],
+["C",22,"Zulva Aulia","11 C",64,0,10.5]
+].map(([grp,n,nama,kelas,p1,p2,raw],id)=>{
+  const kuis=raw===null?null:Math.min(raw,CAP),q=kuis||0;
+  const g1=p1>0&&p1<MIN?MIN-p1:0,g2=p2>0&&p2<MIN?MIN-p2:0;
+  const plan=m=>{let x1=0,x2=0;
+    if(m===1){if(g1&&g1<=q)x1=g1;if(g2&&g2<=q-x1)x2=g2}
+    else{const o=[[0,0]];if(g1&&g1<=q)o.push([g1,0]);if(g2&&g2<=q)o.push([0,g2]);if(g1&&g2&&g1+g2<=q)o.push([g1,g2]);
+      const c=a=>(a[0]>0)+(a[1]>0);[x1,x2]=o.reduce((b,a)=>c(a)>c(b)||(c(a)===c(b)&&a[0]+a[1]<b[0]+b[1])?a:b)}
+    const f=(v,x)=>v===0?"belum":v>=MIN?"tuntas":x>0?"kuis":kuis===null?"tunggu":"kurang";
+    return{u1:x1,u2:x2,s1:f(p1,x1),s2:f(p2,x2)};
+  };
+  return{id,grp,n,nama,kelas,p1,p2,raw,kuis,res:{1:plan(1),2:plan(2)}};
 });
-const CAT={aman:["Tuntas dari nilai asli","l"],tambah:["Tuntas dengan kuis","t"],kurang:["Belum tuntas","r"]};
+const CAT={tuntas:["Tuntas","l"],kuis:["Aman dengan kuis","t"],kurang:["Remedial","r"],belum:["Belum mengikuti","m"],tunggu:["Menunggu data kuis","m"]};
+const RK={tuntas:0,kuis:1,kurang:2,belum:3,tunggu:4};
+const SK=["","Skenario 1 \u00b7 PHB 1 dulu","Skenario 2 \u00b7 alokasi optimal"];
 const $=id=>document.getElementById(id);
 const fmt=v=>String(Math.round(v*10)/10).replace(".",",");
-const sum=(a,f)=>a.reduce((s,x)=>s+f(x),0);
-const by=c=>P.filter(d=>d.cat===c);
-let kelas="Semua",cat="",q="",sortC="n",asc=true,sel=null,tab="AD",P=[];
+const sg=v=>v>0?"+"+fmt(v):v<0?"\u2212"+fmt(-v):"0";
+let kelas="Semua",cat="",q="",sortC="n",asc=true,sel=null,tab="AD",A=2,M=1,P=[];
 const TABS={AD:["Gabungan 11 A + 11 D","Kelas gabungan 11 A + 11 D (mapel pilihan)","kelas gabungan 11 A + 11 D"],B:["11 B","Kelas 11 B","kelas 11 B"],C:["11 C","Kelas 11 C","kelas 11 C"],ALL:["Semua kelas","Semua kelas XI (A + D, B, C)","semua kelas"]};
-function setTab(t){
-  tab=t;kelas="Semua";cat="";sel=null;P=t==="ALL"?D:D.filter(d=>d.grp===t);
-  $("tabs").innerHTML=Object.keys(TABS).map(k=>`<button data-t="${k}" class="${k===t?"on":""}">${TABS[k][0]}</button>`).join("");
-  $("kl").textContent=TABS[t][1];
+const by=c=>P.filter(d=>d.st===c);
+const key=d=>sortC==="p2"?(d.p2===null?-2:d.p2):sortC==="sel"?(d.v>0?d.v-MIN:-99):sortC==="kuis"?(d.kuis===null?-1:d.kuis):d[sortC];
+const val=x=>x>0?fmt(x):"\u2013";
+const kv=d=>d.kuis===null?"\u2013":fmt(d.kuis)+(d.raw>CAP?"*":"");
+function cur(){D.forEach(d=>{const r=d.res[M],k=d.kuis||0;
+  if(A===1){d.v=d.p1;d.st=r.s1;d.use=r.u1;d.kq=k}else{d.v=d.p2;d.st=r.s2;d.use=r.u2;d.kq=k-r.u1}
+  d.rank=RK[d.st]})}
+function setTab(t){tab=t;kelas="Semua";cat="";sel=null;P=t==="ALL"?D:D.filter(d=>d.grp===t);refresh()}
+function refresh(){
+  cur();
+  $("tabs").innerHTML=Object.keys(TABS).map(k=>`<button data-t="${k}" class="${k===tab?"on":""}">${TABS[k][0]}</button>`).join("");
+  $("tabs2").innerHTML=[1,2].map(a=>`<button data-a="${a}" class="${a===A?"on":""}">PHB ${a}</button>`).join("");
+  $("tabs3").innerHTML=[1,2].map(m=>`<button data-m="${m}" class="${m===M?"on":""}">${SK[m]}</button>`).join("");
+  document.querySelectorAll(".ph").forEach(e=>e.textContent="PHB "+A);
+  $("as").textContent="PHB "+A;
+  $("kl").textContent=TABS[tab][1];
   const ks=[...new Set(P.map(d=>d.kelas))];
   $("kb").innerHTML=ks.length>1?["Semua",...ks].map(k=>`<button data-k="${k}">${k}</button>`).join(""):"";
   renderTop();render();
 }
-
 function renderTop(){
-  const ks2=[...new Set(P.map(d=>d.kelas))];const A=by("aman"),T=by("tambah"),K=by("kurang");
+  const T=by("tuntas"),S=by("kuis"),K=by("kurang"),B=by("belum"),W=by("tunggu"),E=T.concat(S,K,W);
+  const avg=E.length?fmt(E.reduce((s,d)=>s+d.v,0)/E.length):"\u2013";
+  const hi=E.slice().sort((a,b)=>b.v-a.v)[0],lo=E.slice().sort((a,b)=>a.v-b.v)[0];
   const items=[
-    [P.length,"Total murid ("+TABS[tab][2]+")",""],
-    [fmt(sum(P,d=>d.nilai)/P.length),"Rata-rata PHB 1 asli",""],
-    [fmt(sum(P,d=>d.akhir)/P.length),"Rata-rata setelah tambahan kuis",""],
-    [A.length,"Tuntas dari nilai asli",""],
-    [T.length,"Tuntas dengan tambahan kuis","g"],
-    [K.length,"Belum tuntas","w"],
-    [fmt(sum(P,d=>d.tambah)),"Poin kuis terpakai","g"],
-    [fmt(sum(A.concat(T),d=>d.sisa)),"Poin kuis cadangan (murid tuntas)",""]
+    [P.length,"Total murid ("+TABS[tab][2]+")",""],[E.length,"Sudah mengikuti PHB "+A,""],
+    [avg,"Rata-rata nilai murni (peserta)",""],[hi?hi.v:"\u2013","Nilai tertinggi",""],[lo?lo.v:"\u2013","Nilai terendah",""],
+    [T.length,"Tuntas murni (\u2265 76)","g"],[S.length,"Aman dengan kuis (simulasi)","g"],[K.length,"Remedial","w"],[B.length,"Belum mengikuti","w"],
+    [fmt(S.reduce((s,d)=>s+d.use,0)),"Poin kuis terpakai (simulasi)",""]
   ];
+  if(W.length)items.push([W.length,"Menunggu data kuis",""]);
   $("stats").innerHTML=items.map(i=>`<div class="stat ${i[2]}"><div class="num">${i[0]}</div><span>${i[1]}</span></div>`).join("");
-  const near=K.slice().sort((a,b)=>a.gap-b.gap),far=near[near.length-1];
-  const kl=k=>{const s=P.filter(d=>d.kelas===k);const c=x=>s.filter(d=>d.cat===x).length;return `<b>${k}</b>: ${c("aman")} tuntas asli, ${c("tambah")} dengan kuis, ${c("kurang")} belum tuntas`};
-  $("sum").innerHTML=[
-    `<b>${A.length} murid</b> sudah mencapai 76 dari PHB 1 asli, jadi kuis mereka tidak dipakai. Total ${fmt(sum(A,d=>d.kuis))} poin kuis tersimpan sebagai cadangan asesmen berikutnya.`,
-    `<b>${T.length} murid</b> ditambah kuis hingga tepat 76: ${T.map(d=>`${d.nama} (asli ${d.nilai}, +${d.tambah})`).join("; ")}.`,
-    `<b>${K.length} murid</b> tidak ditambah kuis karena PHB 1 asli ditambah seluruh kuisnya tetap di bawah 76. Kekurangan terkecil: ${near[0].nama}, ${fmt(near[0].gap)} poin lagi. Terbesar: ${far.nama}, ${fmt(far.gap)} poin lagi.`,
-  ].concat(ks2.length>1?[ks2.map(kl).join("; ")+"."]:[]).map(t=>`<li>${t}</li>`).join("");
+  const ks=[...new Set(P.map(d=>d.kelas))];
+  const kl=k=>{const s=P.filter(d=>d.kelas===k);const c=x=>s.filter(d=>d.st===x).length;return `<b>${k}</b>: ${c("tuntas")} tuntas murni, ${c("kuis")} aman dengan kuis, ${c("kurang")} remedial, ${c("belum")} belum mengikuti${c("tunggu")?", "+c("tunggu")+" menunggu data kuis":""}`};
+  const L=[`<b>${SK[M]}</b>: `+(M===1?"kuis (maks. 20) dipakai untuk PHB 1 lebih dulu, hanya jika cukup menutup selisih ke 76; sisanya untuk PHB 2.":"kuis diarahkan ke asesmen yang menyelamatkan paling banyak status dengan poin paling sedikit, misalnya ke PHB 2 bila selisih PHB 1 terlalu besar; jika seri, PHB 1 lebih dulu.")];
+  if(E.length){
+    L.push(`<b>${E.length} murid</b> mengikuti PHB ${A}, rata-rata nilai murni ${avg}. Tertinggi: ${hi.nama} (${hi.v}); terendah: ${lo.nama} (${lo.v}).`);
+    L.push(`<b>${T.length} murid</b> tuntas murni (\u2265 ${MIN}), tanpa kuis.`);
+    L.push(`<b>${S.length} murid</b> bernilai murni di bawah ${MIN} tetapi aman dari remedial dalam simulasi${S.length?": "+S.map(d=>`${d.nama} (${d.v}, kuis menutup ${fmt(d.use)})`).join("; "):""}. Nilai mereka tidak ditambah.`);
+    L.push(`<b>${K.length} murid</b> tetap remedial${K.length?": "+K.map(d=>`${d.nama} (${d.v}, kurang ${fmt(MIN-d.v-d.kq)} setelah kuis tersedia)`).join("; "):""}.`);
+  }
+  if(W.length)L.push(`<b>${W.length} murid</b> bernilai di bawah ${MIN} tetapi data kuis kelasnya belum dikirim, sehingga belum bisa disimulasikan.`);
+  if(B.length)L.push(`<b>${B.length} murid</b> belum mengikuti PHB ${A}${A===2?" (nilai 0 di ledger)":""}: ${B.map(d=>d.nama).join("; ")}.`);
+  const sk=A===1?"s1":"s2",df=P.filter(d=>d.res[1][sk]!==d.res[2][sk]);
+  L.push(df.length?`<b>Beda antar skenario</b> pada PHB ${A} (skenario 1 \u2192 2): ${df.map(d=>`${d.nama}: ${CAT[d.res[1][sk]][0]} \u2192 ${CAT[d.res[2][sk]][0]}`).join("; ")}.`:`Kedua skenario menghasilkan status yang sama pada PHB ${A}.`);
+  if(ks.length>1)L.push(ks.map(kl).join("; ")+".");
+  $("sum").innerHTML=L.map(t=>`<li>${t}</li>`).join("");
 }
-
 function view(){
-  return P.filter(d=>(kelas==="Semua"||d.kelas===kelas)&&(!cat||d.cat===cat)&&d.nama.toLowerCase().includes(q))
-    .sort((a,b)=>{const x=a[sortC],y=b[sortC];return(x>y?1:x<y?-1:0)*(asc?1:-1)});
+  return P.filter(d=>(kelas==="Semua"||d.kelas===kelas)&&(!cat||d.st===cat)&&d.nama.toLowerCase().includes(q))
+    .sort((a,b)=>{const x=key(a),y=key(b);return(x>y?1:x<y?-1:0)*(asc?1:-1)});
 }
-const sg=v=>v>0?"+"+fmt(v):v<0?"−"+fmt(-v):"0";
-
 function render(){
   const r=view();
   $("tb").innerHTML=r.map(d=>`<tr class="row ${sel===d.id?"sel":""}" data-n="${d.id}" tabindex="0">
-    <td>${d.n}</td><td>${d.nama}</td><td>${d.kelas}</td><td>${d.nilai}</td><td>${fmt(d.kuis)}</td>
-    <td>${d.tambah?"+"+d.tambah:"–"}</td><td>${d.akhir}</td><td>${sg(d.sel)}</td>
-    <td><span class="tag ${CAT[d.cat][1]}">${CAT[d.cat][0]}</span></td></tr>`).join("");
+    <td>${d.n}</td><td>${d.nama}</td><td>${d.kelas}</td><td>${val(d.p1)}</td><td>${val(d.p2)}</td><td>${kv(d)}</td>
+    <td>${d.v>0?sg(d.v-MIN):"\u2013"}</td><td><span class="tag ${CAT[d.st][1]}">${CAT[d.st][0]}</span></td></tr>`).join("");
   $("empty").hidden=r.length>0;
-  $("chart").innerHTML=r.slice().sort((a,b)=>b.nilai-a.nilai).map(d=>`<button class="col ${sel===d.id?"sel":""}" data-n="${d.id}" title="${d.nama}" aria-label="${d.nama}, PHB 1 asli ${d.nilai}, akhir ${d.akhir}">
-    <div class="bars">${d.cat==="kurang"&&d.kuis?`<i class="ghost" style="height:${d.kuis*2}px"></i>`:""}${d.tambah?`<i class="add" style="height:${d.tambah*2}px"></i>`:""}<i class="base ${d.nilai<MIN?"lo":""}" style="height:${d.nilai*2}px"></i></div>
-    <em>${d.akhir}</em><small>${d.nama.split(" ")[0]}</small></button>`).join("");
+  const c=r.filter(d=>d.v>0).sort((a,b)=>b.v-a.v);
+  $("chart").innerHTML=c.length?c.map(d=>`<button class="col ${sel===d.id?"sel":""}" data-n="${d.id}" title="${d.nama}" aria-label="${d.nama}, PHB ${A} ${d.v}, ${CAT[d.st][0]}">
+    <div class="bars">${d.st==="kuis"?`<i class="ghost" style="height:${d.use*2}px"></i>`:""}<i class="base ${d.v<MIN?"lo":""}" style="height:${d.v*2}px"></i></div>
+    <em>${fmt(d.v)}</em><small>${d.nama.split(" ")[0]}</small></button>`).join(""):`<div class="empty">Belum ada nilai PHB ${A} untuk ditampilkan.</div>`;
   document.querySelectorAll("#filters button").forEach(b=>b.classList.toggle("on",b.dataset.k?b.dataset.k===kelas:b.dataset.s===cat));
   detail();
 }
-
 function detail(){
   const el=$("detail"),d=D.find(x=>x.id===sel);
   if(!d){el.className="";el.innerHTML="";return}
+  const gap=MIN-d.v;
   const note={
-    aman:"Sudah mencapai 76 dari nilai asli, kuis tidak dipakai dan menjadi cadangan asesmen berikutnya.",
-    tambah:`Nilai asli kurang ${MIN-d.nilai} poin, ditambah kuis ${d.tambah} hingga tepat 76. Sisa kuis ${fmt(d.sisa)} poin.`,
-    kurang:`Nilai asli ditambah seluruh kuis = ${fmt(d.nilai+d.kuis)}, masih kurang ${fmt(d.gap)} poin dari 76, sehingga kuis tidak ditambahkan.`
-  }[d.cat];
+    tuntas:`Nilai murni ${d.v}, tuntas tanpa kuis.`,
+    kuis:`Nilai murni ${d.v}, kurang ${gap} poin. Kuis tersedia ${fmt(d.kq)} dan menutup ${fmt(d.use)} poin (simulasi): aman dari remedial, nilai tetap ${d.v}.`,
+    kurang:d.kq>=gap?`Nilai murni ${d.v}, kurang ${gap} poin. Kuis sebenarnya cukup, tetapi pada skenario ini dialihkan ke asesmen lain.`:`Nilai murni ${d.v} ditambah kuis tersedia ${fmt(d.kq)} = ${fmt(d.v+d.kq)}, masih kurang ${fmt(gap-d.kq)} poin: tetap remedial.`,
+    belum:`Belum mengikuti PHB ${A}: nilai di ledger masih 0.`,
+    tunggu:`Nilai murni ${d.v}, kurang ${gap} poin. Data kuis kelas ini belum dikirim.`
+  }[d.st];
   el.className="open";
-  el.innerHTML=`<h2>${d.nama.toUpperCase()} · ${d.kelas}</h2><div class="kv">
-    <div><span>PHB 1 asli</span><b>${d.nilai}</b></div><div><span>Kuis harian</span><b>${fmt(d.kuis)}</b></div>
-    <div><span>Ditambahkan</span><b>${d.tambah?"+"+d.tambah:"–"}</b></div><div><span>PHB 1 akhir</span><b>${d.akhir}</b></div>
-    <div><span>Sisa kuis</span><b>${fmt(d.sisa)}</b></div><div><span>Keterangan</span><b>${CAT[d.cat][0]}</b></div></div><div>${note}</div>`;
+  el.innerHTML=`<h2>${d.nama.toUpperCase()} \u00b7 ${d.kelas} \u00b7 PHB ${A}</h2><div class="kv">
+    <div><span>PHB 1</span><b>${val(d.p1)}</b></div><div><span>PHB 2</span><b>${val(d.p2)}</b></div>
+    <div><span>Kuis (maks. ${CAP})</span><b>${kv(d)}</b></div><div><span>Kuis tersedia (PHB ${A})</span><b>${fmt(d.kq)}</b></div>
+    <div><span>Kuis terpakai (simulasi)</span><b>${d.use?fmt(d.use):"\u2013"}</b></div><div><span>Selisih ke 76</span><b>${d.v>0?sg(d.v-MIN):"\u2013"}</b></div>
+    <div><span>Keterangan</span><b>${CAT[d.st][0]}</b></div></div><div>${note}${d.raw>CAP?` Skor kuis mentah ${fmt(d.raw)} dipotong ke ${CAP}.`:""}</div>`;
 }
-
 const pick=n=>{sel=sel===n?null:n;render()};
 document.addEventListener("click",e=>{
+  const aa=e.target.closest("[data-a]");if(aa){A=+aa.dataset.a;sel=null;return refresh()}
+  const mm=e.target.closest("[data-m]");if(mm){M=+mm.dataset.m;return refresh()}
   const tt=e.target.closest("[data-t]");if(tt)return setTab(tt.dataset.t);
   const t=e.target.closest("[data-n]");if(t)return pick(+t.dataset.n);
   const f=e.target.closest("#filters button");
   if(f){if(f.dataset.k)kelas=f.dataset.k;else cat=cat===f.dataset.s?"":f.dataset.s;render();return}
-  const h=e.target.closest("th");
-  if(h){const c=h.dataset.c;asc=sortC===c?!asc:true;sortC=c;render()}
+  const hd=e.target.closest("th");
+  if(hd){const c=hd.dataset.c;asc=sortC===c?!asc:true;sortC=c;render()}
 });
 document.addEventListener("keydown",e=>{if(e.key==="Enter"){const t=e.target.closest("tr[data-n]");if(t)pick(+t.dataset.n)}});
 $("q").addEventListener("input",e=>{q=e.target.value.toLowerCase().trim();render()});
 setTab("AD");
 </script>
+
 </body>
 </html>
