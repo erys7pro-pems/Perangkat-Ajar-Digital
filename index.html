@@ -434,6 +434,29 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
 .panel-head h3.title-link{cursor:pointer;transition:color .15s;}
 .panel-head h3.title-link:hover{color:var(--cyan);text-decoration:underline;text-underline-offset:4px;}
 .panel-head h3.title-link:focus-visible{outline:1px solid var(--cyan);outline-offset:3px;}
+
+/* Pencarian panel & sub-panel (di bawah tombol Tambah Panel) */
+.gsearch{margin:0 0 18px;}
+.gsearch-box{display:flex;align-items:center;gap:10px;border:1px solid var(--line);background:var(--panel);padding:0 12px;min-height:42px;}
+.gsearch-box:focus-within{border-color:var(--cyan-dim);box-shadow:0 0 10px rgba(43,227,255,.15);}
+.gsearch-box svg{width:16px;height:16px;flex-shrink:0;stroke:var(--cyan);fill:none;stroke-width:2;}
+.gsearch-box input{flex:1;min-width:0;background:transparent;border:none;outline:none;color:var(--text);font-size:13px;padding:10px 0;font-family:inherit;}
+.gsearch-box input::-webkit-search-cancel-button{display:none;}
+.gsearch-clear{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:0 2px;line-height:1;}
+.gsearch-clear:hover{color:var(--red);}
+.gsearch-res{margin-top:8px;border:1px solid var(--line);background:var(--panel);max-height:52vh;overflow-y:auto;}
+.gs-count{padding:8px 12px;font-family:'Orbitron',sans-serif;font-size:9.5px;letter-spacing:.08em;color:var(--muted);border-bottom:1px solid var(--line);}
+.gs-item{display:flex;align-items:flex-start;gap:10px;width:100%;text-align:left;padding:10px 12px;border:none;border-bottom:1px solid var(--line);background:transparent;color:var(--text);cursor:pointer;font-family:inherit;}
+.gs-item:last-child{border-bottom:none;}
+.gs-item:hover,.gs-item:focus-visible{background:rgba(43,227,255,.08);outline:none;}
+.gs-kind{flex-shrink:0;margin-top:2px;font-family:'Orbitron',sans-serif;font-size:8.5px;letter-spacing:.06em;color:var(--cyan);border:1px solid var(--cyan-dim);padding:2px 6px;}
+.gs-kind.sub{color:var(--violet);border-color:var(--violet);}
+.gs-kind.ann{color:var(--amber);border-color:var(--amber);}
+.gs-main{flex:1;min-width:0;}
+.gs-title{font-size:13px;overflow-wrap:anywhere;}
+.gs-where{margin-top:2px;font-size:11px;color:var(--muted);overflow-wrap:anywhere;}
+.gs-snip{margin-top:4px;font-size:11.5px;color:var(--muted);overflow-wrap:anywhere;}
+.gsearch mark{background:rgba(255,176,32,.28);color:inherit;padding:0 1px;}
 </style>
 </head>
 <body>
@@ -916,6 +939,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
       return a.i - b.i;
     }).map(function(x){ return x.p; });
     var panelsHtml = panels.length ? panels.map(panelHtml).join('') : (!g && !hasApi() ? '<div class="empty">BELUM TERHUBUNG KE MAINFRAME<br>Klik "HUBUNGKAN MAINFRAME" di kanan atas, lalu tempel URL yang diberikan gurumu.</div>' : '<div class="empty">TIDAK ADA PANEL TERDETEKSI'+(g?'<br>Klik "+ TAMBAH PANEL" untuk memulai':'')+'</div>');
+    var gsFocus = (document.activeElement && document.activeElement.id==='global-search') ? [document.activeElement.selectionStart, document.activeElement.selectionEnd] : null;
     app.innerHTML =
       '<header>'+
         '<div class="title-row">'+
@@ -952,6 +976,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
         updateFeedHtml()+
         (g?'<div class="vis-legend"><span class="vis-tri"></span>Biru: murid (petugas ikut lihat)<span class="vis-tri staff"></span>Ungu: khusus petugas<span class="vis-tri teacher"></span>Kuning: hanya guru<span>· Klik segitiga untuk gonta-ganti akses. Menu/panel kuning menyembunyikan dari murid & petugas; ungu menyembunyikan dari murid saja. · Seret tab menu (atau pakai panah ◀ ▶ di menu aktif) untuk mengatur urutan.</span></div>':'')+
         (g?'<div class="panel-toolbar"><button class="add-panel-btn" data-addpanel>+ TAMBAH PANEL</button>'+layoutButtonHtml()+'</div>':'')+
+        '<div class="gsearch"><div class="gsearch-box"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="global-search" type="search" placeholder="Cari panel atau sub-panel di semua menu..." autocomplete="off" aria-label="Cari panel atau sub-panel"><button class="gsearch-clear" id="gsearch-clear" title="Hapus pencarian" hidden>\u00d7</button></div><div class="gsearch-res" id="gsearch-res" hidden></div></div>'+
         '<div class="panels-grid">'+panelsHtml+'</div>'+
       '</main>';
     // Komposisi baris: tiap kartu diberi jumlah panel di barisnya (data-per) sesuai rencana baris menu ini
@@ -983,6 +1008,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     app.querySelectorAll('[data-delsub]').forEach(function(el){ el.addEventListener('click', function(){ delSub(el.getAttribute('data-delsub'), el.getAttribute('data-panel')); }); });
     app.querySelectorAll('[data-movepanel]').forEach(function(el){ el.addEventListener('click', function(){ movePanelPosition(el.getAttribute('data-pid'), el.getAttribute('data-movepanel')==='up'?-1:1); }); });
     wireRel(app);
+    wireSearch(gsFocus);
     var lyb = app.querySelector('[data-layout]'); if(lyb) lyb.addEventListener('click', function(){ layoutModal(); });
     app.querySelectorAll('[data-viewsubs]').forEach(function(el){
       el.addEventListener('click', function(){ openPanelDetail(el.getAttribute('data-viewsubs')); });
@@ -1213,6 +1239,79 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
       go.disabled = false;
     }
     draw();
+  }
+
+
+  // ---- Pencarian panel & sub-panel (semua menu yang boleh dilihat peran ini) ----
+  var searchQ = '';
+  var searchRes = [];
+  function escRe(t){ return t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+  function hlText(txt, words){
+    var re = new RegExp('('+words.map(escRe).join('|')+')', 'gi');
+    return String(txt).split(re).map(function(part, i){ return i%2 ? '<mark>'+esc(part)+'</mark>' : esc(part); }).join('');
+  }
+  function searchItems(words){
+    var out = [], subs = [];
+    function hit(txt){ var t = String(txt||'').toLowerCase(); return words.every(function(w){ return t.indexOf(w)!==-1; }); }
+    state.panels.forEach(function(p){
+      var m = menuById(p.menuId);
+      if(!m || !panelVisible(p)) return;
+      if(!isGuru() && viewerAllowedAccess().indexOf(itemAccess(m))===-1) return;
+      if(p.type==='announcement'){
+        if(isExpired(p)) return;
+        if(hit(p.title)) out.push({k:'a', p:p, m:m, title:p.title});
+        return;
+      }
+      if(hit(p.title)) out.push({k:'p', p:p, m:m, title:p.title});
+      (p.subpanels||[]).forEach(function(sb){
+        if(!subVisible(p, sb)) return;
+        var all = [sb.title, sb.subtitle, sb.linkLabel].join(' ');
+        if(hit(all)) subs.push({k:'s', p:p, m:m, s:sb, title:sb.title, rest:[sb.subtitle, sb.linkLabel].filter(Boolean).join(' \u00b7 ')});
+      });
+    });
+    return out.concat(subs);
+  }
+  function snippet(txt, words){
+    var t = String(txt||'').replace(/\s+/g, ' ').trim(), low = t.toLowerCase(), at = -1;
+    words.forEach(function(w){ var i = low.indexOf(w); if(i>=0 && (at<0 || i<at)) at = i; });
+    if(at<0) return '';
+    var st = Math.max(0, at-30), seg = t.slice(st, st+110);
+    return (st>0?'\u2026':'')+seg+(st+110<t.length?'\u2026':'');
+  }
+  function runSearch(){
+    var box = document.getElementById('gsearch-res'), clr = document.getElementById('gsearch-clear');
+    if(!box) return;
+    if(clr) clr.hidden = !searchQ;
+    var words = searchQ.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    if(!words.length){ box.hidden = true; box.innerHTML = ''; searchRes = []; return; }
+    searchRes = searchItems(words).slice(0, 40);
+    box.hidden = false;
+    box.innerHTML = '<div class="gs-count">'+(searchRes.length ? searchRes.length+' HASIL' : 'TIDAK ADA HASIL')+'</div>'+searchRes.map(function(r, i){
+      var where = r.m.name + (r.k==='s' ? ' \u203a '+r.p.title : '');
+      var sn = (r.k==='s' && r.rest) ? snippet(r.rest, words) : '';
+      return '<button class="gs-item" data-gi="'+i+'"><span class="gs-kind '+r.k+'">'+(r.k==='p'?'PANEL':r.k==='a'?'PENGUMUMAN':'SUB-PANEL')+'</span><div class="gs-main"><div class="gs-title">'+hlText(r.title, words)+'</div><div class="gs-where">'+esc(where)+'</div>'+(sn?'<div class="gs-snip">'+hlText(sn, words)+'</div>':'')+'</div></button>';
+    }).join('');
+    box.querySelectorAll('[data-gi]').forEach(function(b){ b.onclick = function(){ openSearchHit(searchRes[+b.getAttribute('data-gi')]); }; });
+  }
+  function openSearchHit(r){
+    if(!r) return;
+    searchQ = '';
+    goToItem(r.p.menuId, r.p.id);
+    if(r.k==='s') setTimeout(function(){ openPanelDetail(r.p.id); }, 300);
+  }
+  function wireSearch(focusState){
+    var gi = document.getElementById('global-search'); if(!gi) return;
+    gi.value = searchQ;
+    gi.addEventListener('input', function(){ searchQ = gi.value; runSearch(); });
+    gi.addEventListener('keydown', function(e){
+      if(e.key==='Enter'){ e.preventDefault(); if(searchRes[0]) openSearchHit(searchRes[0]); }
+      else if(e.key==='Escape'){ searchQ = ''; gi.value = ''; runSearch(); }
+      else if(e.key==='ArrowDown'){ var f = document.querySelector('#gsearch-res .gs-item'); if(f){ e.preventDefault(); f.focus(); } }
+    });
+    var clr = document.getElementById('gsearch-clear');
+    if(clr) clr.addEventListener('click', function(){ searchQ = ''; gi.value = ''; runSearch(); gi.focus(); });
+    runSearch();
+    if(focusState){ gi.focus(); try{ gi.setSelectionRange(focusState[0], focusState[1]); }catch(e){} }
   }
 
   // ---- Drag & drop wiring (native HTML5 DnD) ----
