@@ -457,6 +457,12 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
 .gs-where{margin-top:2px;font-size:11px;color:var(--muted);overflow-wrap:anywhere;}
 .gs-snip{margin-top:4px;font-size:11.5px;color:var(--muted);overflow-wrap:anywhere;}
 .gsearch mark{background:rgba(255,176,32,.28);color:inherit;padding:0 1px;}
+
+/* Gambar & link pada pengumuman */
+.ann-img{display:block;max-width:100%;max-height:260px;margin-top:10px;border:1px solid var(--line);object-fit:contain;cursor:zoom-in;}
+.ann-link{margin-top:9px;overflow-wrap:anywhere;}
+.hist-img{display:block;width:auto;height:auto;max-width:min(100%,280px);max-height:190px;margin-top:8px;border:1px solid var(--line);object-fit:contain;cursor:zoom-in;}
+.hist-item .ann-link{margin-top:7px;}
 </style>
 </head>
 <body>
@@ -1018,7 +1024,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     app.querySelectorAll('[data-editpanel]').forEach(function(el){ el.addEventListener('click', function(){ editPanelModal(el.getAttribute('data-editpanel')); }); });
     app.querySelectorAll('[data-hftoggle]').forEach(function(el){ el.addEventListener('click', function(){ toggleHighfive(el.getAttribute('data-hftoggle')); }); });
     app.querySelectorAll('[data-highfive]').forEach(function(el){ el.addEventListener('click', function(){ doHighfive(el.getAttribute('data-highfive'), el); }); });
-    app.querySelectorAll('.sub-card img').forEach(function(im){ im.addEventListener('click', function(){ openImageLightbox(im.getAttribute('src')); }); });
+    app.querySelectorAll('.sub-card img, .ann-img').forEach(function(im){ im.addEventListener('click', function(){ openImageLightbox(im.getAttribute('src')); }); });
     var st = document.getElementById('status-toggle'); if(st) st.addEventListener('click', settingsModal);
     var tt = document.getElementById('theme-toggle'); if(tt) tt.addEventListener('click', toggleTheme);
     app.querySelectorAll('.menu-tab').forEach(function(el){ el.addEventListener('keydown', function(e){ if((e.key==='Enter'||e.key===' ') && e.target===el){ e.preventDefault(); el.click(); } }); });
@@ -1501,6 +1507,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
         '<button class="icon-btn" data-editpanel="'+p.id+'" title="Edit pengumuman">\u270e</button><button class="icon-btn" data-delpanel="'+p.id+'">\u00d7</button></div>':'')+'</div>'+
       '<div class="panel-body">'+
         '<div class="ann-body">'+esc(p.body)+'</div>'+
+        annMediaHtml(p, 'ann-img')+
         '<div class="ann-meta">'+
           '<span class="status-pill'+(expired?' expired':'')+'">'+(expired?'SUDAH DIUMUMKAN':'AKTIF')+'</span>'+
           (p.deadline?'<span class="ann-deadline">Batas waktu: '+formatDate(p.deadline)+'</span>':'')+
@@ -1643,10 +1650,13 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     openModal('PANEL PENGUMUMAN BARU', 'Tanda "BARU!" otomatis hilang setelah 3 hari. Setelah lewat batas waktu, pengumuman ditandai "SUDAH DIUMUMKAN".', [
       {name:'title', label:'Judul pengumuman', placeholder:'Contoh: Libur Nasional'},
       {name:'body', label:'Isi pengumuman', type:'textarea', placeholder:'Tulis isi pengumuman di sini...'},
+      {name:'image', label:'URL gambar', placeholder:'https://...jpg (opsional)'},
+      {name:'linkUrl', label:'Hyperlink (URL)', placeholder:'https://... (opsional)'},
+      {name:'linkLabel', label:'Teks link', placeholder:'Opsional'},
       {name:'deadline', label:'Batas waktu', type:'date'}
     ], function(v){
       if(!v.title) return;
-      state.panels.push({id:uid(), menuId:state.activeMenu, type:'announcement', title:v.title, body:v.body, deadline:v.deadline||null, createdAt:Date.now(), newAt:Date.now(), subpanels:[], highfiveEnabled:false, highfiveCount:0});
+      state.panels.push({id:uid(), menuId:state.activeMenu, type:'announcement', title:v.title, body:v.body, image:safeHref(v.image), linkUrl:safeHref(v.linkUrl), linkLabel:(v.linkLabel||'').trim(), deadline:v.deadline||null, createdAt:Date.now(), newAt:Date.now(), subpanels:[], highfiveEnabled:false, highfiveCount:0});
       save();
     });
   }
@@ -1870,10 +1880,14 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
       var ovA = openModal('EDIT PANEL PENGUMUMAN', 'Tanda "BARU!" otomatis hilang setelah 3 hari. Setelah lewat batas waktu, pengumuman ditandai "SUDAH DIUMUMKAN".', lead.concat([
         {name:'title', label:'Judul pengumuman', placeholder:'Contoh: Libur Nasional', value:p.title},
         {name:'body', label:'Isi pengumuman', type:'textarea', placeholder:'Tulis isi pengumuman di sini...', value:p.body},
+        {name:'image', label:'URL gambar', placeholder:'https://...jpg (opsional)', value:p.image},
+        {name:'linkUrl', label:'Hyperlink (URL)', placeholder:'https://... (opsional)', value:p.linkUrl},
+        {name:'linkLabel', label:'Teks link', placeholder:'Opsional', value:p.linkLabel},
         {name:'deadline', label:'Batas waktu', type:'date', value:p.deadline||''}
       ]), function(v){
         if(!v.title) return;
         p.title = v.title; p.body = v.body; p.deadline = v.deadline||null;
+        p.image = safeHref(v.image); p.linkUrl = safeHref(v.linkUrl); p.linkLabel = (v.linkLabel||'').trim();
         applyPanelMove(p, v.menuId);
         save();
       }, 'SIMPAN PERUBAHAN');
@@ -2107,6 +2121,21 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     save();
   }
 
+  // ---- Gambar & hyperlink pada pengumuman ----
+  // Hanya http/https yang diterima; alamat tanpa skema (mis. "contoh.com/a") otomatis diberi https://
+  function safeHref(u){
+    u = String(u||'').trim();
+    if(!u) return '';
+    if(/^https?:\/\//i.test(u)) return u;
+    if(/^[a-z][a-z0-9+.-]*:/i.test(u) && !/^[^\s\/]+\.[a-z]{2,}(:\d+)?(\/|$)/i.test(u)) return '';
+    return /^[^\s\/]+\.[a-z]{2,}(:\d+)?(\/|$)/i.test(u) ? 'https://'+u : '';
+  }
+  function annMediaHtml(p, imgCls){
+    var img = safeHref(p.image), url = safeHref(p.linkUrl);
+    return (img ? '<img class="'+imgCls+'" src="'+esc(img)+'" alt="Gambar pengumuman" loading="lazy" title="Klik untuk memperbesar" onerror="this.style.display=\'none\'">' : '')+
+      (url ? '<a class="sub-link ann-link" href="'+esc(url)+'" target="_blank" rel="noopener">'+esc(p.linkLabel||url)+'</a>' : '');
+  }
+
   // ---- Urutan pengumuman: hanya berpindah di antara sesama pengumuman (panel informasi tidak ikut bergeser) ----
   function annSlots(){
     var idxs = [];
@@ -2156,6 +2185,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
         return '<div class="hist-item">'+
           '<div class="hist-top"><div class="hist-title">'+esc(p.title)+'</div>'+(isGuru()?'<button class="icon-btn" data-delhist="'+p.id+'" title="Hapus dari riwayat">\u00d7</button>':'')+'</div>'+
           (p.body?'<div class="hist-body">'+esc(p.body)+'</div>':'')+
+          annMediaHtml(p, 'hist-img')+
           '<div class="hist-meta"><span class="hist-menu">Menu: '+esc(menuName(p.menuId))+'</span>'+
             '<span>Batas waktu: '+formatDate(p.deadline)+'</span>'+
             (p.createdAt?'<span>Dibuat: '+formatDate(new Date(p.createdAt).toISOString().slice(0,10))+'</span>':'')+
@@ -2166,6 +2196,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
         '<div class="hist-list">'+list+'</div>'+
         '<div class="modal-actions"><button class="btn" data-close>TUTUP</button></div></div>';
       ov.querySelector('[data-close]').onclick = function(){ closeOverlay(ov); };
+      ov.querySelectorAll('.hist-img').forEach(function(im){ im.addEventListener('click', function(){ openImageLightbox(im.getAttribute('src')); }); });
       ov.querySelectorAll('[data-delhist]').forEach(function(b){
         b.onclick = function(){
           if(!isGuru()) return;
