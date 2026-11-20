@@ -1006,6 +1006,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     app.querySelectorAll('[data-delpanel]').forEach(function(el){ el.addEventListener('click', function(){ delPanel(el.getAttribute('data-delpanel')); }); });
     app.querySelectorAll('[data-addsub]').forEach(function(el){ el.addEventListener('click', function(){ addSubModal(el.getAttribute('data-addsub')); }); });
     app.querySelectorAll('[data-delsub]').forEach(function(el){ el.addEventListener('click', function(){ delSub(el.getAttribute('data-delsub'), el.getAttribute('data-panel')); }); });
+    app.querySelectorAll('[data-moveann]').forEach(function(el){ el.addEventListener('click', function(){ moveAnnouncementPosition(el.getAttribute('data-aid'), el.getAttribute('data-moveann')==='up'?-1:1); }); });
     app.querySelectorAll('[data-movepanel]').forEach(function(el){ el.addEventListener('click', function(){ movePanelPosition(el.getAttribute('data-pid'), el.getAttribute('data-movepanel')==='up'?-1:1); }); });
     wireRel(app);
     wireSearch(gsFocus);
@@ -1349,6 +1350,38 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
       });
     });
 
+    // Pengumuman hanya bisa ditukar urutannya dengan sesama pengumuman (kartu panel informasi tidak menerima seretan ini)
+    var draggedAnnId = null;
+    app.querySelectorAll('[data-dragann]').forEach(function(handle){
+      handle.addEventListener('dragstart', function(e){
+        draggedAnnId = handle.getAttribute('data-dragann');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', 'ann:'+draggedAnnId);
+        var card = handle.closest('.panel-card');
+        if(card) setTimeout(function(){ card.classList.add('dragging'); }, 0);
+      });
+      handle.addEventListener('dragend', function(){
+        var card = handle.closest('.panel-card');
+        if(card) card.classList.remove('dragging');
+        draggedAnnId = null;
+        app.querySelectorAll('.panel-card.drag-over').forEach(function(c){ c.classList.remove('drag-over'); });
+      });
+    });
+    app.querySelectorAll('.panel-card.type-announcement[data-aid]').forEach(function(card){
+      card.addEventListener('dragover', function(e){
+        if(!draggedAnnId || card.getAttribute('data-aid')===draggedAnnId) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        card.classList.add('drag-over');
+      });
+      card.addEventListener('dragleave', function(){ card.classList.remove('drag-over'); });
+      card.addEventListener('drop', function(e){
+        e.preventDefault();
+        card.classList.remove('drag-over');
+        if(draggedAnnId) reorderAnnouncements(draggedAnnId, card.getAttribute('data-aid'));
+      });
+    });
+
     var draggedSubId = null, draggedSubPanel = null;
     app.querySelectorAll('[data-dragsub]').forEach(function(handle){
       handle.addEventListener('dragstart', function(e){
@@ -1461,9 +1494,9 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     var annAcc = itemAccess(p);
     var hfOn = !!p.highfiveEnabled;
     var hfDone = hfOn && hfAlreadyDone(p.id);
-    return '<div class="panel-card type-announcement'+(expired?' expired':'')+(isGuru()&&annAcc==='teacher'?' teacher-only':'')+(isGuru()&&annAcc==='staff'?' staff-only':'')+'" data-key="p'+p.id+'">'+
+    return '<div class="panel-card type-announcement'+(expired?' expired':'')+(isGuru()&&annAcc==='teacher'?' teacher-only':'')+(isGuru()&&annAcc==='staff'?' staff-only':'')+'" data-aid="'+p.id+'" data-key="p'+p.id+'">'+
       (fresh?'<div class="new-badge">BARU!</div>':'')+
-      '<div class="panel-head"><div class="panel-head-left"><h3 class="hud-font">'+esc(p.title)+'</h3>'+relBtn('p',p.id)+'</div>'+(isGuru()?'<div class="panel-head-right">'+visToggle('panel',p.id,annAcc)+
+      '<div class="panel-head"><div class="panel-head-left">'+(isGuru()?'<span class="drag-handle" draggable="true" data-dragann="'+p.id+'" title="Seret untuk mengurutkan (hanya dengan sesama pengumuman)">\u283f</span>':'')+'<h3 class="hud-font">'+esc(p.title)+'</h3>'+relBtn('p',p.id)+'</div>'+(isGuru()?'<div class="panel-head-right">'+visToggle('panel',p.id,annAcc)+'<button class="move-btn" data-moveann="up" data-aid="'+p.id+'" title="Geser ke atas (di antara pengumuman)">\u25b2</button><button class="move-btn" data-moveann="down" data-aid="'+p.id+'" title="Geser ke bawah (di antara pengumuman)">\u25bc</button>'+
         '<button class="icon-btn hf-admin-btn'+(hfOn?' active':'')+'" data-hftoggle="'+p.id+'" title="'+(hfOn?'Matikan tombol Highfive untuk pengumuman ini':'Aktifkan tombol Highfive untuk pengumuman ini')+'">\u270b</button>'+
         '<button class="icon-btn" data-editpanel="'+p.id+'" title="Edit pengumuman">\u270e</button><button class="icon-btn" data-delpanel="'+p.id+'">\u00d7</button></div>':'')+'</div>'+
       '<div class="panel-body">'+
@@ -2070,6 +2103,36 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     var newPos = pos + direction;
     if(pos<0 || newPos<0 || newPos>=items.length) return;
     var tmp = items[pos]; items[pos] = items[newPos]; items[newPos] = tmp;
+    idxs.forEach(function(origIdx, k){ state.panels[origIdx] = items[k]; });
+    save();
+  }
+
+  // ---- Urutan pengumuman: hanya berpindah di antara sesama pengumuman (panel informasi tidak ikut bergeser) ----
+  function annSlots(){
+    var idxs = [];
+    state.panels.forEach(function(p, i){ if(p.menuId===state.activeMenu && p.type==='announcement' && !isExpired(p)) idxs.push(i); });
+    return idxs;
+  }
+  function reorderAnnouncements(draggedId, targetId){
+    if(!isGuru() || draggedId===targetId) return;
+    var idxs = annSlots();
+    var items = idxs.map(function(i){ return state.panels[i]; });
+    var di = items.findIndex(function(p){ return p.id===draggedId; });
+    var ti = items.findIndex(function(p){ return p.id===targetId; });
+    if(di<0 || ti<0 || di===ti) return;
+    var moved = items.splice(di, 1)[0];
+    items.splice(ti, 0, moved);
+    idxs.forEach(function(origIdx, k){ state.panels[origIdx] = items[k]; });
+    save();
+  }
+  function moveAnnouncementPosition(id, direction){
+    if(!isGuru()) return;
+    var idxs = annSlots();
+    var items = idxs.map(function(i){ return state.panels[i]; });
+    var pos = items.findIndex(function(p){ return p.id===id; });
+    var np = pos + direction;
+    if(pos<0 || np<0 || np>=items.length) return;
+    var tmp = items[pos]; items[pos] = items[np]; items[np] = tmp;
     idxs.forEach(function(origIdx, k){ state.panels[origIdx] = items[k]; });
     save();
   }
