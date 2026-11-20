@@ -187,11 +187,11 @@ const D=[
   const kuis=raw===null?null:Math.min(raw,CAP),q=kuis||0;
   const g1=p1>0&&p1<MIN?MIN-p1:0,g2=p2>0&&p2<MIN?MIN-p2:0;
   const plan=m=>{let x1=0,x2=0;
-    if(m===1){if(g1&&g1<=q)x1=g1;if(g2&&g2<=q-x1)x2=g2}
+    if(m===1){x1=Math.min(g1,q);x2=Math.min(g2,q-x1)}
     else{const o=[[0,0]];if(g1&&g1<=q)o.push([g1,0]);if(g2&&g2<=q)o.push([0,g2]);if(g1&&g2&&g1+g2<=q)o.push([g1,g2]);
       const c=a=>(a[0]>0)+(a[1]>0);[x1,x2]=o.reduce((b,a)=>c(a)>c(b)||(c(a)===c(b)&&a[0]+a[1]<b[0]+b[1])?a:b)}
-    const f=(v,x)=>v===0?"belum":v>=MIN?"tuntas":x>0?"kuis":kuis===null?"tunggu":"kurang";
-    return{u1:x1,u2:x2,s1:f(p1,x1),s2:f(p2,x2)};
+    const f=(v,x,g)=>v===0?"belum":v>=MIN?"tuntas":x>=g?"kuis":kuis===null?"tunggu":"kurang";
+    return{u1:x1,u2:x2,s1:f(p1,x1,g1),s2:f(p2,x2,g2)};
   };
   return{id,grp,n,nama,kelas,p1,p2,raw,kuis,res:{1:plan(1),2:plan(2)}};
 });
@@ -238,7 +238,7 @@ function renderTop(){
   $("stats").innerHTML=items.map(i=>`<div class="stat ${i[2]}"><div class="num">${i[0]}</div><span>${i[1]}</span></div>`).join("");
   const ks=[...new Set(P.map(d=>d.kelas))];
   const kl=k=>{const s=P.filter(d=>d.kelas===k);const c=x=>s.filter(d=>d.st===x).length;return `<b>${k}</b>: ${c("tuntas")} tuntas murni, ${c("kuis")} aman dengan kuis, ${c("kurang")} remedial, ${c("belum")} belum mengikuti${c("tunggu")?", "+c("tunggu")+" menunggu data kuis":""}`};
-  const L=[`<b>${SK[M]}</b>: `+(M===1?"kuis (maks. 20) dipakai untuk PHB 1 lebih dulu, hanya jika cukup menutup selisih ke 76; sisanya untuk PHB 2.":"kuis diarahkan ke asesmen yang menyelamatkan paling banyak status dengan poin paling sedikit, misalnya ke PHB 2 bila selisih PHB 1 terlalu besar; jika seri, PHB 1 lebih dulu.")];
+  const L=[`<b>${SK[M]}</b>: `+(M===1?"kuis (maks. 20) dialokasikan ke PHB 1 lebih dulu sebesar selisih ke 76 (seluruhnya jika tidak cukup, dan tidak kembali); sisanya baru untuk PHB 2.":"kuis diarahkan ke asesmen yang menyelamatkan paling banyak status dengan poin paling sedikit, misalnya ke PHB 2 bila selisih PHB 1 terlalu besar; jika seri, PHB 1 lebih dulu.")];
   if(E.length){
     L.push(`<b>${E.length} murid</b> mengikuti PHB ${A}, rata-rata nilai murni ${avg}. Tertinggi: ${hi.nama} (${hi.v}); terendah: ${lo.nama} (${lo.v}).`);
     L.push(`<b>${T.length} murid</b> tuntas murni (\u2265 ${MIN}), tanpa kuis.`);
@@ -276,7 +276,7 @@ function detail(){
   const note={
     tuntas:`Nilai murni ${d.v}, tuntas tanpa kuis.`,
     kuis:`Nilai murni ${d.v}, kurang ${gap} poin. Kuis tersedia ${fmt(d.kq)} dan menutup ${fmt(d.use)} poin (simulasi): aman dari remedial, nilai tetap ${d.v}.`,
-    kurang:d.kq>=gap?`Nilai murni ${d.v}, kurang ${gap} poin. Kuis sebenarnya cukup, tetapi pada skenario ini dialihkan ke asesmen lain.`:`Nilai murni ${d.v} ditambah kuis tersedia ${fmt(d.kq)} = ${fmt(d.v+d.kq)}, masih kurang ${fmt(gap-d.kq)} poin: tetap remedial.`,
+    kurang:d.kq>=gap?`Nilai murni ${d.v}, kurang ${gap} poin. Kuis sebenarnya cukup, tetapi pada skenario ini dialihkan ke asesmen lain.`:`Nilai murni ${d.v} ditambah kuis tersedia ${fmt(d.kq)} = ${fmt(d.v+d.kq)}, masih kurang ${fmt(gap-d.kq)} poin: tetap remedial.${A===2&&d.res[M].u1?" Kuis sudah dialokasikan ke PHB 1 lebih dulu ("+fmt(d.res[M].u1)+") dan tidak kembali.":""}`,
     belum:`Belum mengikuti PHB ${A}: nilai di ledger masih 0.`,
     tunggu:`Nilai murni ${d.v}, kurang ${gap} poin. Data kuis kelas ini belum dikirim.`
   }[d.st];
