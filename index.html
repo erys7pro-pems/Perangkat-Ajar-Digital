@@ -463,6 +463,47 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
 .ann-link{margin-top:9px;overflow-wrap:anywhere;}
 .hist-img{display:block;width:auto;height:auto;max-width:min(100%,280px);max-height:190px;margin-top:8px;border:1px solid var(--line);object-fit:contain;cursor:zoom-in;}
 .hist-item .ann-link{margin-top:7px;}
+
+/* Tampilan kedua: Kalender */
+.view-switch{display:flex;max-width:1100px;margin:12px auto 0;}
+.vs-btn{font-family:'Orbitron',sans-serif;font-size:10.5px;letter-spacing:.1em;padding:8px 16px;border:1px solid var(--line);background:var(--panel);color:var(--muted);cursor:pointer;}
+.vs-btn+.vs-btn{border-left:none;}
+.vs-btn:hover{color:var(--cyan);}
+.vs-btn.active{color:var(--cyan);border-color:var(--cyan-dim);background:rgba(43,227,255,.1);box-shadow:inset 0 -2px 0 var(--cyan);}
+.cal-wrap{max-width:1100px;margin:0 auto;}
+.cal-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+.cal-nav{width:38px;height:38px;border:1px solid var(--cyan-dim);background:var(--panel);color:var(--cyan);cursor:pointer;font-size:20px;line-height:1;}
+.cal-nav:hover{background:rgba(43,227,255,.12);box-shadow:0 0 10px rgba(43,227,255,.25);}
+.cal-title{flex:1 1 160px;text-align:center;font-size:18px;letter-spacing:.14em;color:var(--cyan);text-shadow:0 0 10px rgba(43,227,255,.4);}
+.cal-sum{font-family:'Orbitron',sans-serif;font-size:9.5px;letter-spacing:.08em;color:var(--muted);}
+.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;border:1px solid var(--cyan-dim);background:var(--line);box-shadow:0 0 18px rgba(43,227,255,.08);}
+.cal-dow{background:var(--panel);text-align:center;padding:8px 0;font-family:'Orbitron',sans-serif;font-size:9.5px;letter-spacing:.12em;color:var(--cyan-dim);}
+.cal-cell{display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-height:92px;padding:6px;border:none;background:var(--panel);color:var(--text);cursor:pointer;text-align:left;font-family:inherit;min-width:0;}
+.cal-cell:hover{background:rgba(43,227,255,.07);}
+.cal-cell.other{opacity:.42;}
+.cal-cell.sel{outline:2px solid var(--cyan);outline-offset:-2px;box-shadow:inset 0 0 14px rgba(43,227,255,.18);}
+.cal-d{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;font-family:'Orbitron',sans-serif;font-size:11px;}
+.cal-cell.today .cal-d{background:var(--cyan);color:var(--bg);box-shadow:0 0 8px var(--cyan);}
+.cal-chip{display:block;width:100%;box-sizing:border-box;font-size:10.5px;line-height:1.3;padding:2px 5px;border-left:2px solid var(--cyan);background:rgba(43,227,255,.1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cal-chip.done{border-left-color:var(--muted);background:rgba(128,144,160,.12);color:var(--muted);}
+.cal-more{font-size:10px;color:var(--amber);}
+.cal-dot{display:none;}
+.cal-agenda{margin-top:16px;border:1px solid var(--line);background:var(--panel);padding:14px;}
+.cal-agenda h3{margin:0 0 4px;font-family:'Orbitron',sans-serif;font-size:12px;letter-spacing:.1em;color:var(--cyan);}
+.cal-ev{display:flex;align-items:flex-start;gap:10px;width:100%;text-align:left;padding:10px 12px;margin-top:8px;border:1px solid var(--line);border-left:3px solid var(--cyan);background:var(--bg);color:var(--text);cursor:pointer;font-family:inherit;}
+.cal-ev.done{border-left-color:var(--muted);}
+.cal-ev:hover{background:rgba(43,227,255,.07);}
+.cal-ev-main{flex:1;min-width:0;}
+.cal-ev-t{font-size:13px;overflow-wrap:anywhere;}
+.cal-ev-m{font-size:11px;color:var(--muted);margin-top:2px;}
+.cal-ev-b{font-size:11.5px;color:var(--muted);margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere;}
+.cal-empty{color:var(--muted);font-size:12px;text-align:center;padding:22px 10px;border:1px dashed var(--line);margin-top:10px;}
+@media (max-width:640px){
+  .cal-cell{min-height:54px;align-items:center;padding:4px 2px;}
+  .cal-chip,.cal-more{display:none;}
+  .cal-dot{display:inline-block;min-width:16px;text-align:center;font-size:9px;background:var(--cyan);color:var(--bg);border-radius:8px;padding:0 4px;}
+  .cal-title{font-size:14px;}
+}
 </style>
 </head>
 <body>
@@ -946,6 +987,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     }).map(function(x){ return x.p; });
     var panelsHtml = panels.length ? panels.map(panelHtml).join('') : (!g && !hasApi() ? '<div class="empty">BELUM TERHUBUNG KE MAINFRAME<br>Klik "HUBUNGKAN MAINFRAME" di kanan atas, lalu tempel URL yang diberikan gurumu.</div>' : '<div class="empty">TIDAK ADA PANEL TERDETEKSI'+(g?'<br>Klik "+ TAMBAH PANEL" untuk memulai':'')+'</div>');
     var gsFocus = (document.activeElement && document.activeElement.id==='global-search') ? [document.activeElement.selectionStart, document.activeElement.selectionEnd] : null;
+    var calMode = (view==='kalender');
     app.innerHTML =
       '<header>'+
         '<div class="title-row">'+
@@ -976,14 +1018,15 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
             '</div>'+
           '</div>'+
         '</div>'+
-        '<div class="menu-wrap"><div class="menu-row">'+menusHtml+(g?'<button id="add-menu-btn" data-addmenu>+ MENU</button>':'')+'</div><button class="menu-more" id="menu-more-btn" title="Lihat semua menu">\u2630 MENU</button></div>'+
+        '<div class="view-switch"><button class="vs-btn'+(calMode?'':' active')+'" data-view="panel" title="Tampilan menu, panel, dan sub-panel">\u25a6 PANEL</button><button class="vs-btn'+(calMode?' active':'')+'" data-view="kalender" title="Tampilan kalender pengumuman">\u25a4 KALENDER</button></div>'+
+        (calMode?'':'<div class="menu-wrap"><div class="menu-row">'+menusHtml+(g?'<button id="add-menu-btn" data-addmenu>+ MENU</button>':'')+'</div><button class="menu-more" id="menu-more-btn" title="Lihat semua menu">\u2630 MENU</button></div>')+
       '</header>'+
-      '<main>'+
+      '<main>'+(calMode?calendarHtml():(
         updateFeedHtml()+
         (g?'<div class="vis-legend"><span class="vis-tri"></span>Biru: murid (petugas ikut lihat)<span class="vis-tri staff"></span>Ungu: khusus petugas<span class="vis-tri teacher"></span>Kuning: hanya guru<span>· Klik segitiga untuk gonta-ganti akses. Menu/panel kuning menyembunyikan dari murid & petugas; ungu menyembunyikan dari murid saja. · Seret tab menu (atau pakai panah ◀ ▶ di menu aktif) untuk mengatur urutan.</span></div>':'')+
         (g?'<div class="panel-toolbar"><button class="add-panel-btn" data-addpanel>+ TAMBAH PANEL</button>'+layoutButtonHtml()+'</div>':'')+
         '<div class="gsearch"><div class="gsearch-box"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="global-search" type="search" placeholder="Cari panel atau sub-panel di semua menu..." autocomplete="off" aria-label="Cari panel atau sub-panel"><button class="gsearch-clear" id="gsearch-clear" title="Hapus pencarian" hidden>\u00d7</button></div><div class="gsearch-res" id="gsearch-res" hidden></div></div>'+
-        '<div class="panels-grid">'+panelsHtml+'</div>'+
+        '<div class="panels-grid">'+panelsHtml+'</div>'))+
       '</main>';
     // Komposisi baris: tiap kartu diberi jumlah panel di barisnya (data-per) sesuai rencana baris menu ini
     var gridEl = app.querySelector('.panels-grid');
@@ -1016,6 +1059,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     app.querySelectorAll('[data-movepanel]').forEach(function(el){ el.addEventListener('click', function(){ movePanelPosition(el.getAttribute('data-pid'), el.getAttribute('data-movepanel')==='up'?-1:1); }); });
     wireRel(app);
     wireSearch(gsFocus);
+    wireCalendar();
     var lyb = app.querySelector('[data-layout]'); if(lyb) lyb.addEventListener('click', function(){ layoutModal(); });
     app.querySelectorAll('[data-viewsubs]').forEach(function(el){
       el.addEventListener('click', function(){ openPanelDetail(el.getAttribute('data-viewsubs')); });
@@ -1319,6 +1363,81 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     if(clr) clr.addEventListener('click', function(){ searchQ = ''; gi.value = ''; runSearch(); gi.focus(); });
     runSearch();
     if(focusState){ gi.focus(); try{ gi.setSelectionRange(focusState[0], focusState[1]); }catch(e){} }
+  }
+
+
+  // ---- Tampilan kedua: Kalender. Pengumuman yang punya batas waktu otomatis tampil pada tanggalnya ----
+  var VIEW_KEY = 'papan-panel-view';
+  var view = 'panel';
+  try{ if(localStorage.getItem(VIEW_KEY)==='kalender') view = 'kalender'; }catch(e){}
+  var calToday0 = new Date(), calY = calToday0.getFullYear(), calM = calToday0.getMonth(), calSel = null;
+  var CAL_MONTHS = ['JANUARI','FEBRUARI','MARET','APRIL','MEI','JUNI','JULI','AGUSTUS','SEPTEMBER','OKTOBER','NOVEMBER','DESEMBER'];
+  var CAL_DOW = ['SEN','SEL','RAB','KAM','JUM','SAB','MIN'];
+  function pad2(n){ return (n<10?'0':'')+n; }
+  function ymd(d){ return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate()); }
+  function setView(v){ view = v; try{ localStorage.setItem(VIEW_KEY, v); }catch(e){} render(); }
+  function calEvents(){
+    var map = {};
+    state.panels.forEach(function(p){
+      if(p.type!=='announcement' || !p.deadline || !panelVisible(p) || !menuById(p.menuId)) return;
+      (map[p.deadline] = map[p.deadline]||[]).push(p);
+    });
+    return map;
+  }
+  function calendarHtml(){
+    var ev = calEvents(), today = ymd(new Date());
+    var first = new Date(calY, calM, 1), off = (first.getDay()+6)%7, dim = new Date(calY, calM+1, 0).getDate();
+    var n = Math.ceil((off+dim)/7)*7, sel = calSel || today, prefix = calY+'-'+pad2(calM+1), monthCount = 0;
+    Object.keys(ev).forEach(function(k){ if(k.indexOf(prefix)===0) monthCount += ev[k].length; });
+    var cells = CAL_DOW.map(function(d){ return '<div class="cal-dow">'+d+'</div>'; }).join('');
+    for(var i=0;i<n;i++){
+      var d = new Date(calY, calM, 1-off+i), key = ymd(d), list = ev[key]||[];
+      cells += '<button class="cal-cell'+(d.getMonth()!==calM?' other':'')+(key===today?' today':'')+(key===sel?' sel':'')+'" data-cal="'+key+'" title="'+(list.length?list.length+' pengumuman':'Tidak ada pengumuman')+'"><span class="cal-d">'+d.getDate()+'</span>'+
+        list.slice(0,2).map(function(p){ return '<span class="cal-chip'+(isExpired(p)?' done':'')+'">'+esc(p.title)+'</span>'; }).join('')+
+        (list.length>2 ? '<span class="cal-more">+'+(list.length-2)+' lagi</span>' : '')+
+        (list.length ? '<span class="cal-dot">'+list.length+'</span>' : '')+'</button>';
+    }
+    var items = ev[sel]||[];
+    var agenda = items.length ? items.map(function(p){
+      var ex = isExpired(p), m = menuById(p.menuId);
+      return '<button class="cal-ev'+(ex?' done':'')+'" data-calev="'+p.id+'"><span class="status-pill'+(ex?' expired':'')+'">'+(ex?'SUDAH DIUMUMKAN':'AKTIF')+'</span><div class="cal-ev-main"><div class="cal-ev-t">'+esc(p.title)+'</div><div class="cal-ev-m">Menu: '+esc(m?m.name:'-')+'</div>'+(p.body?'<div class="cal-ev-b">'+esc(p.body)+'</div>':'')+'</div></button>';
+    }).join('') : '<div class="cal-empty">TIDAK ADA PENGUMUMAN PADA TANGGAL INI</div>';
+    return '<div class="cal-wrap"><div class="cal-bar"><button class="cal-nav" data-calnav="-1" title="Bulan sebelumnya">\u2039</button><div class="cal-title hud-font">'+CAL_MONTHS[calM]+' '+calY+'</div><button class="cal-nav" data-calnav="1" title="Bulan berikutnya">\u203a</button><button class="btn" data-caltoday>HARI INI</button><span class="cal-sum">'+monthCount+' PENGUMUMAN BULAN INI</span></div>'+
+      '<div class="cal-grid">'+cells+'</div>'+
+      '<div class="cal-agenda"><h3>AGENDA \u00b7 '+esc(formatDate(sel))+'</h3>'+agenda+'</div></div>';
+  }
+  function openCalEvent(id){
+    var p = state.panels.find(function(x){ return x.id===id; }); if(!p) return;
+    var m = menuById(p.menuId), ex = isExpired(p), g = isGuru();
+    var ov = document.createElement('div'); ov.className = 'modal-overlay'; document.body.appendChild(ov);
+    ov.addEventListener('click', function(e){ if(e.target===ov) closeOverlay(ov); });
+    ov.innerHTML = '<div class="modal wide"><h4 class="hud-font">'+esc(p.title)+'</h4><div class="sub"><span class="status-pill'+(ex?' expired':'')+'">'+(ex?'SUDAH DIUMUMKAN':'AKTIF')+'</span> Batas waktu: '+esc(formatDate(p.deadline))+' \u00b7 Menu: '+esc(m?m.name:'-')+'</div>'+
+      (p.body?'<div class="ann-body" style="margin-top:12px">'+esc(p.body)+'</div>':'')+annMediaHtml(p,'ann-img')+
+      '<div class="modal-actions"><button class="btn" data-close>TUTUP</button>'+(g?'<button class="btn" data-edit>EDIT</button>':'')+(ex?'':'<button class="btn btn-primary" data-open>BUKA DI PANEL</button>')+'</div></div>';
+    ov.querySelector('[data-close]').onclick = function(){ closeOverlay(ov); };
+    var im = ov.querySelector('.ann-img'); if(im) im.addEventListener('click', function(){ openImageLightbox(im.getAttribute('src')); });
+    var ed = ov.querySelector('[data-edit]'); if(ed) ed.onclick = function(){ closeOverlay(ov, function(){ editPanelModal(p.id); }); };
+    var op = ov.querySelector('[data-open]');
+    if(op) op.onclick = function(){ closeOverlay(ov, function(){
+      view = 'panel'; try{ localStorage.setItem(VIEW_KEY, view); }catch(e){}
+      goToItem(p.menuId, null);
+      var el = document.querySelector('.panel-card[data-aid="'+p.id+'"]');
+      if(el){ el.scrollIntoView({behavior:'smooth', block:'center'}); el.classList.add('flash'); setTimeout(function(){ el.classList.remove('flash'); }, 2500); }
+    }); };
+  }
+  function wireCalendar(){
+    document.querySelectorAll('[data-view]').forEach(function(b){ b.addEventListener('click', function(){ var v = b.getAttribute('data-view'); if(v!==view) setView(v); }); });
+    if(view!=='kalender') return;
+    document.querySelectorAll('[data-calnav]').forEach(function(b){ b.addEventListener('click', function(){
+      var d = new Date(calY, calM + Number(b.getAttribute('data-calnav')), 1); calY = d.getFullYear(); calM = d.getMonth(); render();
+    }); });
+    var bt = document.querySelector('[data-caltoday]');
+    if(bt) bt.addEventListener('click', function(){ var t = new Date(); calY = t.getFullYear(); calM = t.getMonth(); calSel = ymd(t); render(); });
+    document.querySelectorAll('[data-cal]').forEach(function(c){ c.addEventListener('click', function(){
+      calSel = c.getAttribute('data-cal');
+      var a = calSel.split('-'); calY = +a[0]; calM = +a[1]-1; render();
+    }); });
+    document.querySelectorAll('[data-calev]').forEach(function(b){ b.addEventListener('click', function(){ openCalEvent(b.getAttribute('data-calev')); }); });
   }
 
   // ---- Drag & drop wiring (native HTML5 DnD) ----
