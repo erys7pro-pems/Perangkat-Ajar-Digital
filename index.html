@@ -504,6 +504,29 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
   .cal-dot{display:inline-block;min-width:16px;text-align:center;font-size:9px;background:var(--cyan);color:var(--bg);border-radius:8px;padding:0 4px;}
   .cal-title{font-size:14px;}
 }
+
+/* Daftar tugas di dalam pengumuman */
+.task-box{margin-top:12px;border:1px solid var(--line);background:rgba(43,227,255,.04);padding:10px 12px;}
+.task-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.task-ttl{font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:.12em;color:var(--cyan);}
+.task-prog{font-family:'Orbitron',sans-serif;font-size:9px;letter-spacing:.06em;color:var(--muted);}
+.task-manage{margin-left:auto;background:none;border:1px solid var(--cyan-dim);color:var(--cyan);font-family:'Orbitron',sans-serif;font-size:9px;letter-spacing:.06em;padding:3px 8px;cursor:pointer;}
+.task-manage:hover{background:rgba(43,227,255,.12);}
+.task-bar{height:3px;background:var(--line);margin:8px 0 4px;}
+.task-bar i{display:block;height:100%;background:var(--cyan);box-shadow:0 0 6px var(--cyan);transition:width .25s;}
+.task-item{display:flex;align-items:flex-start;gap:10px;width:100%;text-align:left;padding:8px 2px;border:none;border-top:1px solid var(--line);background:transparent;color:var(--text);cursor:pointer;font-family:inherit;}
+.task-item:first-of-type{border-top:none;}
+.task-chk{flex-shrink:0;width:16px;height:16px;margin-top:1px;border:1px solid var(--cyan-dim);display:inline-flex;align-items:center;justify-content:center;font-size:12px;line-height:1;color:var(--bg);}
+.task-item:hover .task-chk{border-color:var(--cyan);box-shadow:0 0 6px rgba(43,227,255,.4);}
+.task-item.done .task-chk{background:var(--cyan);border-color:var(--cyan);}
+.task-txt{flex:1;min-width:0;font-size:12.5px;line-height:1.5;overflow-wrap:anywhere;}
+.task-item.done .task-txt{color:var(--muted);text-decoration:line-through;}
+.task-due{flex-shrink:0;font-size:10.5px;color:var(--muted);border:1px solid var(--line);padding:1px 6px;}
+.task-due.late{color:var(--red);border-color:var(--red);}
+.task-empty,.task-note{font-size:11px;color:var(--muted);margin-top:8px;}
+.tm-row{display:flex;align-items:center;gap:6px;margin-top:8px;}
+.tm-row input[data-tt]{flex:1;min-width:0;}
+.tm-row input[type=date]{width:150px;flex:none;}
 </style>
 </head>
 <body>
@@ -1060,6 +1083,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     wireRel(app);
     wireSearch(gsFocus);
     wireCalendar();
+    wireTasks(app);
     var lyb = app.querySelector('[data-layout]'); if(lyb) lyb.addEventListener('click', function(){ layoutModal(); });
     app.querySelectorAll('[data-viewsubs]').forEach(function(el){
       el.addEventListener('click', function(){ openPanelDetail(el.getAttribute('data-viewsubs')); });
@@ -1400,7 +1424,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     var items = ev[sel]||[];
     var agenda = items.length ? items.map(function(p){
       var ex = isExpired(p), m = menuById(p.menuId);
-      return '<button class="cal-ev'+(ex?' done':'')+'" data-calev="'+p.id+'"><span class="status-pill'+(ex?' expired':'')+'">'+(ex?'SUDAH DIUMUMKAN':'AKTIF')+'</span><div class="cal-ev-main"><div class="cal-ev-t">'+esc(p.title)+'</div><div class="cal-ev-m">Menu: '+esc(m?m.name:'-')+'</div>'+(p.body?'<div class="cal-ev-b">'+esc(p.body)+'</div>':'')+'</div></button>';
+      return '<button class="cal-ev'+(ex?' done':'')+'" data-calev="'+p.id+'"><span class="status-pill'+(ex?' expired':'')+'">'+(ex?'SUDAH DIUMUMKAN':'AKTIF')+'</span><div class="cal-ev-main"><div class="cal-ev-t">'+esc(p.title)+'</div><div class="cal-ev-m">Menu: '+esc(m?m.name:'-')+((p.tasks&&p.tasks.length)?' \u00b7 '+p.tasks.length+' tugas':'')+'</div>'+(p.body?'<div class="cal-ev-b">'+esc(p.body)+'</div>':'')+'</div></button>';
     }).join('') : '<div class="cal-empty">TIDAK ADA PENGUMUMAN PADA TANGGAL INI</div>';
     return '<div class="cal-wrap"><div class="cal-bar"><button class="cal-nav" data-calnav="-1" title="Bulan sebelumnya">\u2039</button><div class="cal-title hud-font">'+CAL_MONTHS[calM]+' '+calY+'</div><button class="cal-nav" data-calnav="1" title="Bulan berikutnya">\u203a</button><button class="btn" data-caltoday>HARI INI</button><span class="cal-sum">'+monthCount+' PENGUMUMAN BULAN INI</span></div>'+
       '<div class="cal-grid">'+cells+'</div>'+
@@ -1412,9 +1436,10 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     var ov = document.createElement('div'); ov.className = 'modal-overlay'; document.body.appendChild(ov);
     ov.addEventListener('click', function(e){ if(e.target===ov) closeOverlay(ov); });
     ov.innerHTML = '<div class="modal wide"><h4 class="hud-font">'+esc(p.title)+'</h4><div class="sub"><span class="status-pill'+(ex?' expired':'')+'">'+(ex?'SUDAH DIUMUMKAN':'AKTIF')+'</span> Batas waktu: '+esc(formatDate(p.deadline))+' \u00b7 Menu: '+esc(m?m.name:'-')+'</div>'+
-      (p.body?'<div class="ann-body" style="margin-top:12px">'+esc(p.body)+'</div>':'')+annMediaHtml(p,'ann-img')+
+      (p.body?'<div class="ann-body" style="margin-top:12px">'+esc(p.body)+'</div>':'')+annMediaHtml(p,'ann-img')+tasksHtml(p)+
       '<div class="modal-actions"><button class="btn" data-close>TUTUP</button>'+(g?'<button class="btn" data-edit>EDIT</button>':'')+(ex?'':'<button class="btn btn-primary" data-open>BUKA DI PANEL</button>')+'</div></div>';
     ov.querySelector('[data-close]').onclick = function(){ closeOverlay(ov); };
+    wireTasks(ov, function(id){ closeOverlay(ov, function(){ taskManagerModal(id); }); });
     var im = ov.querySelector('.ann-img'); if(im) im.addEventListener('click', function(){ openImageLightbox(im.getAttribute('src')); });
     var ed = ov.querySelector('[data-edit]'); if(ed) ed.onclick = function(){ closeOverlay(ov, function(){ editPanelModal(p.id); }); };
     var op = ov.querySelector('[data-open]');
@@ -1438,6 +1463,73 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
       var a = calSel.split('-'); calY = +a[0]; calM = +a[1]-1; render();
     }); });
     document.querySelectorAll('[data-calev]').forEach(function(b){ b.addEventListener('click', function(){ openCalEvent(b.getAttribute('data-calev')); }); });
+  }
+
+
+  // ---- Daftar tugas di dalam pengumuman (p.tasks = [{id, text, due}]); centang disimpan per perangkat ----
+  var TASK_DONE_KEY = 'papan-panel-task-done';
+  function taskDoneMap(){ try{ return JSON.parse(localStorage.getItem(TASK_DONE_KEY)||'{}') || {}; }catch(e){ return {}; } }
+  function taskSetDone(id, on){
+    try{ var m = taskDoneMap(); if(on) m[id] = 1; else delete m[id]; localStorage.setItem(TASK_DONE_KEY, JSON.stringify(m)); }catch(e){}
+  }
+  function tasksHtml(p){
+    var t = p.tasks||[], g = isGuru();
+    if(!t.length && !g) return '';
+    var done = taskDoneMap(), n = t.filter(function(x){ return done[x.id]; }).length, today = ymd(new Date());
+    return '<div class="task-box"><div class="task-head"><span class="task-ttl">TUGAS</span>'+(t.length?'<span class="task-prog" data-prog>'+n+'/'+t.length+' SELESAI</span>':'')+(g?'<button class="task-manage" data-taskedit="'+p.id+'">\u270e KELOLA</button>':'')+'</div>'+
+      (t.length ? '<div class="task-bar"><i data-bar style="width:'+Math.round(n/t.length*100)+'%"></i></div>'+t.map(function(x){
+        var d = !!done[x.id], late = x.due && x.due<today && !d;
+        return '<button class="task-item'+(d?' done':'')+'" data-taskchk="'+x.id+'" role="checkbox" aria-checked="'+d+'"><span class="task-chk">'+(d?'\u2713':'')+'</span><span class="task-txt">'+esc(x.text)+'</span>'+(x.due?'<span class="task-due'+(late?' late':'')+'">'+esc(formatDate(x.due))+'</span>':'')+'</button>';
+      }).join('')+'<div class="task-note">Centang hanya tersimpan di perangkat ini.</div>' : '<div class="task-empty">Belum ada tugas. Klik KELOLA untuk menambah.</div>')+'</div>';
+  }
+  function wireTasks(root, onEdit){
+    root.querySelectorAll('[data-taskchk]').forEach(function(b){ b.addEventListener('click', function(){
+      var on = !b.classList.contains('done');
+      taskSetDone(b.getAttribute('data-taskchk'), on);
+      b.classList.toggle('done', on); b.setAttribute('aria-checked', on);
+      b.querySelector('.task-chk').textContent = on ? '\u2713' : '';
+      var box = b.closest('.task-box'), all = box.querySelectorAll('[data-taskchk]'), n = box.querySelectorAll('.task-item.done').length;
+      var pr = box.querySelector('[data-prog]'); if(pr) pr.textContent = n+'/'+all.length+' SELESAI';
+      var bar = box.querySelector('[data-bar]'); if(bar) bar.style.width = Math.round(n/all.length*100)+'%';
+    }); });
+    root.querySelectorAll('[data-taskedit]').forEach(function(b){ b.addEventListener('click', function(e){
+      e.stopPropagation();
+      var id = b.getAttribute('data-taskedit');
+      if(onEdit) onEdit(id); else taskManagerModal(id);
+    }); });
+  }
+  function taskManagerModal(pid){
+    if(!isGuru()) return;
+    var p = state.panels.find(function(x){ return x.id===pid; }); if(!p) return;
+    var draft = (p.tasks||[]).map(function(t){ return {id:t.id, text:t.text, due:t.due||''}; });
+    var ov = document.createElement('div'); ov.className = 'modal-overlay'; document.body.appendChild(ov);
+    ov.addEventListener('click', function(e){ if(e.target===ov) closeOverlay(ov); });
+    function draw(focusIdx){
+      ov.innerHTML = '<div class="modal wide"><h4 class="hud-font">KELOLA TUGAS</h4><div class="sub">Pengumuman \u201c'+esc(p.title)+'\u201d. Tugas tampil sebagai daftar centang; tanggal tenggat bersifat opsional. Tekan Enter untuk menambah baris.</div>'+
+        '<div class="tm-list">'+(draft.length ? draft.map(function(t, i){
+          return '<div class="tm-row"><input type="text" data-tt="'+i+'" value="'+esc(t.text)+'" placeholder="Tulis tugas..."><input type="date" data-td="'+i+'" value="'+esc(t.due)+'" title="Tenggat (opsional)"><button class="icon-btn" data-tu="'+i+'" title="Naik">\u25b2</button><button class="icon-btn" data-tdn="'+i+'" title="Turun">\u25bc</button><button class="icon-btn" data-tr="'+i+'" title="Hapus">\u00d7</button></div>';
+        }).join('') : '<div class="hist-empty">BELUM ADA TUGAS</div>')+'</div>'+
+        '<button class="lm-add" data-tadd>+ TAMBAH TUGAS</button><div class="modal-actions"><button class="btn" data-close>BATAL</button><button class="btn btn-primary" data-tsave>SIMPAN</button></div></div>';
+      ov.querySelector('[data-close]').onclick = function(){ closeOverlay(ov); };
+      ov.querySelectorAll('[data-tt]').forEach(function(inp){
+        var i = +inp.getAttribute('data-tt');
+        inp.addEventListener('input', function(){ draft[i].text = inp.value; });
+        inp.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); if(draft[i].text.trim()){ draft.splice(i+1, 0, {id:uid(), text:'', due:''}); draw(i+1); } } });
+      });
+      ov.querySelectorAll('[data-td]').forEach(function(inp){ inp.addEventListener('change', function(){ draft[+inp.getAttribute('data-td')].due = inp.value; }); });
+      ov.querySelectorAll('[data-tr]').forEach(function(b){ b.onclick = function(){ draft.splice(+b.getAttribute('data-tr'), 1); draw(); }; });
+      ov.querySelectorAll('[data-tu]').forEach(function(b){ b.onclick = function(){ var i = +b.getAttribute('data-tu'); if(i>0){ var t = draft[i]; draft[i] = draft[i-1]; draft[i-1] = t; draw(); } }; });
+      ov.querySelectorAll('[data-tdn]').forEach(function(b){ b.onclick = function(){ var i = +b.getAttribute('data-tdn'); if(i<draft.length-1){ var t = draft[i]; draft[i] = draft[i+1]; draft[i+1] = t; draw(); } }; });
+      ov.querySelector('[data-tadd]').onclick = function(){ draft.push({id:uid(), text:'', due:''}); draw(draft.length-1); };
+      ov.querySelector('[data-tsave]').onclick = function(){
+        var out = draft.filter(function(t){ return t.text.trim(); }).map(function(t){ return {id:t.id, text:t.text.trim(), due:t.due||''}; });
+        if(out.length) p.tasks = out; else delete p.tasks;
+        save();
+        closeOverlay(ov);
+      };
+      if(focusIdx!=null){ var f = ov.querySelector('[data-tt="'+focusIdx+'"]'); if(f) f.focus(); }
+    }
+    draw();
   }
 
   // ---- Drag & drop wiring (native HTML5 DnD) ----
@@ -1627,6 +1719,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
       '<div class="panel-body">'+
         '<div class="ann-body">'+esc(p.body)+'</div>'+
         annMediaHtml(p, 'ann-img')+
+        tasksHtml(p)+
         '<div class="ann-meta">'+
           '<span class="status-pill'+(expired?' expired':'')+'">'+(expired?'SUDAH DIUMUMKAN':'AKTIF')+'</span>'+
           (p.deadline?'<span class="ann-deadline">Batas waktu: '+formatDate(p.deadline)+'</span>':'')+
