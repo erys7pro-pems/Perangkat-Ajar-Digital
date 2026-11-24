@@ -527,6 +527,11 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
 .tm-row{display:flex;align-items:center;gap:6px;margin-top:8px;}
 .tm-row input[data-tt]{flex:1;min-width:0;}
 .tm-row input[type=date]{width:150px;flex:none;}
+
+/* Paragraf sub-panel: sorot seperti teks diblok saat kursor di atasnya */
+.sub-subtitle .sub-para{margin:0 -5px 4px;padding:2px 5px;border-radius:2px;transition:background .12s,color .12s,box-shadow .12s;}
+.sub-subtitle .sub-para:last-child{margin-bottom:0;}
+.sub-subtitle .sub-para:hover{background:rgba(43,227,255,.26);color:var(--text);box-shadow:inset 2px 0 0 var(--cyan);}
 </style>
 </head>
 <body>
@@ -1532,6 +1537,14 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     draw();
   }
 
+
+  // ---- Sub-judul/detail sub-panel: tiap paragraf (baris) berdiri sendiri dan tersorot seperti diblok saat ditunjuk kursor ----
+  function subParasHtml(text){
+    var paras = String(text||'').split(/\n+/).map(function(t){ return t.trim(); }).filter(Boolean);
+    if(!paras.length) return '';
+    return '<div class="sub-subtitle">'+paras.map(function(t){ return '<p class="sub-para">'+esc(t)+'</p>'; }).join('')+'</div>';
+  }
+
   // ---- Drag & drop wiring (native HTML5 DnD) ----
   function wireDragAndDrop(app){
     var draggedPanelId = null;
@@ -1680,7 +1693,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
       var sAcc = itemAccess(s);
       return '<div class="sub-card'+(g&&sAcc==='teacher'?' teacher-only':'')+(g&&sAcc==='staff'?' staff-only':'')+'">'+
         '<div class="sub-title">'+esc(s.title)+newTag(s.newAt, panelEff(p) && sAcc==='student')+'</div>'+
-        (s.subtitle?'<div class="sub-subtitle">'+esc(s.subtitle)+'</div>':'')+
+        subParasHtml(s.subtitle)+
         relBtn('s',s.id,p.id)+
         (s.image?'<img src="'+esc(s.image)+'" alt="">':'')+
         (s.linkUrl?'<a class="sub-link" href="'+esc(s.linkUrl)+'" target="_blank" rel="noopener">'+esc(s.linkLabel||s.linkUrl)+'</a>':'')+
@@ -2171,7 +2184,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     var sAcc = itemAccess(s);
     return '<div class="sub-card sub-tile'+(g&&sAcc==='teacher'?' teacher-only':'')+(g&&sAcc==='staff'?' staff-only':'')+'" data-subid="'+s.id+'">'+
       '<div class="sub-head">'+
-        '<div><div class="sub-title">'+esc(s.title)+newTag(s.newAt, panelEff(p) && sAcc==='student')+'</div>'+(s.subtitle?'<div class="sub-subtitle">'+esc(s.subtitle)+'</div>':'')+'</div>'+
+        '<div><div class="sub-title">'+esc(s.title)+newTag(s.newAt, panelEff(p) && sAcc==='student')+'</div>'+subParasHtml(s.subtitle)+'</div>'+
         (g?'<div class="sub-head-right">'+visToggle('sub',s.id,sAcc,p.id)+'<button class="icon-btn" data-editsub="'+s.id+'" title="Edit sub-panel">\u270e</button><button class="icon-btn" data-delsub="'+s.id+'">\u00d7</button></div>':'')+
       '</div>'+
       relBtn('s',s.id,p.id)+
