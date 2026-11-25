@@ -575,6 +575,9 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
 .tg-arrow{color:var(--cyan-dim);font-size:22px;line-height:1;}
 .tg-item:hover .tg-arrow{color:var(--cyan);}
 .tg-empty{text-align:center;color:var(--muted);font-size:12.5px;line-height:1.7;padding:32px 10px 22px;}
+
+.tg-kind.sub{color:var(--violet);border-color:var(--violet);}
+.sub-card .tag-row,.sub-tile .tag-row{margin:6px 0 4px;}
 </style>
 </head>
 <body>
@@ -1132,7 +1135,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     wireSearch(gsFocus);
     wireCalendar();
     wireTasks(app);
-    wireTags();
+    wireTags(app);
     var lyb = app.querySelector('[data-layout]'); if(lyb) lyb.addEventListener('click', function(){ layoutModal(); });
     app.querySelectorAll('[data-viewsubs]').forEach(function(el){
       el.addEventListener('click', function(){ openPanelDetail(el.getAttribute('data-viewsubs')); });
@@ -1389,7 +1392,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
       if(hit(p.title+' '+(p.tags||[]).join(' '))) out.push({k:'p', p:p, m:m, title:p.title});
       (p.subpanels||[]).forEach(function(sb){
         if(!subVisible(p, sb)) return;
-        var all = [sb.title, sb.subtitle, sb.linkLabel].join(' ');
+        var all = [sb.title, sb.subtitle, sb.linkLabel, (sb.tags||[]).join(' ')].join(' ');
         if(hit(all)) subs.push({k:'s', p:p, m:m, s:sb, title:sb.title, rest:[sb.subtitle, sb.linkLabel].filter(Boolean).join(' \u00b7 ')});
       });
     });
@@ -1607,19 +1610,28 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
   }
   function tagMap(){
     var map = {};
+    function add(t, e){ (map[t] = map[t]||[]).push(e); }
     state.panels.forEach(function(p){
-      if(!(p.tags && p.tags.length) || !panelVisible(p)) return;
-      var m = menuById(p.menuId); if(!m) return;
+      var m = menuById(p.menuId); if(!m || !panelVisible(p)) return;
       if(!isGuru() && viewerAllowedAccess().indexOf(itemAccess(m))===-1) return;
-      if(p.type==='announcement' && isExpired(p)) return;
-      p.tags.forEach(function(t){ (map[t] = map[t]||[]).push(p); });
+      if(p.type==='announcement'){
+        if(isExpired(p)) return;
+        (p.tags||[]).forEach(function(t){ add(t, {k:'a', p:p, m:m, o:p}); });
+        return;
+      }
+      (p.tags||[]).forEach(function(t){ add(t, {k:'p', p:p, m:m, o:p}); });
+      (p.subpanels||[]).forEach(function(sb){
+        if(!(sb.tags && sb.tags.length) || !subVisible(p, sb)) return;
+        sb.tags.forEach(function(t){ add(t, {k:'s', p:p, s:sb, m:m, o:sb}); });
+      });
     });
     return map;
   }
-  // Gambar kecil panel: pengumuman memakai gambarnya sendiri; panel informasi memakai gambar sub-panel pertama yang punya gambar (dan boleh dilihat peran ini)
-  function panelThumb(p){
-    if(p.type==='announcement') return safeHref(p.image);
-    var subs = p.subpanels||[];
+  // Gambar kecil: pengumuman & sub-panel memakai gambarnya sendiri; panel informasi memakai gambar sub-panel pertama yang punya gambar (dan boleh dilihat peran ini)
+  function entryThumb(e){
+    if(e.k==='a') return safeHref(e.p.image);
+    if(e.k==='s') return safeHref(e.s.image);
+    var subs = e.p.subpanels||[];
     for(var i=0;i<subs.length;i++){
       var x = subs[i];
       if(!x.image) continue;
@@ -1628,9 +1640,9 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     }
     return '';
   }
-  function thumbHtml(p, ann){
-    var u = panelThumb(p);
-    return u ? '<img src="'+esc(u)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">' : (ann ? '\u26a0' : '\u2261');
+  function thumbHtml(e){
+    var u = entryThumb(e);
+    return u ? '<img src="'+esc(u)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">' : (e.k==='a' ? '\u26a0' : e.k==='s' ? '\u25a4' : '\u2261');
   }
   function openTagModal(tag){
     var map = tagMap();
@@ -1641,15 +1653,15 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     function draw(){
       var body;
       if(!names.length){
-        body = '<div class="tg-empty">Belum ada panel yang diberi tag.'+(isGuru()?'<br>Tambahkan tag lewat tombol \u270e pada sebuah panel.':'')+'</div>';
+        body = '<div class="tg-empty">Belum ada panel atau sub-panel yang diberi tag.'+(isGuru()?'<br>Tambahkan tag lewat tombol \u270e pada panel atau sub-panel.':'')+'</div>';
       } else {
         var list = map[cur];
         body = '<div class="tg-cloud">'+names.map(function(t){ return '<button class="tg-chip'+(t===cur?' on':'')+'" data-t="'+esc(t)+'"># '+esc(t)+'<b>'+map[t].length+'</b></button>'; }).join('')+'</div>'+
-          '<div class="tg-sub">'+list.length+' panel bertanda <b>#'+esc(cur)+'</b></div><div class="tg-list">'+list.map(function(p, i){
-            var m = menuById(p.menuId), ann = p.type==='announcement';
-            var subs = ann ? 0 : (p.subpanels||[]).filter(function(x){ return isGuru() || viewerAllowedAccess().indexOf(itemAccess(x))!==-1; }).length;
-            var others = p.tags.filter(function(t){ return t!==cur; });
-            return '<button class="tg-item" data-go="'+i+'"><span class="tg-thumb">'+thumbHtml(p, ann)+'</span><div class="tg-main"><span class="tg-kind'+(ann?' ann':'')+'">'+(ann?'PENGUMUMAN':'PANEL')+'</span><div class="tg-t">'+esc(p.title)+'</div><div class="tg-m">'+esc(m?m.name:'-')+(ann?'':' \u00b7 '+subs+' sub-panel')+'</div>'+
+          '<div class="tg-sub">'+list.length+' item bertanda <b>#'+esc(cur)+'</b></div><div class="tg-list">'+list.map(function(e, i){
+            var kind = e.k==='a' ? 'PENGUMUMAN' : e.k==='s' ? 'SUB-PANEL' : 'PANEL';
+            var where = e.k==='s' ? e.m.name+' \u203a '+e.p.title : e.m.name+(e.k==='a' ? '' : ' \u00b7 '+(e.p.subpanels||[]).filter(function(x){ return isGuru() || viewerAllowedAccess().indexOf(itemAccess(x))!==-1; }).length+' sub-panel');
+            var others = (e.o.tags||[]).filter(function(t){ return t!==cur; });
+            return '<button class="tg-item" data-go="'+i+'"><span class="tg-thumb">'+thumbHtml(e)+'</span><div class="tg-main"><span class="tg-kind'+(e.k==='a'?' ann':e.k==='s'?' sub':'')+'">'+kind+'</span><div class="tg-t">'+esc(e.o.title)+'</div><div class="tg-m">'+esc(where)+'</div>'+
               (others.length?'<div class="tg-tags">'+others.map(function(t){ return '<span>#'+esc(t)+'</span>'; }).join('')+'</div>':'')+'</div><span class="tg-arrow">\u203a</span></button>';
           }).join('')+'</div>';
       }
@@ -1657,19 +1669,21 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
       ov.querySelector('[data-close]').onclick = function(){ closeOverlay(ov); };
       ov.querySelectorAll('[data-t]').forEach(function(b){ b.onclick = function(){ cur = b.getAttribute('data-t'); draw(); }; });
       ov.querySelectorAll('[data-go]').forEach(function(b){ b.onclick = function(){
-        var p = map[cur][+b.getAttribute('data-go')], ann = p.type==='announcement';
+        var e = map[cur][+b.getAttribute('data-go')], p = e.p;
         closeOverlay(ov, function(){
-          if(view==='kalender'){ view = 'panel'; try{ localStorage.setItem(VIEW_KEY, view); }catch(e){} }
-          goToItem(p.menuId, ann ? null : p.id);
-          if(ann){ var el = document.querySelector('.panel-card[data-aid="'+p.id+'"]'); if(el){ el.scrollIntoView({behavior:'smooth', block:'center'}); el.classList.add('flash'); setTimeout(function(){ el.classList.remove('flash'); }, 2500); } }
+          if(view==='kalender'){ view = 'panel'; try{ localStorage.setItem(VIEW_KEY, view); }catch(x){} }
+          goToItem(p.menuId, e.k==='a' ? null : p.id);
+          if(e.k==='a'){ var el = document.querySelector('.panel-card[data-aid="'+p.id+'"]'); if(el){ el.scrollIntoView({behavior:'smooth', block:'center'}); el.classList.add('flash'); setTimeout(function(){ el.classList.remove('flash'); }, 2500); } }
+          if(e.k==='s') setTimeout(function(){ openPanelDetail(p.id); }, 300);
         });
       }; });
     }
     draw();
   }
-  function wireTags(){
-    document.querySelectorAll('[data-tag]').forEach(function(b){ b.addEventListener('click', function(e){ e.stopPropagation(); openTagModal(b.getAttribute('data-tag')); }); });
-    var tb = document.getElementById('gsearch-tags'); if(tb) tb.addEventListener('click', function(){ openTagModal(); });
+  function wireTags(root){
+    root = root || document;
+    root.querySelectorAll('[data-tag]').forEach(function(b){ b.addEventListener('click', function(e){ e.stopPropagation(); openTagModal(b.getAttribute('data-tag')); }); });
+    var tb = root.querySelector('#gsearch-tags'); if(tb) tb.addEventListener('click', function(){ openTagModal(); });
   }
 
   // ---- Drag & drop wiring (native HTML5 DnD) ----
@@ -1820,7 +1834,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
       var sAcc = itemAccess(s);
       return '<div class="sub-card'+(g&&sAcc==='teacher'?' teacher-only':'')+(g&&sAcc==='staff'?' staff-only':'')+'">'+
         '<div class="sub-title">'+esc(s.title)+newTag(s.newAt, panelEff(p) && sAcc==='student')+'</div>'+
-        subParasHtml(s.subtitle)+
+        subParasHtml(s.subtitle)+tagsHtml(s)+
         relBtn('s',s.id,p.id)+
         (s.image?'<img src="'+esc(s.image)+'" alt="">':'')+
         (s.linkUrl?'<a class="sub-link" href="'+esc(s.linkUrl)+'" target="_blank" rel="noopener">'+esc(s.linkLabel||s.linkUrl)+'</a>':'')+
@@ -2274,12 +2288,13 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
       {name:'subtitle', label:'Sub-judul / detail', type:'textarea', rows:5, placeholder:'Opsional. Enter = paragraf baru; tarik sudut kanan bawah kotak untuk melebarkan.'},
       {name:'linkUrl', label:'Hyperlink (URL)', placeholder:'https://...'},
       {name:'linkLabel', label:'Teks link', placeholder:'Opsional'},
-      {name:'image', label:'URL gambar', placeholder:'https://...jpg'}
+      {name:'image', label:'URL gambar', placeholder:'https://...jpg'},
+      {name:'tags', label:'Tag', placeholder:'Pisahkan dengan koma, contoh: ujian, matematika'}
     ], function(v){
       if(!v.title) return;
       var p = state.panels.find(function(p){ return p.id===panelId; });
       if(!p) return;
-      p.subpanels.push({id:uid(), title:v.title, subtitle:v.subtitle, linkUrl:v.linkUrl, linkLabel:v.linkLabel, image:v.image, newAt:Date.now()});
+      p.subpanels.push({id:uid(), title:v.title, subtitle:v.subtitle, linkUrl:v.linkUrl, linkLabel:v.linkLabel, image:v.image, tags:parseTags(v.tags), newAt:Date.now()});
       save();
     });
   }
@@ -2301,10 +2316,11 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
       {name:'subtitle', label:'Sub-judul / detail', type:'textarea', rows:5, placeholder:'Opsional. Enter = paragraf baru; tarik sudut kanan bawah kotak untuk melebarkan.', value:s.subtitle},
       {name:'linkUrl', label:'Hyperlink (URL)', placeholder:'https://...', value:s.linkUrl},
       {name:'linkLabel', label:'Teks link', placeholder:'Opsional', value:s.linkLabel},
-      {name:'image', label:'URL gambar', placeholder:'https://...jpg', value:s.image}
+      {name:'image', label:'URL gambar', placeholder:'https://...jpg', value:s.image},
+      {name:'tags', label:'Tag', placeholder:'Pisahkan dengan koma, contoh: ujian, matematika', value:(s.tags||[]).join(', ')}
     ], function(v){
       if(!v.title) return;
-      s.title = v.title; s.subtitle = v.subtitle; s.linkUrl = v.linkUrl; s.linkLabel = v.linkLabel; s.image = v.image;
+      s.title = v.title; s.subtitle = v.subtitle; s.linkUrl = v.linkUrl; s.linkLabel = v.linkLabel; s.image = v.image; setTags(s, v.tags);
       save();
       if(afterSave) afterSave();
     }, 'SIMPAN PERUBAHAN');
@@ -2316,7 +2332,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     var sAcc = itemAccess(s);
     return '<div class="sub-card sub-tile'+(g&&sAcc==='teacher'?' teacher-only':'')+(g&&sAcc==='staff'?' staff-only':'')+'" data-subid="'+s.id+'">'+
       '<div class="sub-head">'+
-        '<div><div class="sub-title">'+esc(s.title)+newTag(s.newAt, panelEff(p) && sAcc==='student')+'</div>'+subParasHtml(s.subtitle)+'</div>'+
+        '<div><div class="sub-title">'+esc(s.title)+newTag(s.newAt, panelEff(p) && sAcc==='student')+'</div>'+subParasHtml(s.subtitle)+tagsHtml(s)+'</div>'+
         (g?'<div class="sub-head-right">'+visToggle('sub',s.id,sAcc,p.id)+'<button class="icon-btn" data-editsub="'+s.id+'" title="Edit sub-panel">\u270e</button><button class="icon-btn" data-delsub="'+s.id+'">\u00d7</button></div>':'')+
       '</div>'+
       relBtn('s',s.id,p.id)+
@@ -2360,6 +2376,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
         btn.addEventListener('click', function(){ editSubModal(panelId, btn.closest('[data-subid]').getAttribute('data-subid'), refresh); });
       });
       wireRel(row);
+      wireTags(row);
       row.querySelectorAll('[data-movesubto]').forEach(function(btn){
         btn.addEventListener('click', function(){ moveSubModal(panelId, btn.closest('[data-subid]').getAttribute('data-subid'), refresh); });
       });
@@ -2388,12 +2405,13 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
         {name:'subtitle', label:'Sub-judul / detail', type:'textarea', rows:5, placeholder:'Opsional. Enter = paragraf baru; tarik sudut kanan bawah kotak untuk melebarkan.'},
         {name:'linkUrl', label:'Hyperlink (URL)', placeholder:'https://...'},
         {name:'linkLabel', label:'Teks link', placeholder:'Opsional'},
-        {name:'image', label:'URL gambar', placeholder:'https://...jpg'}
+        {name:'image', label:'URL gambar', placeholder:'https://...jpg'},
+        {name:'tags', label:'Tag', placeholder:'Pisahkan dengan koma, contoh: ujian, matematika'}
       ], function(v){
         if(!v.title) return;
         var p = state.panels.find(function(x){ return x.id===panelId; });
         if(!p) return;
-        p.subpanels.push({id:uid(), title:v.title, subtitle:v.subtitle, linkUrl:v.linkUrl, linkLabel:v.linkLabel, image:v.image, newAt:Date.now()});
+        p.subpanels.push({id:uid(), title:v.title, subtitle:v.subtitle, linkUrl:v.linkUrl, linkLabel:v.linkLabel, image:v.image, tags:parseTags(v.tags), newAt:Date.now()});
         save();
         refresh();
       });
