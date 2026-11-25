@@ -532,6 +532,10 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
 .sub-subtitle .sub-para{margin:0 -5px 4px;padding:2px 5px;border-radius:2px;transition:background .12s,color .12s,box-shadow .12s;}
 .sub-subtitle .sub-para:last-child{margin-bottom:0;}
 .sub-subtitle .sub-para:hover{background:rgba(43,227,255,.26);color:var(--text);box-shadow:inset 2px 0 0 var(--cyan);}
+
+.ann-body .sub-para,.hist-body .sub-para{margin:0 -5px 6px;padding:2px 5px;border-radius:2px;transition:background .12s,color .12s,box-shadow .12s;}
+.ann-body .sub-para:last-child,.hist-body .sub-para:last-child{margin-bottom:0;}
+.ann-body .sub-para:hover,.hist-body .sub-para:hover{background:rgba(43,227,255,.26);color:var(--text);box-shadow:inset 2px 0 0 var(--cyan);}
 </style>
 </head>
 <body>
@@ -1441,7 +1445,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
     var ov = document.createElement('div'); ov.className = 'modal-overlay'; document.body.appendChild(ov);
     ov.addEventListener('click', function(e){ if(e.target===ov) closeOverlay(ov); });
     ov.innerHTML = '<div class="modal wide"><h4 class="hud-font">'+esc(p.title)+'</h4><div class="sub"><span class="status-pill'+(ex?' expired':'')+'">'+(ex?'SUDAH DIUMUMKAN':'AKTIF')+'</span> Batas waktu: '+esc(formatDate(p.deadline))+' \u00b7 Menu: '+esc(m?m.name:'-')+'</div>'+
-      (p.body?'<div class="ann-body" style="margin-top:12px">'+esc(p.body)+'</div>':'')+annMediaHtml(p,'ann-img')+tasksHtml(p)+
+      parasHtml(p.body, 'ann-body', 'margin-top:12px')+annMediaHtml(p,'ann-img')+tasksHtml(p)+
       '<div class="modal-actions"><button class="btn" data-close>TUTUP</button>'+(g?'<button class="btn" data-edit>EDIT</button>':'')+(ex?'':'<button class="btn btn-primary" data-open>BUKA DI PANEL</button>')+'</div></div>';
     ov.querySelector('[data-close]').onclick = function(){ closeOverlay(ov); };
     wireTasks(ov, function(id){ closeOverlay(ov, function(){ taskManagerModal(id); }); });
@@ -1539,11 +1543,12 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
 
 
   // ---- Sub-judul/detail sub-panel: tiap paragraf (baris) berdiri sendiri dan tersorot seperti diblok saat ditunjuk kursor ----
-  function subParasHtml(text){
+  function parasHtml(text, cls, style){
     var paras = String(text||'').split(/\n+/).map(function(t){ return t.trim(); }).filter(Boolean);
     if(!paras.length) return '';
-    return '<div class="sub-subtitle">'+paras.map(function(t){ return '<p class="sub-para">'+esc(t)+'</p>'; }).join('')+'</div>';
+    return '<div class="'+cls+'"'+(style?' style="'+style+'"':'')+'>'+paras.map(function(t){ return '<p class="sub-para">'+esc(t)+'</p>'; }).join('')+'</div>';
   }
+  function subParasHtml(text){ return parasHtml(text, 'sub-subtitle'); }
 
   // ---- Drag & drop wiring (native HTML5 DnD) ----
   function wireDragAndDrop(app){
@@ -1730,7 +1735,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
         '<button class="icon-btn hf-admin-btn'+(hfOn?' active':'')+'" data-hftoggle="'+p.id+'" title="'+(hfOn?'Matikan tombol Highfive untuk pengumuman ini':'Aktifkan tombol Highfive untuk pengumuman ini')+'">\u270b</button>'+
         '<button class="icon-btn" data-editpanel="'+p.id+'" title="Edit pengumuman">\u270e</button><button class="icon-btn" data-delpanel="'+p.id+'">\u00d7</button></div>':'')+'</div>'+
       '<div class="panel-body">'+
-        '<div class="ann-body">'+esc(p.body)+'</div>'+
+        parasHtml(p.body, 'ann-body')+
         annMediaHtml(p, 'ann-img')+
         tasksHtml(p)+
         '<div class="ann-meta">'+
@@ -2409,7 +2414,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
       var list = items.length ? items.map(function(p){
         return '<div class="hist-item">'+
           '<div class="hist-top"><div class="hist-title">'+esc(p.title)+'</div>'+(isGuru()?'<button class="icon-btn" data-delhist="'+p.id+'" title="Hapus dari riwayat">\u00d7</button>':'')+'</div>'+
-          (p.body?'<div class="hist-body">'+esc(p.body)+'</div>':'')+
+          parasHtml(p.body, 'hist-body')+
           annMediaHtml(p, 'hist-img')+
           '<div class="hist-meta"><span class="hist-menu">Menu: '+esc(menuName(p.menuId))+'</span>'+
             '<span>Batas waktu: '+formatDate(p.deadline)+'</span>'+
