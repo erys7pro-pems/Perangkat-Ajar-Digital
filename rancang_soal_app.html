@@ -47,11 +47,12 @@ td input,td select,td textarea{border:0;background:transparent;padding:4px;min-h
 <script>
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const TABS=['1 · Identitas','2 · Kisi-kisi','3 · Input Soal','4 · Rekap Persentase','5 · Ekspor'];
-const LV=['C1 Mengingat','C2 Memahami','C3 Menerapkan','C4 Menganalisis','C5 Mengevaluasi','C6 Mencipta'],DF=['Mudah','Sedang','Sukar'],BT=['Pilihan Ganda','Pilihan Ganda Kompleks','Isian Singkat','Uraian'];
-const MF=[['sekolah','Satuan pendidikan'],['mapel','Mata pelajaran'],['kelas','Kelas / Fase'],['semester','Semester'],['tahun','Tahun ajaran'],['jenis','Jenis asesmen (PTS/PAS/dll)'],['kurikulum','Kurikulum'],['waktu','Alokasi waktu'],['penyusun','Penyusun'],['total','Target jumlah soal total']];
+const LV=['L1 Memahami','L2 Mengaplikasi','L3 Menalar'],DF=['Mudah','Sedang','Sukar'],BT=['Pilihan Ganda','Pilihan Ganda Kompleks','Isian Singkat','Uraian'];
+const MF=[['sekolah','Satuan pendidikan'],['jenjang','Jenjang (mis. Madrasah Aliyah (MA))'],['mapel','Mata pelajaran'],['kelas','Kelas (mis. X)'],['semester','Semester'],['tahun','Tahun ajaran'],['jenis','Jenis asesmen (mis. Sumatif Akhir Semester)'],['kurikulum','Kurikulum'],['waktu','Alokasi waktu'],['penyusun','Penyusun'],['total','Target jumlah soal total']];
 const KEY='perancang-soal-v1';let S;
-const DLV={'C1 Mengingat':10,'C2 Memahami':20,'C3 Menerapkan':30,'C4 Menganalisis':20,'C5 Mengevaluasi':15,'C6 Mencipta':5},DBT={'Pilihan Ganda':70,'Pilihan Ganda Kompleks':10,'Isian Singkat':0,'Uraian':20},SKR={'Pilihan Ganda':1,'Pilihan Ganda Kompleks':2,'Isian Singkat':2,'Uraian':5};
-function norm(){S.meta=S.meta||{};S.rows=S.rows||[];S.soal=S.soal||{};S.materi=S.materi||[];S.target=S.target||{Mudah:30,Sedang:50,Sukar:20};S.tLv=S.tLv||{...DLV};S.tBt=S.tBt||{...DBT}}
+const DLV={'L1 Memahami':30,'L2 Mengaplikasi':50,'L3 Menalar':20},DBT={'Pilihan Ganda':70,'Pilihan Ganda Kompleks':10,'Isian Singkat':0,'Uraian':20},SKR={'Pilihan Ganda':1,'Pilihan Ganda Kompleks':2,'Isian Singkat':2,'Uraian':5};
+function norm(){S.meta=S.meta||{};S.rows=S.rows||[];S.soal=S.soal||{};S.materi=S.materi||[];S.target=S.target||{Mudah:30,Sedang:50,Sukar:20};const ok=Object.keys(S.tLv||{}).length===LV.length&&LV.every(k=>k in S.tLv);if(!ok)S.tLv={...DLV};
+const old={C1:0,C2:0,C3:1,C4:2,C5:2,C6:2};S.rows.forEach(r=>{if(!LV.includes(r.level)){const c=old[(r.level||'').slice(0,2)];r.level=LV[c??1]}});S.tBt=S.tBt||{...DBT}}
 try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
 S=S||{};norm();
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
@@ -101,10 +102,10 @@ const fit=()=>document.querySelectorAll('#t1 textarea').forEach(autosize);
 addEventListener('resize',()=>{if($('#t1').classList.contains('on'))fit()});
 function r1(){const st=starts();
 $('#t1').innerHTML=`<div class="card"><h2>Kisi-kisi Soal</h2><p class="m">Satu baris = satu indikator. Isi jumlah butir soal per indikator; nomor soal dihitung otomatis.</p>
-<div class="w"><table><tr><th>No Soal</th><th>Materi</th><th>Tujuan Pembelajaran (TP)</th><th>Indikator Soal</th><th>Level Kognitif</th><th>Kesulitan</th><th>Bentuk</th><th>Jml</th><th>Skor/butir</th><th></th></tr>
+<div class="w"><table><tr><th>No</th><th>Tujuan Pembelajaran</th><th>Materi Esensial</th><th>Indikator</th><th>Level Kognitif</th><th>Kesulitan</th><th>Bentuk</th><th>Jml</th><th>Skor/butir</th><th></th></tr>
 ${S.rows.map((r,i)=>`<tr><td>${noTxt(r,st[i])}</td>
-<td>${matCell(r)}</td>
 <td><textarea data-r="${r.id}" data-f="tp">${esc(r.tp)}</textarea></td>
+<td>${matCell(r)}</td>
 <td><textarea data-r="${r.id}" data-f="indikator">${esc(r.indikator)}</textarea></td>
 <td>${sel(LV,r.level,`data-r="${r.id}" data-f="level"`)}</td><td>${sel(DF,r.diff,`data-r="${r.id}" data-f="diff"`)}</td><td>${sel(BT,r.bentuk,`data-r="${r.id}" data-f="bentuk"`)}</td>
 <td style="width:60px"><input type="number" min="0" data-r="${r.id}" data-f="jumlah" value="${r.jumlah}"></td>
@@ -147,15 +148,18 @@ $('#t3').innerHTML=`<div class="card"><h2>Progres Penyusunan Soal</h2>${bar(pct(
 function r4(){$('#t4').innerHTML=`<div class="card"><h2>Ekspor ke Word</h2><p class="m">File berformat .doc (HTML-Word) yang langsung terbuka di Microsoft Word / LibreOffice, dan bisa disimpan ulang ke .docx. Kisi-kisi landscape, naskah soal portrait.</p>
 <div class="bar"><button class="b" data-act="x-all">Kisi-kisi + Soal + Kunci</button><button class="b s" data-act="x-kisi">Kisi-kisi saja</button><button class="b s" data-act="x-soal">Naskah soal saja</button><button class="b s" data-act="x-kunci">Kunci jawaban saja</button></div></div>`}
 function head(t){const m=S.meta;return `<h3 style="text-align:center;margin:0">${t}</h3><p style="text-align:center;margin:0">${esc(m.jenis)} ${esc(m.mapel)} · ${esc(m.kelas)} · Semester ${esc(m.semester)} · TA ${esc(m.tahun)}</p><p style="text-align:center;margin:0 0 8px">${esc(m.sekolah)}</p>`}
-function kisiHtml(){const st=starts();return `<div style="page:Kisi">${head('KISI-KISI PENULISAN SOAL')}<p>Kurikulum: ${esc(S.meta.kurikulum)} &nbsp; Penyusun: ${esc(S.meta.penyusun)} &nbsp; Alokasi waktu: ${esc(S.meta.waktu)}</p>
-<table><tr><th>No</th><th>Materi</th><th>Tujuan Pembelajaran</th><th>Indikator Soal</th><th>Level Kognitif</th><th>Kesulitan</th><th>Bentuk</th><th>No. Soal</th><th>Skor</th></tr>
-${S.rows.map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.materi)}</td><td>${esc(r.tp)}</td><td>${esc(r.indikator)}</td><td>${r.level}</td><td>${r.diff}</td><td>${r.bentuk}</td><td>${noTxt(r,st[i])}</td><td>${J(r)*(+r.skor||0)}</td></tr>`).join('')}
-<tr><td colspan="7"><b>Total</b></td><td><b>${tot()}</b></td><td><b>${S.rows.reduce((a,r)=>a+J(r)*(+r.skor||0),0)}</b></td></tr></table></div>`}
+function kisiHtml(){const st=starts(),m=S.meta,tn=(m.jenis||'').trim().toUpperCase(),nb=x=>esc(x).replace(/\n/g,'<br>');
+const kv=(a,v)=>`<td style="border:none;padding:2px 4px;width:17%">${a}</td><td style="border:none;padding:2px 4px;width:2%">:</td><td style="border:none;padding:2px 4px">${nb(v)}</td>`;
+const hd=['NO.','TUJUAN PEMBELAJARAN','MATERI ESENSIAL','INDIKATOR','LEVEL KOGNITIF'],wd=[7,33,20,28,12];
+return `<div style="page:Kisi;font-family:Arial,sans-serif"><p style="text-align:center;margin:0;font-size:12pt"><b>KISI-KISI ASESMEN${tn?' '+esc(tn):''}</b></p><p style="text-align:center;margin:0 0 14pt;font-size:12pt"><b>TAHUN AJARAN ${esc(m.tahun)}</b></p>
+<table style="margin-bottom:10pt"><tr>${kv('Jenjang',m.jenjang)}${kv('Kelas',m.kelas)}</tr><tr>${kv('Mata Pelajaran',m.mapel)}${kv('Jumlah Soal',tot())}</tr></table>
+<table><tr>${hd.map((h,i)=>`<th bgcolor="#2E75B6" style="background:#2E75B6;color:#FFFFFF;border:1px solid #FFFFFF;text-align:center;padding:5px;width:${wd[i]}%">${h}</th>`).join('')}</tr>
+${S.rows.map((r,i)=>{const bg=i%2?'#DDEBF7':'#FFFFFF',c=`bgcolor="${bg}" style="background:${bg};border:1px solid #9DC3E6;padding:5px;`;return `<tr><td ${c}text-align:center">${noTxt(r,st[i])}.</td><td ${c}">${nb(r.tp)}</td><td ${c}">${nb(r.materi)}</td><td ${c}">${nb(r.indikator)}</td><td ${c}text-align:center">${r.level.split(' ')[0]}</td></tr>`}).join('')}</table></div>`}
 function flat(){const st=starts(),o=[];S.rows.forEach((r,ri)=>{for(let i=0;i<J(r);i++)o.push({n:st[ri]+i,r,q:(S.soal[r.id]||[])[i]||{}})});return o}
 function soalHtml(){return `<div style="page:Soal">${head('NASKAH SOAL')}<hr>${flat().map(({n,r,q})=>`<p style="margin:10px 0 2px">${n}.&nbsp; ${esc(q.q).replace(/\n/g,'<br>')}</p>${isPG(r.bentuk)?['a','b','c','d','e'].filter(k=>(q[k]||'').trim()).map(k=>`<p style="margin:0 0 0 28px">${k.toUpperCase()}.&nbsp; ${esc(q[k])}</p>`).join(''):''}`).join('')}</div>`}
 function kunciHtml(){return `<div style="page:Soal">${head('KUNCI JAWABAN & PEDOMAN PENSKORAN')}<table><tr><th>No</th><th>Level</th><th>Kesulitan</th><th>Kunci / Pedoman</th><th>Skor</th></tr>${flat().map(({n,r,q})=>`<tr><td>${n}</td><td>${r.level.split(' ')[0]}</td><td>${r.diff}</td><td>${esc(q.key).replace(/\n/g,'<br>')}</td><td>${r.skor||0}</td></tr>`).join('')}</table></div>`}
 function exportDoc(parts,name){const brk='<br clear="all" style="page-break-before:always;mso-break-type:section-break">';
-const html=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>${name}</title><style>@page Kisi{size:29.7cm 21cm;mso-page-orientation:landscape;margin:1.5cm}@page Soal{size:21cm 29.7cm;margin:2cm}body{font-family:'Times New Roman',serif;font-size:12pt}table{border-collapse:collapse;width:100%}td,th{border:1px solid #000;padding:4px;font-size:10pt;vertical-align:top}th{background:#d9e2f3}</style></head><body>${parts.join(brk)}</body></html>`;
+const html=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>${name}</title><style>@page Kisi{size:21cm 29.7cm;margin:2cm}@page Soal{size:21cm 29.7cm;margin:2cm}body{font-family:'Times New Roman',serif;font-size:12pt}table{border-collapse:collapse;width:100%}td,th{border:1px solid #000;padding:4px;font-size:10pt;vertical-align:top}th{background:#d9e2f3}</style></head><body>${parts.join(brk)}</body></html>`;
 dl(new Blob(['\ufeff'+html],{type:'application/msword'}),name+'.doc')}
 function dl(b,n){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
 const fn=s=>((S.meta.mapel||'soal')+'-'+s).replace(/[^\w-]+/g,'_');
@@ -177,7 +181,7 @@ if(t.dataset.tab!==undefined)return go(+t.dataset.tab);
 if(t.dataset.del){S.rows=S.rows.filter(r=>r.id!==t.dataset.del);delete S.soal[t.dataset.del];save();return r1()}
 const a=t.dataset.act;if(!a)return;
 if(a==='gen')gen();
-if(a==='add'){S.rows.push({id:uid(),materi:S.materi[0]||'',tp:'',indikator:'',level:LV[2],diff:'Sedang',bentuk:BT[0],jumlah:1,skor:1});save();r1()}
+if(a==='add'){S.rows.push({id:uid(),materi:S.materi[0]||'',tp:'',indikator:'',level:LV[1],diff:'Sedang',bentuk:BT[0],jumlah:1,skor:1});save();r1()}
 if(a==='dup'&&S.rows.length){S.rows.push({...S.rows[S.rows.length-1],id:uid()});save();r1()}
 if(a==='exp-json')dl(new Blob([JSON.stringify(S,null,1)],{type:'application/json'}),fn('proyek')+'.json');
 if(a==='reset'&&confirm('Hapus semua data dan mulai baru?')){S={};norm();save();r0()}
