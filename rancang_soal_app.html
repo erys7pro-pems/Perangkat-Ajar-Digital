@@ -27,6 +27,7 @@ button.s,label.s{background:none;color:var(--tx);border:1px solid var(--bd)}butt
 .bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.w{overflow-x:auto}
 table{border-collapse:collapse;width:100%;font-size:13px}th,td{border:1px solid var(--bd);padding:4px;vertical-align:top;text-align:left}th{background:var(--ac2);font-size:12px}
 td input,td select,td textarea{border:0;background:transparent;padding:4px;min-height:0}td textarea{min-height:48px}
+ #t2 textarea{overflow:hidden;resize:none;min-height:60px;line-height:1.5}
  #t1 td textarea{overflow:hidden;resize:none;min-height:34px;min-width:150px;line-height:1.4}
 .pb{height:10px;background:var(--bd);border-radius:6px;overflow:hidden;min-width:80px}.pb i{display:block;height:100%;background:var(--ac)}
 .m{color:var(--mu);font-size:13px}.wr{color:var(--wr);font-weight:600}.ok{color:var(--ok);font-weight:600}
@@ -112,7 +113,8 @@ if(FL.materi&&r.materi!==FL.materi)return false;if(FL.level&&r.level!==FL.level)
 if(FL.kosong&&(r.tp||'').trim()&&(r.indikator||'').trim())return false;return true};
 function applyFilter(){let n=0;document.querySelectorAll('#t1 tr[data-rid]').forEach(tr=>{const r=S.rows.find(x=>x.id===tr.dataset.rid),ok=!!r&&fmatch(r);tr.style.display=ok?'':'none';if(ok)n++});const e=$('#fcnt');if(e)e.textContent='Menampilkan '+n+' dari '+S.rows.length+' baris';fit()}
 const fsel=(k,list)=>`<select data-fl="${k}"><option value="">Semua</option>${list.map(x=>`<option${x===FL[k]?' selected':''}>${esc(x)}</option>`).join('')}</select>`;
-addEventListener('resize',()=>{if($('#t1').classList.contains('on'))fit()});
+const fit2=()=>document.querySelectorAll('#t2 textarea').forEach(autosize);
+addEventListener('resize',()=>{if($('#t1').classList.contains('on'))fit();if($('#t2').classList.contains('on'))fit2()});
 function r1(){const st=starts();
 $('#t1').innerHTML=`<div class="card"><h2>Kisi-kisi Soal</h2><p class="m">Satu baris = satu indikator. Isi jumlah butir soal per indikator; nomor soal dihitung otomatis.</p>
 <div class="g" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin-bottom:8px;align-items:end"><div style="grid-column:span 2"><label>Cari (TP / indikator)</label><input data-fq placeholder="Ketik kata kunci" value="${esc(FL.q)}"></div>
@@ -143,7 +145,7 @@ h+=`<div class="q${hc(r.materi)===null?' nm':''}" style="--c:${hc(r.materi)??0}"
 ${isPG(r.bentuk)?['a','b','c','d','e'].map(k=>`<div class="o"><b>${k.toUpperCase()}.</b><input data-s="${r.id}" data-i="${i}" data-f="${k}" value="${esc(q[k])}" placeholder="Opsi ${k.toUpperCase()}${k==='e'?' (opsional)':''}"></div>`).join('')+`<div class="o" style="grid-template-columns:auto 1fr"><b>Kunci:</b><input data-s="${r.id}" data-i="${i}" data-f="key" value="${esc(q.key)}" placeholder="${r.bentuk==='Pilihan Ganda'?'mis. B':'mis. A, C'}"></div>`
 :r.bentuk==='Benar-Salah'?`<label style="margin-top:6px">Kunci jawaban (pernyataan di atas)</label><select data-s="${r.id}" data-i="${i}" data-f="key">${['','Benar','Salah'].map(x=>`<option${x===q.key?' selected':''}>${x}</option>`).join('')}</select>`:`<label style="margin-top:6px">Kunci jawaban / pedoman penskoran</label><textarea data-s="${r.id}" data-i="${i}" data-f="key">${esc(q.key)}</textarea>`}
 </div>`}return h}).join('');
-$('#t2').innerHTML=`<div class="card"><h2>Input Soal</h2><p class="m">Terisi lengkap: <b id="dn">${done}</b> / ${tot()} soal</p>${S.materi.length?`<p class="m" style="margin-bottom:0">Warna materi (urutan ajar): ${S.materi.map((m,i)=>`<span class="lg" style="background:hsl(${hc(m)} 65% 34%)">${i+1}. ${esc(m)}</span>`).join('')}</p>`:''}</div>${body}`}
+$('#t2').innerHTML=`<div class="card"><h2>Input Soal</h2><p class="m">Terisi lengkap: <b id="dn">${done}</b> / ${tot()} soal</p>${S.materi.length?`<p class="m" style="margin-bottom:0">Warna materi (urutan ajar): ${S.materi.map((m,i)=>`<span class="lg" style="background:hsl(${hc(m)} 65% 34%)">${i+1}. ${esc(m)}</span>`).join('')}</p>`:''}</div>${body}`;fit2()}
 function upd2(){let n=0;S.rows.forEach(r=>{for(let i=0;i<J(r);i++)if(filled(r,i))n++});const e=$('#dn');if(e)e.textContent=n}
 
 /* 4 REKAP */
@@ -185,7 +187,7 @@ const fn=s=>((S.meta.mapel||'soal')+'-'+s).replace(/[^\w-]+/g,'_');
 
 /* EVENTS */
 document.addEventListener('input',e=>{const d=e.target.dataset;if(!d)return;
-if(e.target.tagName==='TEXTAREA'&&e.target.closest('#t1'))autosize(e.target);
+if(e.target.tagName==='TEXTAREA'&&e.target.closest('#t1,#t2'))autosize(e.target);
 if(d.fq!==undefined){FL.q=e.target.value;applyFilter();return}if(d.fl){FL[d.fl]=e.target.value;applyFilter();return}if(d.fk!==undefined){FL.kosong=e.target.checked;applyFilter();return}
 if(d.m!==undefined){S.meta[d.m]=e.target.value}
 else if(d.t){S.target[d.t]=+e.target.value;tsum()}
