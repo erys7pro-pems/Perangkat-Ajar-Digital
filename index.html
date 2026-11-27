@@ -578,6 +578,14 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
 
 .tg-kind.sub{color:var(--violet);border-color:var(--violet);}
 .sub-card .tag-row,.sub-tile .tag-row{margin:6px 0 4px;}
+
+/* Kilap kaca pada paragraf sub-panel: berkas cahaya menyapu tiap 10 detik, bergiliran antar paragraf */
+.sub-subtitle .sub-para{position:relative;overflow:hidden;}
+.sub-subtitle .sub-para::after{content:"";position:absolute;top:0;bottom:0;left:0;width:38%;pointer-events:none;opacity:0;
+  background:linear-gradient(105deg,rgba(255,255,255,0) 0%,rgba(150,238,255,.10) 30%,rgba(235,252,255,.42) 50%,rgba(150,238,255,.10) 70%,rgba(255,255,255,0) 100%);
+  transform:translateX(-130%) skewX(-18deg);animation:paraShine 10s linear infinite;animation-delay:calc(var(--i,0) * .4s);}
+@keyframes paraShine{0%,86%{transform:translateX(-130%) skewX(-18deg);opacity:0;}88%{opacity:1;}98%{opacity:1;}100%{transform:translateX(330%) skewX(-18deg);opacity:0;}}
+@media (prefers-reduced-motion:reduce){.sub-subtitle .sub-para::after{animation:none;display:none;}}
 </style>
 </head>
 <body>
@@ -1589,7 +1597,7 @@ main{padding:20px 16px 60px;max-width:1100px;margin:0 auto;}
   function parasHtml(text, cls, style){
     var paras = String(text||'').split(/\n+/).map(function(t){ return t.trim(); }).filter(Boolean);
     if(!paras.length) return '';
-    return '<div class="'+cls+'"'+(style?' style="'+style+'"':'')+'>'+paras.map(function(t){ return '<p class="sub-para">'+esc(t)+'</p>'; }).join('')+'</div>';
+    return '<div class="'+cls+'"'+(style?' style="'+style+'"':'')+'>'+paras.map(function(t, i){ return '<p class="sub-para" style="--i:'+Math.min(i, 10)+'">'+esc(t)+'</p>'; }).join('')+'</div>';
   }
   function subParasHtml(text){ return parasHtml(text, 'sub-subtitle'); }
 
