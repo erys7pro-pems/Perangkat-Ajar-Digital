@@ -167,6 +167,7 @@ function applyFilter2(){
   if(e)e.textContent='Menampilkan '+shown+' dari '+total+' soal';
   const emp=$('#femp2');
   if(emp)emp.style.display=(total>0&&shown===0)?'':'none';
+  updEx2();
   fit2();
 }
 function r2(){if(!S.rows.length){$('#t2').innerHTML='<div class="card">Susun kisi-kisi dulu pada tab 2.</div>';return}
@@ -192,8 +193,11 @@ $('#t2').innerHTML=`<div class="card"><h2>Input Soal</h2><p class="m">Terisi len
 </div>
 <p id="fcnt2" class="m" style="margin-bottom:6px"></p>
 ${S.materi.length?`<p class="m" style="margin-bottom:0">Warna materi (urutan ajar): ${S.materi.map((m,i)=>`<span class="lg" style="background:hsl(${hc(m)} 65% 34%)">${i+1}. ${esc(m)}</span>`).join('')}</p>`:''}</div>
+<div class="card"><h2>Ekspor ke LMS (.docx)</h2><p class="m">Mengekspor soal <b>Pilihan Ganda</b> yang sedang tampil sesuai filter di atas (materi, level, kesulitan, pencarian, dll.) dengan format <i>IMPORT_QUESTION_TEMPLATE_MCQ_V3</i>. Poin diambil dari skor di kisi-kisi, pembahasan dari kolom di bawah.</p>
+<label style="display:flex;gap:6px;align-items:center;font-size:13px;color:var(--tx)"><input type="checkbox" data-fkx style="width:auto"${EX2.lengkap?' checked':''}>Hanya soal terisi lengkap</label>
+<p id="ecnt2" class="m"></p><div class="bar" style="margin-top:0"><button class="b" data-act="x-lms2">⬇ Ekspor soal terfilter (.docx)</button></div></div>
 <div id="femp2" class="card m" style="display:none">Tidak ada soal yang cocok dengan filter yang dipilih.</div>${body}`;applyFilter2()}
-function upd2(){let n=0;S.rows.forEach(r=>{for(let i=0;i<J(r);i++)if(filled(r,i))n++});const e=$('#dn');if(e)e.textContent=n;if(FL2.belum)applyFilter2()}
+function upd2(){let n=0;S.rows.forEach(r=>{for(let i=0;i<J(r);i++)if(filled(r,i))n++});const e=$('#dn');if(e)e.textContent=n;if(FL2.belum)applyFilter2();else updEx2()}
 
 /* 4 REKAP */
 const pct=(a,b)=>b?Math.round(a/b*1000)/10:0;
@@ -293,45 +297,79 @@ function wpLine(txt){
   const runs=lines.map((ln,idx)=>(idx>0?'<w:br/>':'')+`<w:t xml:space="preserve">${xmlEsc(ln)}</w:t>`).join('');
   return `<w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr><w:r>${runs}</w:r></w:p>`;
 }
-function exportMcqDocx(){
-  const items=getFilteredMcq();
-  if(!items.length)return alert('Tidak ada soal Pilihan Ganda yang cocok dengan filter.');
+const EX2={lengkap:true};
+/* kumpulkan soal PG yang lolos filter tab 3 (mengikuti kartu yang tampil) */
+function getMcq2(){
+  const st=starts(),res=[];let skipKompleks=0;
+  S.rows.forEach((r,ri)=>{
+    for(let i=0;i<J(r);i++){
+      const no=st[ri]+i,q=(S.soal[r.id]||[])[i]||{};
+      if(!fmatch2(r,i,no))continue;
+      if(r.bentuk==='Pilihan Ganda Kompleks'){skipKompleks++;continue}
+      if(r.bentuk!=='Pilihan Ganda')continue;
+      if(EX2.lengkap&&!filled(r,i))continue;
+      res.push({no,r,q});
+    }
+  });
+  res.skipKompleks=skipKompleks;return res;
+}
+function updEx2(){
+  const e=$('#ecnt2');if(!e)return;
+  const l=getMcq2(),tp=S.rows.filter(r=>r.bentuk==='Pilihan Ganda').reduce((a,r)=>a+J(r),0);
+  let t=`Siap diekspor: <b>${l.length}</b> soal Pilihan Ganda sesuai filter di atas (dari ${tp} soal PG di proyek). Nomor di file LMS diurutkan ulang mulai dari 1.`;
+  if(l.skipKompleks)t+=` <span class="m">${l.skipKompleks} soal PG Kompleks tidak diikutkan (template LMS hanya untuk jawaban tunggal).</span>`;
+  if(EX2.lengkap&&FL2.belum)t+=` <span class="wr">Filter “Soal belum lengkap” bertabrakan dengan “Hanya soal terisi lengkap”.</span>`;
+  e.innerHTML=t;
+}
+/* cek masalah sebelum ekspor: kunci kosong / tidak valid, opsi kurang */
+function mcqProblems(items){
+  const out=[];
+  items.forEach(({r,q},idx)=>{
+    const p=[],k=(q.key||'').trim().toLowerCase();
+    if(!(q.q||'').trim())p.push('teks soal kosong');
+    const filledOpts=['a','b','c','d'].filter(x=>(q[x]||'').trim());
+    if(filledOpts.length<4)p.push('opsi A–D belum lengkap');
+    if(!/^[a-e]$/.test(k.replace(/[^a-e]/g,'').slice(0,1)))p.push('kunci jawaban kosong');
+    else if(!(q[k.replace(/[^a-e]/g,'')[0]]||'').trim())p.push('kunci menunjuk opsi kosong');
+    if(k.replace(/[^a-e]/g,'').length>1)p.push('kunci lebih dari satu huruf (dipakai huruf pertama)');
+    if(p.length)out.push(`No. ${idx+1} (di proyek: ${items[idx].no}): ${p.join(', ')}`);
+  });
+  return out;
+}
+/* DOCX sesuai IMPORT_QUESTION_TEMPLATE_MCQ_V3: label tebal + opsi daftar bernomor huruf (a. b. c. d.) tiap soal restart dari a */
+function mcqDocxBlob(items){
+  const NS='xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"';
+  const clean=s=>String(s??'').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'');
+  const runs=(txt,bold)=>`<w:r>${bold?'<w:rPr><w:b w:val="1"/><w:bCs w:val="1"/></w:rPr>':''}${clean(txt).split(/\r?\n/).map((l,i)=>(i?'<w:br/>':'')+`<w:t xml:space="preserve">${xmlEsc(l)}</w:t>`).join('')}</w:r>`;
+  const para=inner=>`<w:p><w:pPr><w:spacing w:after="160" w:lineRule="auto"/></w:pPr>${inner}</w:p>`;
+  const field=(label,text)=>para(runs(label,true)+((text||'')!==''?runs(' '+text):''));
+  const opt=(txt,n)=>`<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="${n}"/></w:numPr><w:ind w:left="720" w:hanging="360"/></w:pPr>${runs(txt)}</w:p>`;
   const paras=[];
   items.forEach(({r,q},idx)=>{
-    const num=idx+1;
-    const soalTxt=(q.q||'').trim()||'Tulis pertanyaan di sini.';
-    paras.push(wpLine(`No: ${num}`));
-    paras.push(wpLine(`Soal: ${soalTxt}`));
-    paras.push(wpLine('Opsi:'));
-    const opts=['a','b','c','d','e'].map(k=>(q[k]||'').trim()).filter((v,kIdx)=>kIdx<4||v!=='');
-    while(opts.length<4)opts.push('');
-    opts.forEach(o=>paras.push(wpLine(o)));
-    const rawKey=(q.key||'').trim().toLowerCase().replace(/[^a-e]/g,'');
-    paras.push(wpLine(`Kunci Jawaban: ${rawKey||'a'}`));
-    paras.push(wpLine(`Poin: ${+r.skor||1}`));
-    const pemb=(q.pembahasan||'').trim();
-    paras.push(wpLine(pemb?`Pembahasan: ${pemb}`:'Pembahasan:'));
+    const n=idx+1,opts=['a','b','c','d','e'].map(k=>(q[k]||'').trim()).filter((v,i)=>i<4||v!=='');
+    const kk=(q.key||'').toLowerCase().replace(/[^a-e]/g,'')[0]||'a';
+    paras.push(field('No:',String(n)));
+    paras.push(field('Soal:',(q.q||'').trim()||'Tulis pertanyaan di sini.'));
+    paras.push(para(runs('Opsi:',true)));
+    opts.forEach(o=>paras.push(opt(o,n)));
+    paras.push(field('Kunci Jawaban:',kk));
+    paras.push(field('Poin:',String(+r.skor||1)));
+    paras.push(field('Pembahasan:',(q.pembahasan||'').trim()));
   });
-  const docXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
-<w:body>${paras.join('')}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440"/></w:sectPr></w:body>
-</w:document>`;
-  const ctXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
-<Default Extension="xml" ContentType="application/xml"/>
-<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
-</Types>`;
-  const relsXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
-</Relationships>`;
-  const blob=buildZip([
-    {name:'[Content_Types].xml',data:ctXml},
-    {name:'_rels/.rels',data:relsXml},
-    {name:'word/document.xml',data:docXml}
-  ]);
-  dl(blob,fn('IMPORT_MCQ_LMS')+'.docx');
+  const head='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
+  const docXml=`${head}<w:document ${NS}><w:body>${paras.join('')}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720"/></w:sectPr></w:body></w:document>`;
+  const numXml=`${head}<w:numbering ${NS}><w:abstractNum w:abstractNumId="0"><w:multiLevelType w:val="hybridMultilevel"/><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="lowerLetter"/><w:lvlText w:val="%1."/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="720" w:hanging="360"/></w:pPr></w:lvl></w:abstractNum>${items.map((_,i)=>`<w:num w:numId="${i+1}"><w:abstractNumId w:val="0"/><w:lvlOverride w:ilvl="0"><w:startOverride w:val="1"/></w:lvlOverride></w:num>`).join('')}</w:numbering>`;
+  const stXml=`${head}<w:styles ${NS}><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr></w:rPrDefault></w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style></w:styles>`;
+  const ctXml=`${head}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>`;
+  const relsXml=`${head}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`;
+  const docRels=`${head}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`;
+  return buildZip([{name:'[Content_Types].xml',data:ctXml},{name:'_rels/.rels',data:relsXml},{name:'word/document.xml',data:docXml},{name:'word/_rels/document.xml.rels',data:docRels},{name:'word/numbering.xml',data:numXml},{name:'word/styles.xml',data:stXml}]);
+}
+function exportMcqDocx(items,label){
+  if(!items.length)return alert('Tidak ada soal Pilihan Ganda yang cocok dengan filter.');
+  const pr=mcqProblems(items);
+  if(pr.length&&!confirm('Ditemukan '+pr.length+' soal bermasalah:\n\n'+pr.slice(0,12).join('\n')+(pr.length>12?'\n… dan '+(pr.length-12)+' lainnya':'')+'\n\nKunci kosong akan diisi “a”. Tetap ekspor?'))return;
+  dl(mcqDocxBlob(items),fn(label||'IMPORT_MCQ_LMS')+'.docx');
 }
 
 function head(t){const m=S.meta;return `<h3 style="text-align:center;margin:0">${t}</h3><p style="text-align:center;margin:0">${esc(m.jenis)} ${esc(m.mapel)} · ${esc(m.kelas)} · Semester ${esc(m.semester)} · TA ${esc(m.tahun)}</p><p style="text-align:center;margin:0 0 8px">${esc(m.sekolah)}</p>`}
@@ -359,6 +397,7 @@ const fn=s=>((S.meta.mapel||'soal')+'-'+s).replace(/[^\w-]+/g,'_');
 document.addEventListener('input',e=>{const d=e.target.dataset;if(!d)return;
 if(e.target.tagName==='TEXTAREA'&&e.target.closest('#t1,#t2'))autosize(e.target);
 if(d.fq!==undefined){FL.q=e.target.value;applyFilter();return}if(d.fl){FL[d.fl]=e.target.value;applyFilter();return}if(d.fk!==undefined){FL.kosong=e.target.checked;applyFilter();return}
+if(d.fkx!==undefined){EX2.lengkap=e.target.checked;updEx2();return}
 if(d.fq2!==undefined){FL2.q=e.target.value;applyFilter2();return}if(d.fl2){FL2[d.fl2]=e.target.value;applyFilter2();return}if(d.fk2!==undefined){FL2.belum=e.target.checked;applyFilter2();return}
 if(d.fqe!==undefined){FLE.q=e.target.value;updExpCount();return}if(d.fle){FLE[d.fle]=e.target.value;updExpCount();return}if(d.fke!==undefined){FLE.lengkap=e.target.checked;updExpCount();return}
 if(d.m!==undefined){S.meta[d.m]=e.target.value}
@@ -388,7 +427,8 @@ if(a==='x-kisi')exportDoc([kisiHtml()],fn('kisi-kisi'));
 if(a==='x-fkisi'||a==='x-fcsv'){const rs=S.rows.filter(fmatch);if(!rs.length)return alert('Tidak ada baris yang cocok dengan filter.');a==='x-fkisi'?exportDoc([kisiHtml(rs)],fn('kisi-kisi-terfilter')):exportCsv(rs,fn('kisi-kisi-terfilter'))}
 if(a==='x-soal')exportDoc([soalHtml()],fn('naskah'));
 if(a==='x-kunci')exportDoc([kunciHtml()],fn('kunci'));
-if(a==='x-lms')exportMcqDocx()});
+if(a==='x-lms')exportMcqDocx(getFilteredMcq(),'IMPORT_MCQ_LMS');
+if(a==='x-lms2')exportMcqDocx(getMcq2(),'IMPORT_MCQ_LMS_filter')});
 document.addEventListener('change',e=>{if(e.target.id!=='imp')return;const f=e.target.files[0];if(!f)return;if((S.rows.length||S.materi.length)&&!confirm('Data saat ini akan diganti dengan isi file. Lanjutkan?')){e.target.value='';return}const rd=new FileReader();rd.onload=()=>{try{const o=JSON.parse(rd.result);if(!o||typeof o!=='object'||!Array.isArray(o.rows||[]))throw 0;S=o;norm();resetFL();resetFL2();resetFLE();save();r0();alert('Proyek berhasil dimuat.')}catch(x){alert('File proyek tidak valid.')}};rd.readAsText(f);e.target.value=''});
 go(0);
 </script>
