@@ -40,7 +40,7 @@ td input,td select,td textarea{border:0;background:transparent;padding:4px;min-h
 </style>
 </head>
 <body>
-<header><h1>Perancang Soal &amp; Kisi-kisi</h1><p>Rencanakan kisi-kisi → susun soal → pantau persentase → ekspor ke Word. Data tersimpan otomatis di browser.</p></header>
+<header><h1>Perancang Soal &amp; Kisi-kisi</h1><p>Rencanakan kisi-kisi → susun soal → pantau persentase → ekspor ke Word / LMS. Data tersimpan otomatis di browser.</p></header>
 <nav id="nav"></nav>
 <main>
 <section id="t0"></section><section id="t1"></section><section id="t2"></section><section id="t3"></section><section id="t4"></section>
@@ -82,7 +82,7 @@ function r0(){$('#t0').innerHTML=`<div class="card"><h2>Identitas Perangkat Soal
 <div class="bar"><button class="b" data-act="gen">⚡ Generate kisi-kisi otomatis</button></div>
 <p class="m">Hasilnya: satu baris = satu soal (jumlah 1), dengan materi, level, kesulitan, bentuk, dan skor awal terisi, diurutkan per materi. Soal tingkat tinggi cenderung dipasangkan dengan kesulitan sukar dan bentuk uraian. Semua dapat diubah di tab Kisi-kisi.</p></div>
 <div class="card"><h2>Proyek</h2><div class="bar" style="margin:0"><button class="b s" data-act="exp-json">Simpan proyek (.json)</button><label class="b s" style="margin:0;cursor:pointer">Buka proyek<input type="file" accept=".json" id="imp" hidden></label><button class="b s" data-act="reset">Mulai baru</button></div></div>`;tsum()}
-function tsum(){[['s1',S.target,DF],['s2',S.tLv,LV],['s3',S.tBt,BT],['s4',S.tKet,KT]].forEach(([id,o,l])=>{const e=$('#'+id);if(!e)return;const t=l.reduce((a,k)=>a+(+o[k]||0),0);const w='';e.innerHTML=`Jumlah: <span class="${t===100?'ok':'wr'}">${t}%</span>${w}`})}
+function tsum(){[['s1',S.target,DF],['s2',S.tLv,LV],['s3',S.tBt,BT],['s4',S.tKet,KT]].forEach(([id,o,l])=>{const e=$('#'+id);if(!e)return;const t=l.reduce((a,k)=>a+(+o[k]||0),0);e.innerHTML=`Jumlah: <span class="${t===100?'ok':'wr'}">${t}%</span>`})}
 function apportion(o,list,N){const t=list.reduce((a,k)=>a+(+o[k]||0),0);if(!t)return null;const q=list.map(k=>(+o[k]||0)/t*N),c=q.map(Math.floor);let r=N-c.reduce((a,b)=>a+b,0);q.map((v,i)=>[v-c[i],i]).sort((a,b)=>b[0]-a[0]).slice(0,r).forEach(([,i])=>c[i]++);return list.flatMap((k,i)=>Array(c[i]).fill(k))}
 function gen(){const N=+S.meta.total||0,M=S.materi;
 if(N<1)return alert('Isi dulu “Target jumlah soal total” pada panel Identitas.');
@@ -100,7 +100,7 @@ const kt=Array(N);
 idx.forEach((x,j)=>{let u=0;x.forEach((i,k)=>{if(Math.round(fl[j]*(k+1)/x.length)>u){kt[i]=KT[0];u++}else kt[i]=KT[1]})});
 const rw=M.length&&Array.from({length:N},(_,i)=>({id:uid(),materi:M[i%M.length],ket:kt[i],tp:'',indikator:'',level:l[i],diff:d[i],bentuk:b[i],jumlah:1,skor:SKR[b[i]]}));
 S.rows=rw.sort((x,y)=>M.indexOf(x.materi)-M.indexOf(y.materi)||LV.indexOf(x.level)-LV.indexOf(y.level)||DF.indexOf(x.diff)-DF.indexOf(y.diff));
-S.soal={};resetFL();resetFL2();save();go(1)}
+S.soal={};resetFL();resetFL2();resetFLE();save();go(1)}
 const getKet=r=>r.ket||KT[0];
 const matCell=r=>{const L=S.materi;return L.length?`<select data-r="${r.id}" data-f="materi">${[...(L.includes(r.materi)?[]:[r.materi||'']),...L].map(x=>`<option${x===r.materi?' selected':''}>${esc(x)}</option>`).join('')}</select>`:`<textarea data-r="${r.id}" data-f="materi">${esc(r.materi)}</textarea>`};
 
@@ -177,6 +177,7 @@ h+=`<div class="q${hc(r.materi)===null?' nm':''}" data-rid="${r.id}" data-idx="$
 <label>Teks soal</label><textarea data-s="${r.id}" data-i="${i}" data-f="q">${esc(q.q)}</textarea>
 ${isPG(r.bentuk)?['a','b','c','d','e'].map(k=>`<div class="o"><b>${k.toUpperCase()}.</b><input data-s="${r.id}" data-i="${i}" data-f="${k}" value="${esc(q[k])}" placeholder="Opsi ${k.toUpperCase()}${k==='e'?' (opsional)':''}"></div>`).join('')+`<div class="o" style="grid-template-columns:auto 1fr"><b>Kunci:</b><input data-s="${r.id}" data-i="${i}" data-f="key" value="${esc(q.key)}" placeholder="${r.bentuk==='Pilihan Ganda'?'mis. B':'mis. A, C'}"></div>`
 :r.bentuk==='Benar-Salah'?`<label style="margin-top:6px">Kunci jawaban (pernyataan di atas)</label><select data-s="${r.id}" data-i="${i}" data-f="key">${['','Benar','Salah'].map(x=>`<option${x===q.key?' selected':''}>${x}</option>`).join('')}</select>`:`<label style="margin-top:6px">Kunci jawaban / pedoman penskoran</label><textarea data-s="${r.id}" data-i="${i}" data-f="key">${esc(q.key)}</textarea>`}
+<label style="margin-top:8px">Pembahasan (opsional, untuk ekspor templat LMS)</label><textarea data-s="${r.id}" data-i="${i}" data-f="pembahasan" style="min-height:42px">${esc(q.pembahasan)}</textarea>
 </div>`}return h}).join('');
 $('#t2').innerHTML=`<div class="card"><h2>Input Soal</h2><p class="m">Terisi lengkap: <b id="dn">${done}</b> / ${tot()} soal</p>
 <div class="g" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin:10px 0 8px;align-items:end">
@@ -212,8 +213,127 @@ $('#t3').innerHTML=`<div class="card"><h2>Progres Penyusunan Soal</h2>${bar(pct(
 <div class="card"><h2>Sebaran Materi</h2>${tbl(mats.map(([x,c,p])=>`<tr><td>${esc(x)}</td><td>${c}</td><td>${p}%</td>${KT.map(k=>`<td>${S.rows.filter(r=>(r.materi||'(tanpa materi)').trim()===x&&getKet(r)===k).reduce((a,r)=>a+J(r),0)}</td>`).join('')}<td>${bar(p)}</td></tr>`).join(''),['Materi','Jumlah','Persen',...KT,''])}</div>`}
 
 /* 5 EKSPOR */
-function r4(){$('#t4').innerHTML=`<div class="card"><h2>Ekspor ke Word</h2><p class="m">File berformat .doc (HTML-Word) yang langsung terbuka di Microsoft Word / LibreOffice, dan bisa disimpan ulang ke .docx. Kisi-kisi landscape, naskah soal portrait.</p>
-<div class="bar"><button class="b" data-act="x-all">Kisi-kisi + Soal + Kunci</button><button class="b s" data-act="x-kisi">Kisi-kisi saja</button><button class="b s" data-act="x-soal">Naskah soal saja</button><button class="b s" data-act="x-kunci">Kunci jawaban saja</button></div></div>`}
+const blankFLE=()=>({q:'',materi:'',level:'',diff:'',ket:'',lengkap:true});let FLE=blankFLE();const resetFLE=()=>{FLE=blankFLE()};
+const fsele=(k,list)=>`<select data-fle="${k}"><option value="">Semua</option>${list.map(x=>`<option${x===FLE[k]?' selected':''}>${esc(x)}</option>`).join('')}</select>`;
+function getFilteredMcq(){
+  const st=starts(),res=[];
+  S.rows.forEach((r,ri)=>{
+    if(r.bentuk!=='Pilihan Ganda')return;
+    for(let i=0;i<J(r);i++){
+      const no=st[ri]+i,q=(S.soal[r.id]||[])[i]||{};
+      const qStr=FLE.q.trim().toLowerCase();
+      if(qStr){
+        const hay=[String(no),r.indikator,r.tp,q.q,q.a,q.b,q.c,q.d,q.e].join(' ').toLowerCase();
+        if(!hay.includes(qStr))continue;
+      }
+      if(FLE.materi&&r.materi!==FLE.materi)continue;
+      if(FLE.level&&r.level!==FLE.level)continue;
+      if(FLE.diff&&r.diff!==FLE.diff)continue;
+      if(FLE.ket&&getKet(r)!==FLE.ket)continue;
+      if(FLE.lengkap&&!filled(r,i))continue;
+      res.push({no,r,q});
+    }
+  });
+  return res;
+}
+function updExpCount(){
+  const e=$('#ecnt');if(!e)return;
+  const list=getFilteredMcq();
+  const allPg=S.rows.filter(r=>r.bentuk==='Pilihan Ganda').reduce((a,r)=>a+J(r),0);
+  e.innerHTML=`Siap diekspor: <b>${list.length}</b> soal Pilihan Ganda (dari total ${allPg} soal PG di proyek)`;
+}
+function r4(){
+  $('#t4').innerHTML=`<div class="card"><h2>Ekspor ke Word (Perangkat Asesmen)</h2><p class="m">File berformat .doc (HTML-Word) yang langsung terbuka di Microsoft Word / LibreOffice, dan bisa disimpan ulang ke .docx. Kisi-kisi landscape, naskah soal portrait.</p>
+<div class="bar"><button class="b" data-act="x-all">Kisi-kisi + Soal + Kunci</button><button class="b s" data-act="x-kisi">Kisi-kisi saja</button><button class="b s" data-act="x-soal">Naskah soal saja</button><button class="b s" data-act="x-kunci">Kunci jawaban saja</button></div></div>
+<div class="card"><h2>Ekspor Templat Impor MCQ untuk LMS (.docx)</h2>
+<p class="m">Menghasilkan file <b>.docx</b> asli sesuai format <i>IMPORT_QUESTION_TEMPLATE_MCQ_V3</i> (No, Soal, Opsi tanpa huruf, Kunci Jawaban huruf kecil, Poin, Pembahasan). Hanya mencakup soal <b>Pilihan Ganda</b> dan penomoran diurutkan ulang mulai dari 1 sesuai hasil filter.</p>
+<div class="g" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin:10px 0 8px;align-items:end">
+<div style="grid-column:span 2"><label>Cari (no / soal / indikator)</label><input data-fqe placeholder="Ketik kata kunci atau nomor" value="${esc(FLE.q)}"></div>
+<div><label>Materi</label>${fsele('materi',[...new Set([...S.materi,...S.rows.map(r=>r.materi)].filter(Boolean))])}</div>
+<div><label>Level</label>${fsele('level',LV)}</div>
+<div><label>Kesulitan</label>${fsele('diff',DF)}</div>
+<div><label>Keterangan</label>${fsele('ket',KT)}</div>
+<div><label style="display:flex;gap:6px;align-items:center;font-size:13px;color:var(--tx)"><input type="checkbox" data-fke style="width:auto"${FLE.lengkap?' checked':''}>Hanya soal terisi lengkap</label></div>
+<div><button class="b s" data-act="fle-reset">Reset filter</button></div>
+</div>
+<p id="ecnt" class="m"></p>
+<div class="bar"><button class="b" data-act="x-lms">⬇ Ekspor Templat MCQ (.docx)</button></div></div>`;
+  updExpCount();
+}
+
+/* DOCX BUILDER (ZERO-DEPENDENCY ZIP + OOXML) */
+function makeCrcTable(){const t=new Uint32Array(256);for(let i=0;i<256;i++){let c=i;for(let k=0;k<8;k++)c=(c&1)?(0xedb88320^(c>>>1)):(c>>>1);t[i]=c}return t}
+const CRC_TBL=makeCrcTable();
+function crc32(buf){let c=0xffffffff;for(let i=0;i<buf.length;i++)c=CRC_TBL[(c^buf[i])&0xff]^(c>>>8);return(c^0xffffffff)>>>0}
+function buildZip(files){
+  const enc=new TextEncoder(),parts=[],central=[];let offset=0;
+  for(const f of files){
+    const name=enc.encode(f.name),data=typeof f.data==='string'?enc.encode(f.data):f.data,crc=crc32(data);
+    const lh=new Uint8Array(30+name.length),lv=new DataView(lh.buffer);
+    lv.setUint32(0,0x04034b50,true);lv.setUint16(4,20,true);lv.setUint16(8,0,true);
+    lv.setUint32(14,crc,true);lv.setUint32(18,data.length,true);lv.setUint32(22,data.length,true);
+    lv.setUint16(26,name.length,true);lh.set(name,30);
+    parts.push(lh,data);
+    const cd=new Uint8Array(46+name.length),cv=new DataView(cd.buffer);
+    cv.setUint32(0,0x02014b50,true);cv.setUint16(4,20,true);cv.setUint16(6,20,true);
+    cv.setUint32(16,crc,true);cv.setUint32(20,data.length,true);cv.setUint32(24,data.length,true);
+    cv.setUint16(28,name.length,true);cv.setUint32(42,offset,true);cd.set(name,46);
+    central.push(cd);
+    offset+=lh.length+data.length;
+  }
+  const cdSize=central.reduce((a,b)=>a+b.length,0);
+  const eocd=new Uint8Array(22),ev=new DataView(eocd.buffer);
+  ev.setUint32(0,0x06054b50,true);ev.setUint16(8,files.length,true);ev.setUint16(10,files.length,true);
+  ev.setUint32(12,cdSize,true);ev.setUint32(16,offset,true);
+  return new Blob([...parts,...central,eocd],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+}
+const xmlEsc=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function wpLine(txt){
+  const lines=String(txt??'').split(/\r?\n/);
+  const runs=lines.map((ln,idx)=>(idx>0?'<w:br/>':'')+`<w:t xml:space="preserve">${xmlEsc(ln)}</w:t>`).join('');
+  return `<w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr><w:r>${runs}</w:r></w:p>`;
+}
+function exportMcqDocx(){
+  const items=getFilteredMcq();
+  if(!items.length)return alert('Tidak ada soal Pilihan Ganda yang cocok dengan filter.');
+  const paras=[];
+  items.forEach(({r,q},idx)=>{
+    const num=idx+1;
+    const soalTxt=(q.q||'').trim()||'Tulis pertanyaan di sini.';
+    paras.push(wpLine(`No: ${num}`));
+    paras.push(wpLine(`Soal: ${soalTxt}`));
+    paras.push(wpLine('Opsi:'));
+    const opts=['a','b','c','d','e'].map(k=>(q[k]||'').trim()).filter((v,kIdx)=>kIdx<4||v!=='');
+    while(opts.length<4)opts.push('');
+    opts.forEach(o=>paras.push(wpLine(o)));
+    const rawKey=(q.key||'').trim().toLowerCase().replace(/[^a-e]/g,'');
+    paras.push(wpLine(`Kunci Jawaban: ${rawKey||'a'}`));
+    paras.push(wpLine(`Poin: ${+r.skor||1}`));
+    const pemb=(q.pembahasan||'').trim();
+    paras.push(wpLine(pemb?`Pembahasan: ${pemb}`:'Pembahasan:'));
+  });
+  const docXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+<w:body>${paras.join('')}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440"/></w:sectPr></w:body>
+</w:document>`;
+  const ctXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="xml" ContentType="application/xml"/>
+<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>`;
+  const relsXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`;
+  const blob=buildZip([
+    {name:'[Content_Types].xml',data:ctXml},
+    {name:'_rels/.rels',data:relsXml},
+    {name:'word/document.xml',data:docXml}
+  ]);
+  dl(blob,fn('IMPORT_MCQ_LMS')+'.docx');
+}
+
 function head(t){const m=S.meta;return `<h3 style="text-align:center;margin:0">${t}</h3><p style="text-align:center;margin:0">${esc(m.jenis)} ${esc(m.mapel)} · ${esc(m.kelas)} · Semester ${esc(m.semester)} · TA ${esc(m.tahun)}</p><p style="text-align:center;margin:0 0 8px">${esc(m.sekolah)}</p>`}
 function kisiHtml(sub){const rs=sub||S.rows,st=starts(),m=S.meta,tn=(m.jenis||'').trim().toUpperCase(),nb=x=>esc(x).replace(/\n/g,'<br>');
 const kv=(a,v)=>`<td style="border:none;padding:2px 4px;width:17%">${a}</td><td style="border:none;padding:2px 4px;width:2%">:</td><td style="border:none;padding:2px 4px">${nb(v)}</td>`;
@@ -240,6 +360,7 @@ document.addEventListener('input',e=>{const d=e.target.dataset;if(!d)return;
 if(e.target.tagName==='TEXTAREA'&&e.target.closest('#t1,#t2'))autosize(e.target);
 if(d.fq!==undefined){FL.q=e.target.value;applyFilter();return}if(d.fl){FL[d.fl]=e.target.value;applyFilter();return}if(d.fk!==undefined){FL.kosong=e.target.checked;applyFilter();return}
 if(d.fq2!==undefined){FL2.q=e.target.value;applyFilter2();return}if(d.fl2){FL2[d.fl2]=e.target.value;applyFilter2();return}if(d.fk2!==undefined){FL2.belum=e.target.checked;applyFilter2();return}
+if(d.fqe!==undefined){FLE.q=e.target.value;updExpCount();return}if(d.fle){FLE[d.fle]=e.target.value;updExpCount();return}if(d.fke!==undefined){FLE.lengkap=e.target.checked;updExpCount();return}
 if(d.m!==undefined){S.meta[d.m]=e.target.value}
 else if(d.t){S.target[d.t]=+e.target.value;tsum()}
 else if(d.tl){S.tLv[d.tl]=+e.target.value;tsum()}
@@ -257,16 +378,18 @@ const a=t.dataset.act;if(!a)return;
 if(a==='gen')gen();
 if(a==='fl-reset'){resetFL();r1()}
 if(a==='fl2-reset'){resetFL2();r2()}
+if(a==='fle-reset'){resetFLE();r4()}
 if(a==='add'){resetFL();S.rows.push({id:uid(),materi:S.materi[0]||'',ket:KT[0],tp:'',indikator:'',level:LV[1],diff:'Sedang',bentuk:BT[0],jumlah:1,skor:1});save();r1()}
 if(a==='dup'&&S.rows.length){resetFL();S.rows.push({...S.rows[S.rows.length-1],id:uid()});save();r1()}
 if(a==='exp-json')dl(new Blob([JSON.stringify(S,null,1)],{type:'application/json'}),fn('proyek')+'.json');
-if(a==='reset'&&confirm('Hapus semua data dan mulai baru?')){S={};norm();resetFL();resetFL2();save();r0()}
+if(a==='reset'&&confirm('Hapus semua data dan mulai baru?')){S={};norm();resetFL();resetFL2();resetFLE();save();r0()}
 if(a==='x-all')exportDoc([kisiHtml(),soalHtml(),kunciHtml()],fn('lengkap'));
 if(a==='x-kisi')exportDoc([kisiHtml()],fn('kisi-kisi'));
 if(a==='x-fkisi'||a==='x-fcsv'){const rs=S.rows.filter(fmatch);if(!rs.length)return alert('Tidak ada baris yang cocok dengan filter.');a==='x-fkisi'?exportDoc([kisiHtml(rs)],fn('kisi-kisi-terfilter')):exportCsv(rs,fn('kisi-kisi-terfilter'))}
 if(a==='x-soal')exportDoc([soalHtml()],fn('naskah'));
-if(a==='x-kunci')exportDoc([kunciHtml()],fn('kunci'))});
-document.addEventListener('change',e=>{if(e.target.id!=='imp')return;const f=e.target.files[0];if(!f)return;if((S.rows.length||S.materi.length)&&!confirm('Data saat ini akan diganti dengan isi file. Lanjutkan?')){e.target.value='';return}const rd=new FileReader();rd.onload=()=>{try{const o=JSON.parse(rd.result);if(!o||typeof o!=='object'||!Array.isArray(o.rows||[]))throw 0;S=o;norm();resetFL();resetFL2();save();r0();alert('Proyek berhasil dimuat.')}catch(x){alert('File proyek tidak valid.')}};rd.readAsText(f);e.target.value=''});
+if(a==='x-kunci')exportDoc([kunciHtml()],fn('kunci'));
+if(a==='x-lms')exportMcqDocx()});
+document.addEventListener('change',e=>{if(e.target.id!=='imp')return;const f=e.target.files[0];if(!f)return;if((S.rows.length||S.materi.length)&&!confirm('Data saat ini akan diganti dengan isi file. Lanjutkan?')){e.target.value='';return}const rd=new FileReader();rd.onload=()=>{try{const o=JSON.parse(rd.result);if(!o||typeof o!=='object'||!Array.isArray(o.rows||[]))throw 0;S=o;norm();resetFL();resetFL2();resetFLE();save();r0();alert('Proyek berhasil dimuat.')}catch(x){alert('File proyek tidak valid.')}};rd.readAsText(f);e.target.value=''});
 go(0);
 </script>
 </body>
