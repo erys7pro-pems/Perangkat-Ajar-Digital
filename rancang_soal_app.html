@@ -111,7 +111,7 @@ const blankFL=()=>({q:'',materi:'',level:'',diff:'',bentuk:'',ket:'',kosong:fals
 const fmatch=r=>{const q=FL.q.trim().toLowerCase();if(q&&!(((r.tp||'')+' '+(r.indikator||'')).toLowerCase().includes(q)))return false;
 if(FL.materi&&r.materi!==FL.materi)return false;if(FL.level&&r.level!==FL.level)return false;if(FL.diff&&r.diff!==FL.diff)return false;if(FL.bentuk&&r.bentuk!==FL.bentuk)return false;if(FL.ket&&getKet(r)!==FL.ket)return false;
 if(FL.kosong&&(r.tp||'').trim()&&(r.indikator||'').trim())return false;return true};
-function applyFilter(){let n=0;document.querySelectorAll('#t1 tr[data-rid]').forEach(tr=>{const r=S.rows.find(x=>x.id===tr.dataset.rid),ok=!!r&&fmatch(r);tr.style.display=ok?'':'none';if(ok)n++});const e=$('#fcnt');if(e)e.textContent='Menampilkan '+n+' dari '+S.rows.length+' baris';fit()}
+function applyFilter(){let n=0;document.querySelectorAll('#t1 tr[data-rid]').forEach(tr=>{const r=S.rows.find(x=>x.id===tr.dataset.rid),ok=!!r&&fmatch(r);tr.style.display=ok?'':'none';if(ok)n++});const e=$('#fcnt');if(e)e.textContent='Menampilkan '+n+' dari '+S.rows.length+' baris · tombol Ekspor mengikuti filter ini';fit()}
 const fsel=(k,list)=>`<select data-fl="${k}"><option value="">Semua</option>${list.map(x=>`<option${x===FL[k]?' selected':''}>${esc(x)}</option>`).join('')}</select>`;
 const fit2=()=>document.querySelectorAll('#t2 textarea').forEach(autosize);
 addEventListener('resize',()=>{if($('#t1').classList.contains('on'))fit();if($('#t2').classList.contains('on'))fit2()});
@@ -119,7 +119,7 @@ function r1(){const st=starts();
 $('#t1').innerHTML=`<div class="card"><h2>Kisi-kisi Soal</h2><p class="m">Satu baris = satu indikator. Isi jumlah butir soal per indikator; nomor soal dihitung otomatis.</p>
 <div class="g" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin-bottom:8px;align-items:end"><div style="grid-column:span 2"><label>Cari (TP / indikator)</label><input data-fq placeholder="Ketik kata kunci" value="${esc(FL.q)}"></div>
 <div><label>Materi</label>${fsel('materi',[...new Set([...S.materi,...S.rows.map(r=>r.materi)].filter(Boolean))])}</div><div><label>Level</label>${fsel('level',LV)}</div><div><label>Kesulitan</label>${fsel('diff',DF)}</div><div><label>Bentuk</label>${fsel('bentuk',BT)}</div><div><label>Keterangan</label>${fsel('ket',KT)}</div>
-<div><label style="display:flex;gap:6px;align-items:center;font-size:13px;color:var(--tx)"><input type="checkbox" data-fk style="width:auto"${FL.kosong?' checked':''}>TP / indikator kosong</label></div><div><button class="b s" data-act="fl-reset">Reset filter</button></div></div>
+<div><label style="display:flex;gap:6px;align-items:center;font-size:13px;color:var(--tx)"><input type="checkbox" data-fk style="width:auto"${FL.kosong?' checked':''}>TP / indikator kosong</label></div><div><button class="b s" data-act="fl-reset">Reset filter</button></div><div><button class="b" data-act="x-fkisi" title="Mengikuti filter di atas">Ekspor Word</button></div><div><button class="b s" data-act="x-fcsv" title="Mengikuti filter di atas">Ekspor CSV</button></div></div>
 <p id="fcnt" class="m"></p>
 <div class="w"><table><tr><th>No</th><th>Tujuan Pembelajaran</th><th>Materi Esensial</th><th>Indikator</th><th>Level Kognitif</th><th>Kesulitan</th><th>Bentuk</th><th>Jml</th><th>Skor/butir</th><th>Keterangan</th><th></th></tr>
 ${S.rows.map((r,i)=>`<tr data-rid="${r.id}"><td>${noTxt(r,st[i])}</td>
@@ -169,19 +169,23 @@ $('#t3').innerHTML=`<div class="card"><h2>Progres Penyusunan Soal</h2>${bar(pct(
 function r4(){$('#t4').innerHTML=`<div class="card"><h2>Ekspor ke Word</h2><p class="m">File berformat .doc (HTML-Word) yang langsung terbuka di Microsoft Word / LibreOffice, dan bisa disimpan ulang ke .docx. Kisi-kisi landscape, naskah soal portrait.</p>
 <div class="bar"><button class="b" data-act="x-all">Kisi-kisi + Soal + Kunci</button><button class="b s" data-act="x-kisi">Kisi-kisi saja</button><button class="b s" data-act="x-soal">Naskah soal saja</button><button class="b s" data-act="x-kunci">Kunci jawaban saja</button></div></div>`}
 function head(t){const m=S.meta;return `<h3 style="text-align:center;margin:0">${t}</h3><p style="text-align:center;margin:0">${esc(m.jenis)} ${esc(m.mapel)} · ${esc(m.kelas)} · Semester ${esc(m.semester)} · TA ${esc(m.tahun)}</p><p style="text-align:center;margin:0 0 8px">${esc(m.sekolah)}</p>`}
-function kisiHtml(){const st=starts(),m=S.meta,tn=(m.jenis||'').trim().toUpperCase(),nb=x=>esc(x).replace(/\n/g,'<br>');
+function kisiHtml(sub){const rs=sub||S.rows,st=starts(),m=S.meta,tn=(m.jenis||'').trim().toUpperCase(),nb=x=>esc(x).replace(/\n/g,'<br>');
 const kv=(a,v)=>`<td style="border:none;padding:2px 4px;width:17%">${a}</td><td style="border:none;padding:2px 4px;width:2%">:</td><td style="border:none;padding:2px 4px">${nb(v)}</td>`;
 const hd=['NO.','TUJUAN PEMBELAJARAN','MATERI ESENSIAL','INDIKATOR','LEVEL KOGNITIF'],wd=[7,33,20,28,12];
 return `<div style="page:Kisi;font-family:Arial,sans-serif"><p style="text-align:center;margin:0;font-size:12pt"><b>KISI-KISI ASESMEN${tn?' '+esc(tn):''}</b></p><p style="text-align:center;margin:0 0 14pt;font-size:12pt"><b>TAHUN AJARAN ${esc(m.tahun)}</b></p>
-<table style="margin-bottom:10pt"><tr>${kv('Jenjang',m.jenjang)}${kv('Kelas',m.kelas)}</tr><tr>${kv('Mata Pelajaran',m.mapel)}${kv('Jumlah Soal',tot())}</tr></table>
+<table style="margin-bottom:10pt"><tr>${kv('Jenjang',m.jenjang)}${kv('Kelas',m.kelas)}</tr><tr>${kv('Mata Pelajaran',m.mapel)}${kv('Jumlah Soal',rs.reduce((a,r)=>a+J(r),0))}</tr></table>
 <table><tr>${hd.map((h,i)=>`<th bgcolor="#2E75B6" style="background:#2E75B6;color:#FFFFFF;border:1px solid #FFFFFF;text-align:center;padding:5px;width:${wd[i]}%">${h}</th>`).join('')}</tr>
-${S.rows.map((r,i)=>{const bg=i%2?'#DDEBF7':'#FFFFFF',c=`bgcolor="${bg}" style="background:${bg};border:1px solid #9DC3E6;padding:5px;`;return `<tr><td ${c}text-align:center">${noTxt(r,st[i])}.</td><td ${c}">${nb(r.tp)}</td><td ${c}">${nb(r.materi)}</td><td ${c}">${nb(r.indikator)}</td><td ${c}text-align:center">${r.level.split(' ')[0]}</td></tr>`}).join('')}</table></div>`}
+${rs.map((r,i)=>{const bg=i%2?'#DDEBF7':'#FFFFFF',c=`bgcolor="${bg}" style="background:${bg};border:1px solid #9DC3E6;padding:5px;`;return `<tr><td ${c}text-align:center">${noTxt(r,st[S.rows.indexOf(r)])}.</td><td ${c}">${nb(r.tp)}</td><td ${c}">${nb(r.materi)}</td><td ${c}">${nb(r.indikator)}</td><td ${c}text-align:center">${r.level.split(' ')[0]}</td></tr>`}).join('')}</table></div>`}
 function flat(){const st=starts(),o=[];S.rows.forEach((r,ri)=>{for(let i=0;i<J(r);i++)o.push({n:st[ri]+i,r,q:(S.soal[r.id]||[])[i]||{}})});return o}
 function soalHtml(){return `<div style="page:Soal">${head('NASKAH SOAL')}<hr>${flat().map(({n,r,q})=>`<p style="margin:10px 0 2px">${n}.&nbsp; ${esc(q.q).replace(/\n/g,'<br>')}</p>${isPG(r.bentuk)?['a','b','c','d','e'].filter(k=>(q[k]||'').trim()).map(k=>`<p style="margin:0 0 0 28px">${k.toUpperCase()}.&nbsp; ${esc(q[k])}</p>`).join(''):r.bentuk==='Benar-Salah'?'<p style="margin:0 0 0 28px">○ Benar &nbsp;&nbsp;&nbsp; ○ Salah</p>':''}`).join('')}</div>`}
 function kunciHtml(){return `<div style="page:Soal">${head('KUNCI JAWABAN & PEDOMAN PENSKORAN')}<table><tr><th>No</th><th>Level</th><th>Kesulitan</th><th>Kunci / Pedoman</th><th>Skor</th></tr>${flat().map(({n,r,q})=>`<tr><td>${n}</td><td>${r.level.split(' ')[0]}</td><td>${r.diff}</td><td>${esc(q.key).replace(/\n/g,'<br>')}</td><td>${r.skor||0}</td></tr>`).join('')}</table></div>`}
 function exportDoc(parts,name){const brk='<br clear="all" style="page-break-before:always;mso-break-type:section-break">';
 const html=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>${name}</title><style>@page Kisi{size:21cm 29.7cm;margin:2cm}@page Soal{size:21cm 29.7cm;margin:2cm}body{font-family:'Times New Roman',serif;font-size:12pt}table{border-collapse:collapse;width:100%}td,th{border:1px solid #000;padding:4px;font-size:10pt;vertical-align:top}th{background:#d9e2f3}</style></head><body>${parts.join(brk)}</body></html>`;
 dl(new Blob(['\ufeff'+html],{type:'application/msword'}),name+'.doc')}
+function exportCsv(rs,name){const st=starts(),q=v=>'"'+String(v??'').replace(/"/g,'""').replace(/\r?\n/g,' ')+'"';
+const L=[['No Soal','Tujuan Pembelajaran','Materi Esensial','Indikator','Level Kognitif','Tingkat Kesulitan','Bentuk Soal','Jumlah Soal','Skor per Butir','Keterangan'].map(q).join(';')];
+rs.forEach(r=>L.push([noTxt(r,st[S.rows.indexOf(r)]),r.tp,r.materi,r.indikator,r.level,r.diff,r.bentuk,J(r),r.skor,getKet(r)].map(q).join(';')));
+dl(new Blob(['\ufeff'+L.join('\r\n')],{type:'text/csv;charset=utf-8'}),name+'.csv')}
 function dl(b,n){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
 const fn=s=>((S.meta.mapel||'soal')+'-'+s).replace(/[^\w-]+/g,'_');
 
@@ -211,6 +215,7 @@ if(a==='exp-json')dl(new Blob([JSON.stringify(S,null,1)],{type:'application/json
 if(a==='reset'&&confirm('Hapus semua data dan mulai baru?')){S={};norm();save();r0()}
 if(a==='x-all')exportDoc([kisiHtml(),soalHtml(),kunciHtml()],fn('lengkap'));
 if(a==='x-kisi')exportDoc([kisiHtml()],fn('kisi-kisi'));
+if(a==='x-fkisi'||a==='x-fcsv'){const rs=S.rows.filter(fmatch);if(!rs.length)return alert('Tidak ada baris yang cocok dengan filter.');a==='x-fkisi'?exportDoc([kisiHtml(rs)],fn('kisi-kisi-terfilter')):exportCsv(rs,fn('kisi-kisi-terfilter'))}
 if(a==='x-soal')exportDoc([soalHtml()],fn('naskah'));
 if(a==='x-kunci')exportDoc([kunciHtml()],fn('kunci'))});
 document.addEventListener('change',e=>{if(e.target.id!=='imp')return;const f=e.target.files[0];if(!f)return;if((S.rows.length||S.materi.length)&&!confirm('Data saat ini akan diganti dengan isi file. Lanjutkan?')){e.target.value='';return}const rd=new FileReader();rd.onload=()=>{try{const o=JSON.parse(rd.result);if(!o||typeof o!=='object'||!Array.isArray(o.rows||[]))throw 0;S=o;norm();save();r0();alert('Proyek berhasil dimuat.')}catch(x){alert('File proyek tidak valid.')}};rd.readAsText(f);e.target.value=''});
