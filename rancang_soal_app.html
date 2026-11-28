@@ -100,7 +100,7 @@ const kt=Array(N);
 idx.forEach((x,j)=>{let u=0;x.forEach((i,k)=>{if(Math.round(fl[j]*(k+1)/x.length)>u){kt[i]=KT[0];u++}else kt[i]=KT[1]})});
 const rw=M.length&&Array.from({length:N},(_,i)=>({id:uid(),materi:M[i%M.length],ket:kt[i],tp:'',indikator:'',level:l[i],diff:d[i],bentuk:b[i],jumlah:1,skor:SKR[b[i]]}));
 S.rows=rw.sort((x,y)=>M.indexOf(x.materi)-M.indexOf(y.materi)||LV.indexOf(x.level)-LV.indexOf(y.level)||DF.indexOf(x.diff)-DF.indexOf(y.diff));
-S.soal={};resetFL();save();go(1)}
+S.soal={};resetFL();resetFL2();save();go(1)}
 const getKet=r=>r.ket||KT[0];
 const matCell=r=>{const L=S.materi;return L.length?`<select data-r="${r.id}" data-f="materi">${[...(L.includes(r.materi)?[]:[r.materi||'']),...L].map(x=>`<option${x===r.materi?' selected':''}>${esc(x)}</option>`).join('')}</select>`:`<textarea data-r="${r.id}" data-f="materi">${esc(r.materi)}</textarea>`};
 
@@ -113,7 +113,7 @@ if(FL.materi&&r.materi!==FL.materi)return false;if(FL.level&&r.level!==FL.level)
 if(FL.kosong&&(r.tp||'').trim()&&(r.indikator||'').trim())return false;return true};
 function applyFilter(){let n=0;document.querySelectorAll('#t1 tr[data-rid]').forEach(tr=>{const r=S.rows.find(x=>x.id===tr.dataset.rid),ok=!!r&&fmatch(r);tr.style.display=ok?'':'none';if(ok)n++});const e=$('#fcnt');if(e)e.textContent='Menampilkan '+n+' dari '+S.rows.length+' baris · tombol Ekspor mengikuti filter ini';fit()}
 const fsel=(k,list)=>`<select data-fl="${k}"><option value="">Semua</option>${list.map(x=>`<option${x===FL[k]?' selected':''}>${esc(x)}</option>`).join('')}</select>`;
-const fit2=()=>document.querySelectorAll('#t2 textarea').forEach(autosize);
+const fit2=()=>document.querySelectorAll('#t2 textarea').forEach(el=>{const card=el.closest('.q');if(!card||card.style.display!=='none')autosize(el)});
 addEventListener('resize',()=>{if($('#t1').classList.contains('on'))fit();if($('#t2').classList.contains('on'))fit2()});
 function r1(){const st=starts();
 $('#t1').innerHTML=`<div class="card"><h2>Kisi-kisi Soal</h2><p class="m">Satu baris = satu indikator. Isi jumlah butir soal per indikator; nomor soal dihitung otomatis.</p>
@@ -136,17 +136,63 @@ function ksum(){const e=$('#ksum');if(!e)return;const t=+S.meta.total||0,n=tot()
 
 /* 3 INPUT SOAL */
 const hc=m=>{const i=S.materi.indexOf((m||'').trim()),n=S.materi.length;return i<0?null:Math.round(210-210*(n>1?i/(n-1):0))};
+const blankFL2=()=>({q:'',materi:'',level:'',diff:'',bentuk:'',ket:'',belum:false});let FL2=blankFL2();const resetFL2=()=>{FL2=blankFL2()};
+const fsel2=(k,list)=>`<select data-fl2="${k}"><option value="">Semua</option>${list.map(x=>`<option${x===FL2[k]?' selected':''}>${esc(x)}</option>`).join('')}</select>`;
+function fmatch2(r,i,no){
+  const qStr=FL2.q.trim().toLowerCase();
+  if(qStr){
+    const obj=(S.soal[r.id]||[])[i]||{};
+    const hay=[String(no),r.indikator,r.tp,obj.q,obj.a,obj.b,obj.c,obj.d,obj.e,obj.key].join(' ').toLowerCase();
+    if(!hay.includes(qStr))return false;
+  }
+  if(FL2.materi&&r.materi!==FL2.materi)return false;
+  if(FL2.level&&r.level!==FL2.level)return false;
+  if(FL2.diff&&r.diff!==FL2.diff)return false;
+  if(FL2.bentuk&&r.bentuk!==FL2.bentuk)return false;
+  if(FL2.ket&&getKet(r)!==FL2.ket)return false;
+  if(FL2.belum&&filled(r,i))return false;
+  return true;
+}
+function applyFilter2(){
+  let shown=0,total=0;
+  document.querySelectorAll('#t2 .q[data-rid]').forEach(card=>{
+    total++;
+    const rid=card.dataset.rid,idx=+card.dataset.idx,no=+card.dataset.no;
+    const r=S.rows.find(x=>x.id===rid);
+    const ok=!!r&&fmatch2(r,idx,no);
+    card.style.display=ok?'':'none';
+    if(ok)shown++;
+  });
+  const e=$('#fcnt2');
+  if(e)e.textContent='Menampilkan '+shown+' dari '+total+' soal';
+  const emp=$('#femp2');
+  if(emp)emp.style.display=(total>0&&shown===0)?'':'none';
+  fit2();
+}
 function r2(){if(!S.rows.length){$('#t2').innerHTML='<div class="card">Susun kisi-kisi dulu pada tab 2.</div>';return}
 const st=starts();let done=0;
 const body=S.rows.map((r,ri)=>{const arr=S.soal[r.id]=S.soal[r.id]||[];let h='';
-for(let i=0;i<J(r);i++){const q=arr[i]=arr[i]||{};if(filled(r,i))done++;
-h+=`<div class="q${hc(r.materi)===null?' nm':''}" style="--c:${hc(r.materi)??0}"><span class="bd">${esc(r.materi)||'Materi belum dipilih'}</span><div class="h"><b>Soal No. ${st[ri]+i}</b> · ${esc(r.level.split(' ')[0])} · ${r.diff} · ${r.bentuk} · skor ${r.skor||0}<br>Indikator: ${esc(r.indikator)||'<i>(belum diisi)</i>'}</div>
+for(let i=0;i<J(r);i++){const q=arr[i]=arr[i]||{};if(filled(r,i))done++;const no=st[ri]+i;
+h+=`<div class="q${hc(r.materi)===null?' nm':''}" data-rid="${r.id}" data-idx="${i}" data-no="${no}" style="--c:${hc(r.materi)??0}"><span class="bd">${esc(r.materi)||'Materi belum dipilih'}</span><div class="h"><b>Soal No. ${no}</b> · ${esc(r.level.split(' ')[0])} · ${r.diff} · ${r.bentuk} · skor ${r.skor||0} · <i>${esc(getKet(r))}</i><br>Indikator: ${esc(r.indikator)||'<i>(belum diisi)</i>'}</div>
 <label>Teks soal</label><textarea data-s="${r.id}" data-i="${i}" data-f="q">${esc(q.q)}</textarea>
 ${isPG(r.bentuk)?['a','b','c','d','e'].map(k=>`<div class="o"><b>${k.toUpperCase()}.</b><input data-s="${r.id}" data-i="${i}" data-f="${k}" value="${esc(q[k])}" placeholder="Opsi ${k.toUpperCase()}${k==='e'?' (opsional)':''}"></div>`).join('')+`<div class="o" style="grid-template-columns:auto 1fr"><b>Kunci:</b><input data-s="${r.id}" data-i="${i}" data-f="key" value="${esc(q.key)}" placeholder="${r.bentuk==='Pilihan Ganda'?'mis. B':'mis. A, C'}"></div>`
 :r.bentuk==='Benar-Salah'?`<label style="margin-top:6px">Kunci jawaban (pernyataan di atas)</label><select data-s="${r.id}" data-i="${i}" data-f="key">${['','Benar','Salah'].map(x=>`<option${x===q.key?' selected':''}>${x}</option>`).join('')}</select>`:`<label style="margin-top:6px">Kunci jawaban / pedoman penskoran</label><textarea data-s="${r.id}" data-i="${i}" data-f="key">${esc(q.key)}</textarea>`}
 </div>`}return h}).join('');
-$('#t2').innerHTML=`<div class="card"><h2>Input Soal</h2><p class="m">Terisi lengkap: <b id="dn">${done}</b> / ${tot()} soal</p>${S.materi.length?`<p class="m" style="margin-bottom:0">Warna materi (urutan ajar): ${S.materi.map((m,i)=>`<span class="lg" style="background:hsl(${hc(m)} 65% 34%)">${i+1}. ${esc(m)}</span>`).join('')}</p>`:''}</div>${body}`;fit2()}
-function upd2(){let n=0;S.rows.forEach(r=>{for(let i=0;i<J(r);i++)if(filled(r,i))n++});const e=$('#dn');if(e)e.textContent=n}
+$('#t2').innerHTML=`<div class="card"><h2>Input Soal</h2><p class="m">Terisi lengkap: <b id="dn">${done}</b> / ${tot()} soal</p>
+<div class="g" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin:10px 0 8px;align-items:end">
+<div style="grid-column:span 2"><label>Cari (no / soal / indikator)</label><input data-fq2 placeholder="Ketik kata kunci atau nomor soal" value="${esc(FL2.q)}"></div>
+<div><label>Materi</label>${fsel2('materi',[...new Set([...S.materi,...S.rows.map(r=>r.materi)].filter(Boolean))])}</div>
+<div><label>Level</label>${fsel2('level',LV)}</div>
+<div><label>Kesulitan</label>${fsel2('diff',DF)}</div>
+<div><label>Bentuk</label>${fsel2('bentuk',BT)}</div>
+<div><label>Keterangan</label>${fsel2('ket',KT)}</div>
+<div><label style="display:flex;gap:6px;align-items:center;font-size:13px;color:var(--tx)"><input type="checkbox" data-fk2 style="width:auto"${FL2.belum?' checked':''}>Soal belum lengkap</label></div>
+<div><button class="b s" data-act="fl2-reset">Reset filter</button></div>
+</div>
+<p id="fcnt2" class="m" style="margin-bottom:6px"></p>
+${S.materi.length?`<p class="m" style="margin-bottom:0">Warna materi (urutan ajar): ${S.materi.map((m,i)=>`<span class="lg" style="background:hsl(${hc(m)} 65% 34%)">${i+1}. ${esc(m)}</span>`).join('')}</p>`:''}</div>
+<div id="femp2" class="card m" style="display:none">Tidak ada soal yang cocok dengan filter yang dipilih.</div>${body}`;applyFilter2()}
+function upd2(){let n=0;S.rows.forEach(r=>{for(let i=0;i<J(r);i++)if(filled(r,i))n++});const e=$('#dn');if(e)e.textContent=n;if(FL2.belum)applyFilter2()}
 
 /* 4 REKAP */
 const pct=(a,b)=>b?Math.round(a/b*1000)/10:0;
@@ -193,6 +239,7 @@ const fn=s=>((S.meta.mapel||'soal')+'-'+s).replace(/[^\w-]+/g,'_');
 document.addEventListener('input',e=>{const d=e.target.dataset;if(!d)return;
 if(e.target.tagName==='TEXTAREA'&&e.target.closest('#t1,#t2'))autosize(e.target);
 if(d.fq!==undefined){FL.q=e.target.value;applyFilter();return}if(d.fl){FL[d.fl]=e.target.value;applyFilter();return}if(d.fk!==undefined){FL.kosong=e.target.checked;applyFilter();return}
+if(d.fq2!==undefined){FL2.q=e.target.value;applyFilter2();return}if(d.fl2){FL2[d.fl2]=e.target.value;applyFilter2();return}if(d.fk2!==undefined){FL2.belum=e.target.checked;applyFilter2();return}
 if(d.m!==undefined){S.meta[d.m]=e.target.value}
 else if(d.t){S.target[d.t]=+e.target.value;tsum()}
 else if(d.tl){S.tLv[d.tl]=+e.target.value;tsum()}
@@ -209,16 +256,17 @@ if(t.dataset.del){S.rows=S.rows.filter(r=>r.id!==t.dataset.del);delete S.soal[t.
 const a=t.dataset.act;if(!a)return;
 if(a==='gen')gen();
 if(a==='fl-reset'){resetFL();r1()}
+if(a==='fl2-reset'){resetFL2();r2()}
 if(a==='add'){resetFL();S.rows.push({id:uid(),materi:S.materi[0]||'',ket:KT[0],tp:'',indikator:'',level:LV[1],diff:'Sedang',bentuk:BT[0],jumlah:1,skor:1});save();r1()}
 if(a==='dup'&&S.rows.length){resetFL();S.rows.push({...S.rows[S.rows.length-1],id:uid()});save();r1()}
 if(a==='exp-json')dl(new Blob([JSON.stringify(S,null,1)],{type:'application/json'}),fn('proyek')+'.json');
-if(a==='reset'&&confirm('Hapus semua data dan mulai baru?')){S={};norm();save();r0()}
+if(a==='reset'&&confirm('Hapus semua data dan mulai baru?')){S={};norm();resetFL();resetFL2();save();r0()}
 if(a==='x-all')exportDoc([kisiHtml(),soalHtml(),kunciHtml()],fn('lengkap'));
 if(a==='x-kisi')exportDoc([kisiHtml()],fn('kisi-kisi'));
 if(a==='x-fkisi'||a==='x-fcsv'){const rs=S.rows.filter(fmatch);if(!rs.length)return alert('Tidak ada baris yang cocok dengan filter.');a==='x-fkisi'?exportDoc([kisiHtml(rs)],fn('kisi-kisi-terfilter')):exportCsv(rs,fn('kisi-kisi-terfilter'))}
 if(a==='x-soal')exportDoc([soalHtml()],fn('naskah'));
 if(a==='x-kunci')exportDoc([kunciHtml()],fn('kunci'))});
-document.addEventListener('change',e=>{if(e.target.id!=='imp')return;const f=e.target.files[0];if(!f)return;if((S.rows.length||S.materi.length)&&!confirm('Data saat ini akan diganti dengan isi file. Lanjutkan?')){e.target.value='';return}const rd=new FileReader();rd.onload=()=>{try{const o=JSON.parse(rd.result);if(!o||typeof o!=='object'||!Array.isArray(o.rows||[]))throw 0;S=o;norm();save();r0();alert('Proyek berhasil dimuat.')}catch(x){alert('File proyek tidak valid.')}};rd.readAsText(f);e.target.value=''});
+document.addEventListener('change',e=>{if(e.target.id!=='imp')return;const f=e.target.files[0];if(!f)return;if((S.rows.length||S.materi.length)&&!confirm('Data saat ini akan diganti dengan isi file. Lanjutkan?')){e.target.value='';return}const rd=new FileReader();rd.onload=()=>{try{const o=JSON.parse(rd.result);if(!o||typeof o!=='object'||!Array.isArray(o.rows||[]))throw 0;S=o;norm();resetFL();resetFL2();save();r0();alert('Proyek berhasil dimuat.')}catch(x){alert('File proyek tidak valid.')}};rd.readAsText(f);e.target.value=''});
 go(0);
 </script>
 </body>
