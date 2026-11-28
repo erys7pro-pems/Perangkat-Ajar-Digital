@@ -40,7 +40,10 @@ td input,td select,td textarea{border:0;background:transparent;padding:4px;min-h
 .th .d{position:absolute;top:3px;right:3px;width:22px;height:22px;padding:0;line-height:18px;font-size:16px;border-radius:50%;background:var(--card);border:1px solid var(--bd)}
 .kc{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:8px}.kc input{flex:1 1 120px;max-width:230px}
 .kb{width:34px;height:34px;border-radius:50%;border:2px solid var(--bd);background:var(--card);color:var(--tx);font:700 14px system-ui;cursor:pointer;padding:0}.kb:hover{border-color:var(--ac)}.kb.on{background:var(--ac);border-color:var(--ac);color:var(--bg)}
-.o{display:grid;grid-template-columns:26px 1fr;gap:6px;align-items:center;margin-top:5px}
+.o{display:grid;grid-template-columns:26px 1fr;gap:6px;align-items:center;margin-top:5px}:root{--gr:#2f8f5b;--grb:rgba(47,143,91,.12);--grt:#fff}@media(prefers-color-scheme:dark){:root{--gr:#4cc38a;--grb:rgba(76,195,138,.15);--grt:#08261a}}
+.o{padding:3px 4px;border-radius:8px;transition:background .2s,box-shadow .2s}
+.o.ok{background:var(--grb);box-shadow:inset 3px 0 var(--gr)}.o.ok b{background:var(--gr);color:var(--grt);border-radius:50%;width:22px;height:22px;line-height:22px;text-align:center;font-size:12px}.o.ok input{border-color:var(--gr)}
+.kb.on{background:var(--gr);border-color:var(--gr);color:var(--grt)}
 </style>
 </head>
 <body>
@@ -147,14 +150,14 @@ document.addEventListener('paste',e=>{const t=e.target;if(!t||t.tagName!=='TEXTA
 const it=[...cd.items].filter(x=>x.kind==='file'&&x.type.startsWith('image/'));if(!it.length)return;e.preventDefault();
 it.forEach(x=>{const f=x.getAsFile();if(f)shrink(f).then(m=>{const a=S.soal[t.dataset.s]=S.soal[t.dataset.s]||[],q=a[+t.dataset.i]=a[+t.dataset.i]||{};(q.imgs=q.imgs||[]).push(m);save();const c=t.closest('.q').querySelector('.im');if(c)c.innerHTML=imHtml(q)}).catch(()=>alert('Gambar tidak dapat dibaca.'))})});
 const kset=k=>String(k||'').toUpperCase().match(/[A-E]/g)||[];
-const chipSync=c=>{const k=kset(c.querySelector('input').value);c.querySelectorAll('.kb').forEach(b=>b.classList.toggle('on',k.includes(b.dataset.kc)))};
+const chipSync=c=>{const k=kset(c.querySelector('input').value);c.querySelectorAll('.kb').forEach(b=>b.classList.toggle('on',k.includes(b.dataset.kc)));const cd=c.closest('.q');if(cd)cd.querySelectorAll('.o[data-opt]').forEach(o=>o.classList.toggle('ok',k.includes(o.dataset.opt)))};
 function r2(){if(!S.rows.length){$('#t2').innerHTML='<div class="card">Susun kisi-kisi dulu pada tab 2.</div>';return}
 const st=starts();let done=0;
 const body=S.rows.map((r,ri)=>{const arr=S.soal[r.id]=S.soal[r.id]||[];let h='';
 for(let i=0;i<J(r);i++){const q=arr[i]=arr[i]||{};if(filled(r,i))done++;
 h+=`<div class="q${hc(r.materi)===null?' nm':''}" style="--c:${hc(r.materi)??0}"><span class="bd">${esc(r.materi)||'Materi belum dipilih'}</span><div class="h"><b>Soal No. ${st[ri]+i}</b> · ${esc(r.level.split(' ')[0])} · ${r.diff} · ${r.bentuk} · skor ${r.skor||0}<br>Indikator: ${esc(r.indikator)||'<i>(belum diisi)</i>'}</div>
 <label>Teks soal</label><textarea data-s="${r.id}" data-i="${i}" data-f="q">${esc(q.q)}</textarea><div class="im" data-s="${r.id}" data-i="${i}">${imHtml(q)}</div>
-${isPG(r.bentuk)?['a','b','c','d','e'].map(k=>`<div class="o"><b>${k.toUpperCase()}.</b><input data-s="${r.id}" data-i="${i}" data-f="${k}" value="${esc(q[k])}" placeholder="Opsi ${k.toUpperCase()}${k==='e'?' (opsional)':''}"></div>`).join('')+`<div class="kc" data-s="${r.id}" data-i="${i}"><b>Kunci:</b>${[...'ABCDE'].map(L=>`<button type="button" class="kb${kset(q.key).includes(L)?' on':''}" data-kc="${L}" title="${r.bentuk==='Pilihan Ganda'?'Pilih kunci':'Pilih / lepas (boleh lebih dari satu)'}">${L}</button>`).join('')}<input data-s="${r.id}" data-i="${i}" data-f="key" value="${esc(q.key)}" placeholder="atau ketik, mis. ${r.bentuk==='Pilihan Ganda'?'B':'A, C'}"></div>`
+${isPG(r.bentuk)?['a','b','c','d','e'].map(k=>`<div class="o${kset(q.key).includes(k.toUpperCase())?' ok':''}" data-opt="${k.toUpperCase()}"><b>${k.toUpperCase()}.</b><input data-s="${r.id}" data-i="${i}" data-f="${k}" value="${esc(q[k])}" placeholder="Opsi ${k.toUpperCase()}${k==='e'?' (opsional)':''}"></div>`).join('')+`<div class="kc" data-s="${r.id}" data-i="${i}"><b>Kunci:</b>${[...'ABCDE'].map(L=>`<button type="button" class="kb${kset(q.key).includes(L)?' on':''}" data-kc="${L}" title="${r.bentuk==='Pilihan Ganda'?'Pilih kunci':'Pilih / lepas (boleh lebih dari satu)'}">${L}</button>`).join('')}<input data-s="${r.id}" data-i="${i}" data-f="key" value="${esc(q.key)}" placeholder="atau ketik, mis. ${r.bentuk==='Pilihan Ganda'?'B':'A, C'}"></div>`
 :r.bentuk==='Benar-Salah'?`<label style="margin-top:6px">Kunci jawaban (pernyataan di atas)</label><select data-s="${r.id}" data-i="${i}" data-f="key">${['','Benar','Salah'].map(x=>`<option${x===q.key?' selected':''}>${x}</option>`).join('')}</select>`:`<label style="margin-top:6px">Kunci jawaban / pedoman penskoran</label><textarea data-s="${r.id}" data-i="${i}" data-f="key">${esc(q.key)}</textarea>`}
 </div>`}return h}).join('');
 $('#t2').innerHTML=`<div class="card"><h2>Input Soal</h2><p class="m">Terisi lengkap: <b id="dn">${done}</b> / ${tot()} soal</p><p class="m">Tempel gambar dengan <b>Ctrl+V</b> di dalam kotak teks soal (gambar otomatis dikecilkan). Gambar ikut tersimpan di proyek (.json) dan di ekspor Word.</p>${S.materi.length?`<p class="m" style="margin-bottom:0">Warna materi (urutan ajar): ${S.materi.map((m,i)=>`<span class="lg" style="background:hsl(${hc(m)} 65% 34%)">${i+1}. ${esc(m)}</span>`).join('')}</p>`:''}</div>${body}`;fit2()}
