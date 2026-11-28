@@ -36,6 +36,8 @@ td input,td select,td textarea{border:0;background:transparent;padding:4px;min-h
 .q .h{padding-right:42%}.q .bd{position:absolute;top:8px;right:8px;max-width:40%;background:hsl(var(--c) 65% 34%);color:#fff;font-size:11px;font-weight:600;line-height:1.3;padding:3px 9px;border-radius:5px}
 .q.nm{border-color:var(--bd);background:var(--card)}.q.nm .bd{background:var(--mu)}
 .lg{display:inline-block;color:#fff;font-size:11px;font-weight:600;padding:2px 9px;border-radius:5px;margin:2px 4px 2px 0}
+.im{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}.th{position:relative;display:inline-block}.th img{display:block;max-width:240px;max-height:160px;border:1px solid var(--bd);border-radius:6px;background:#fff}
+.th .d{position:absolute;top:3px;right:3px;width:22px;height:22px;padding:0;line-height:18px;font-size:16px;border-radius:50%;background:var(--card);border:1px solid var(--bd)}
 .kc{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:8px}.kc input{flex:1 1 120px;max-width:230px}
 .kb{width:34px;height:34px;border-radius:50%;border:2px solid var(--bd);background:var(--card);color:var(--tx);font:700 14px system-ui;cursor:pointer;padding:0}.kb:hover{border-color:var(--ac)}.kb.on{background:var(--ac);border-color:var(--ac);color:var(--bg)}
 .o{display:grid;grid-template-columns:26px 1fr;gap:6px;align-items:center;margin-top:5px}
@@ -43,6 +45,7 @@ td input,td select,td textarea{border:0;background:transparent;padding:4px;min-h
 </head>
 <body>
 <header><h1>Perancang Soal &amp; Kisi-kisi</h1><p>Rencanakan kisi-kisi → susun soal → pantau persentase → ekspor ke Word. Data tersimpan otomatis di browser.</p></header>
+<div id="wn" style="display:none;background:var(--card);color:var(--wr);border-bottom:2px solid var(--wr);padding:8px 20px;font-size:13px">⚠ Penyimpanan browser penuh, perubahan terbaru mungkin tidak tersimpan. Segera simpan proyek (.json) dan kecilkan atau kurangi gambar.</div>
 <nav id="nav"></nav>
 <main>
 <section id="t0"></section><section id="t1"></section><section id="t2"></section><section id="t3"></section><section id="t4"></section>
@@ -58,7 +61,7 @@ function norm(){S.meta=S.meta||{};S.rows=S.rows||[];S.soal=S.soal||{};S.materi=S
 const old={C1:0,C2:0,C3:1,C4:2,C5:2,C6:2};S.rows.forEach(r=>{if(!LV.includes(r.level)){const c=old[(r.level||'').slice(0,2)];r.level=LV[c??1]}});S.tBt=S.tBt||{...DBT};BT.forEach(k=>{if(!(k in S.tBt))S.tBt[k]=DBT[k]});S.tKet=S.tKet||{'Pernah Diajarkan':70,'Belum Pernah Diajarkan':30}}
 try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
 S=S||{};norm();
-const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));const w=$('#wn');if(w)w.style.display='none'}catch(e){const w=$('#wn');if(w)w.style.display='block'}};
 const uid=()=>'r'+Math.random().toString(36).slice(2,8);
 const isPG=b=>b==='Pilihan Ganda'||b==='Pilihan Ganda Kompleks';
 const sel=(arr,v,attr)=>`<select ${attr}>${arr.map(x=>`<option${x===v?' selected':''}>${x}</option>`).join('')}</select>`;
@@ -138,6 +141,11 @@ function ksum(){const e=$('#ksum');if(!e)return;const t=+S.meta.total||0,n=tot()
 
 /* 3 INPUT SOAL */
 const hc=m=>{const i=S.materi.indexOf((m||'').trim()),n=S.materi.length;return i<0?null:Math.round(210-210*(n>1?i/(n-1):0))};
+const imHtml=q=>(q.imgs||[]).map((m,k)=>`<span class="th"><img src="${m.d}" alt="gambar soal"><button type="button" class="d" data-di="${k}" title="Hapus gambar">×</button></span>`).join('');
+const shrink=f=>new Promise((ok,no)=>{const u=URL.createObjectURL(f),im=new Image();im.onload=()=>{const k=Math.min(1,900/Math.max(im.width,im.height)),w=Math.round(im.width*k),h=Math.round(im.height*k),c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,w,h);x.drawImage(im,0,0,w,h);URL.revokeObjectURL(u);ok({d:c.toDataURL('image/jpeg',0.85),w,h})};im.onerror=()=>{URL.revokeObjectURL(u);no()};im.src=u});
+document.addEventListener('paste',e=>{const t=e.target;if(!t||t.tagName!=='TEXTAREA'||t.dataset.f!=='q'||!t.dataset.s)return;const cd=e.clipboardData;if(!cd||(cd.getData('text/plain')||'').trim())return;
+const it=[...cd.items].filter(x=>x.kind==='file'&&x.type.startsWith('image/'));if(!it.length)return;e.preventDefault();
+it.forEach(x=>{const f=x.getAsFile();if(f)shrink(f).then(m=>{const a=S.soal[t.dataset.s]=S.soal[t.dataset.s]||[],q=a[+t.dataset.i]=a[+t.dataset.i]||{};(q.imgs=q.imgs||[]).push(m);save();const c=t.closest('.q').querySelector('.im');if(c)c.innerHTML=imHtml(q)}).catch(()=>alert('Gambar tidak dapat dibaca.'))})});
 const kset=k=>String(k||'').toUpperCase().match(/[A-E]/g)||[];
 const chipSync=c=>{const k=kset(c.querySelector('input').value);c.querySelectorAll('.kb').forEach(b=>b.classList.toggle('on',k.includes(b.dataset.kc)))};
 function r2(){if(!S.rows.length){$('#t2').innerHTML='<div class="card">Susun kisi-kisi dulu pada tab 2.</div>';return}
@@ -145,11 +153,11 @@ const st=starts();let done=0;
 const body=S.rows.map((r,ri)=>{const arr=S.soal[r.id]=S.soal[r.id]||[];let h='';
 for(let i=0;i<J(r);i++){const q=arr[i]=arr[i]||{};if(filled(r,i))done++;
 h+=`<div class="q${hc(r.materi)===null?' nm':''}" style="--c:${hc(r.materi)??0}"><span class="bd">${esc(r.materi)||'Materi belum dipilih'}</span><div class="h"><b>Soal No. ${st[ri]+i}</b> · ${esc(r.level.split(' ')[0])} · ${r.diff} · ${r.bentuk} · skor ${r.skor||0}<br>Indikator: ${esc(r.indikator)||'<i>(belum diisi)</i>'}</div>
-<label>Teks soal</label><textarea data-s="${r.id}" data-i="${i}" data-f="q">${esc(q.q)}</textarea>
+<label>Teks soal</label><textarea data-s="${r.id}" data-i="${i}" data-f="q">${esc(q.q)}</textarea><div class="im" data-s="${r.id}" data-i="${i}">${imHtml(q)}</div>
 ${isPG(r.bentuk)?['a','b','c','d','e'].map(k=>`<div class="o"><b>${k.toUpperCase()}.</b><input data-s="${r.id}" data-i="${i}" data-f="${k}" value="${esc(q[k])}" placeholder="Opsi ${k.toUpperCase()}${k==='e'?' (opsional)':''}"></div>`).join('')+`<div class="kc" data-s="${r.id}" data-i="${i}"><b>Kunci:</b>${[...'ABCDE'].map(L=>`<button type="button" class="kb${kset(q.key).includes(L)?' on':''}" data-kc="${L}" title="${r.bentuk==='Pilihan Ganda'?'Pilih kunci':'Pilih / lepas (boleh lebih dari satu)'}">${L}</button>`).join('')}<input data-s="${r.id}" data-i="${i}" data-f="key" value="${esc(q.key)}" placeholder="atau ketik, mis. ${r.bentuk==='Pilihan Ganda'?'B':'A, C'}"></div>`
 :r.bentuk==='Benar-Salah'?`<label style="margin-top:6px">Kunci jawaban (pernyataan di atas)</label><select data-s="${r.id}" data-i="${i}" data-f="key">${['','Benar','Salah'].map(x=>`<option${x===q.key?' selected':''}>${x}</option>`).join('')}</select>`:`<label style="margin-top:6px">Kunci jawaban / pedoman penskoran</label><textarea data-s="${r.id}" data-i="${i}" data-f="key">${esc(q.key)}</textarea>`}
 </div>`}return h}).join('');
-$('#t2').innerHTML=`<div class="card"><h2>Input Soal</h2><p class="m">Terisi lengkap: <b id="dn">${done}</b> / ${tot()} soal</p>${S.materi.length?`<p class="m" style="margin-bottom:0">Warna materi (urutan ajar): ${S.materi.map((m,i)=>`<span class="lg" style="background:hsl(${hc(m)} 65% 34%)">${i+1}. ${esc(m)}</span>`).join('')}</p>`:''}</div>${body}`;fit2()}
+$('#t2').innerHTML=`<div class="card"><h2>Input Soal</h2><p class="m">Terisi lengkap: <b id="dn">${done}</b> / ${tot()} soal</p><p class="m">Tempel gambar dengan <b>Ctrl+V</b> di dalam kotak teks soal (gambar otomatis dikecilkan). Gambar ikut tersimpan di proyek (.json) dan di ekspor Word.</p>${S.materi.length?`<p class="m" style="margin-bottom:0">Warna materi (urutan ajar): ${S.materi.map((m,i)=>`<span class="lg" style="background:hsl(${hc(m)} 65% 34%)">${i+1}. ${esc(m)}</span>`).join('')}</p>`:''}</div>${body}`;fit2()}
 function upd2(){let n=0;S.rows.forEach(r=>{for(let i=0;i<J(r);i++)if(filled(r,i))n++});const e=$('#dn');if(e)e.textContent=n}
 
 /* 4 REKAP */
@@ -181,11 +189,16 @@ return `<div style="page:Kisi;font-family:Arial,sans-serif"><p style="text-align
 <table><tr>${hd.map((h,i)=>`<th bgcolor="#2E75B6" style="background:#2E75B6;color:#FFFFFF;border:1px solid #FFFFFF;text-align:center;padding:5px;width:${wd[i]}%">${h}</th>`).join('')}</tr>
 ${rs.map((r,i)=>{const bg=i%2?'#DDEBF7':'#FFFFFF',c=`bgcolor="${bg}" style="background:${bg};border:1px solid #9DC3E6;padding:5px;`;return `<tr><td ${c}text-align:center">${noTxt(r,st[S.rows.indexOf(r)])}.</td><td ${c}">${nb(r.tp)}</td><td ${c}">${nb(r.materi)}</td><td ${c}">${nb(r.indikator)}</td><td ${c}text-align:center">${r.level.split(' ')[0]}</td></tr>`}).join('')}</table></div>`}
 function flat(){const st=starts(),o=[];S.rows.forEach((r,ri)=>{for(let i=0;i<J(r);i++)o.push({n:st[ri]+i,r,q:(S.soal[r.id]||[])[i]||{}})});return o}
-function soalHtml(){return `<div style="page:Soal">${head('NASKAH SOAL')}<hr>${flat().map(({n,r,q})=>`<p style="margin:10px 0 2px">${n}.&nbsp; ${esc(q.q).replace(/\n/g,'<br>')}</p>${isPG(r.bentuk)?['a','b','c','d','e'].filter(k=>(q[k]||'').trim()).map(k=>`<p style="margin:0 0 0 28px">${k.toUpperCase()}.&nbsp; ${esc(q[k])}</p>`).join(''):r.bentuk==='Benar-Salah'?'<p style="margin:0 0 0 28px">○ Benar &nbsp;&nbsp;&nbsp; ○ Salah</p>':''}`).join('')}</div>`}
+function soalHtml(){return `<div style="page:Soal">${head('NASKAH SOAL')}<hr>${flat().map(({n,r,q})=>`<p style="margin:10px 0 2px">${n}.&nbsp; ${esc(q.q).replace(/\n/g,'<br>')}</p>${(q.imgs||[]).map(m=>{const w=Math.min(m.w,380),h=Math.round(m.h*w/m.w);return `<p style=\"margin:2px 0 2px 26px\"><img src=\"${m.d}\" width=\"${w}\" height=\"${h}\"></p>`}).join('')}${isPG(r.bentuk)?['a','b','c','d','e'].filter(k=>(q[k]||'').trim()).map(k=>`<p style="margin:0 0 0 28px">${k.toUpperCase()}.&nbsp; ${esc(q[k])}</p>`).join(''):r.bentuk==='Benar-Salah'?'<p style="margin:0 0 0 28px">○ Benar &nbsp;&nbsp;&nbsp; ○ Salah</p>':''}`).join('')}</div>`}
 function kunciHtml(){return `<div style="page:Soal">${head('KUNCI JAWABAN & PEDOMAN PENSKORAN')}<table><tr><th>No</th><th>Level</th><th>Kesulitan</th><th>Kunci / Pedoman</th><th>Skor</th></tr>${flat().map(({n,r,q})=>`<tr><td>${n}</td><td>${r.level.split(' ')[0]}</td><td>${r.diff}</td><td>${esc(q.key).replace(/\n/g,'<br>')}</td><td>${r.skor||0}</td></tr>`).join('')}</table></div>`}
 function exportDoc(parts,name){const brk='<br clear="all" style="page-break-before:always;mso-break-type:section-break">';
 const html=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>${name}</title><style>@page Kisi{size:21cm 29.7cm;margin:2cm}@page Soal{size:21cm 29.7cm;margin:2cm}body{font-family:'Times New Roman',serif;font-size:12pt}table{border-collapse:collapse;width:100%}td,th{border:1px solid #000;padding:4px;font-size:10pt;vertical-align:top}th{background:#d9e2f3}</style></head><body>${parts.join(brk)}</body></html>`;
-dl(new Blob(['\ufeff'+html],{type:'application/msword'}),name+'.doc')}
+const imgs=[],h2=html.replace(/src="data:image\/jpeg;base64,([^"]+)"/g,(m,b)=>{imgs.push(b);return 'src="file:///C:/fake/img'+imgs.length+'.jpg"'});
+if(!imgs.length){dl(new Blob(['\ufeff'+html],{type:'application/msword'}),name+'.doc');return}
+const B='----=_Part_'+Date.now(),wrap=x=>x.replace(/.{1,76}/g,'$&\r\n');let bin='';new TextEncoder().encode(h2).forEach(c=>bin+=String.fromCharCode(c));
+const out=['MIME-Version: 1.0','Content-Type: multipart/related; boundary="'+B+'"; type="text/html"','','--'+B,'Content-Type: text/html; charset="utf-8"','Content-Transfer-Encoding: base64','Content-Location: file:///C:/fake/doc.htm','',wrap(btoa(bin))];
+imgs.forEach((b,i)=>out.push('--'+B,'Content-Type: image/jpeg','Content-Transfer-Encoding: base64','Content-Location: file:///C:/fake/img'+(i+1)+'.jpg','',wrap(b)));
+out.push('--'+B+'--','');dl(new Blob([out.join('\r\n')],{type:'application/msword'}),name+'.doc')}
 function exportCsv(rs,name){const st=starts(),q=v=>'"'+String(v??'').replace(/"/g,'""').replace(/\r?\n/g,' ')+'"';
 const L=[['No Soal','Tujuan Pembelajaran','Materi Esensial','Indikator','Level Kognitif','Tingkat Kesulitan','Bentuk Soal','Jumlah Soal','Skor per Butir','Keterangan'].map(q).join(';')];
 rs.forEach(r=>L.push([noTxt(r,st[S.rows.indexOf(r)]),r.tp,r.materi,r.indikator,r.level,r.diff,r.bentuk,J(r),r.skor,getKet(r)].map(q).join(';')));
@@ -208,6 +221,7 @@ else if(d.s){const a=S.soal[d.s];a[+d.i]=a[+d.i]||{};a[+d.i][d.f]=e.target.value
 else return;save()});
 document.addEventListener('change',e=>{if(e.target.dataset.r&&e.target.tagName==='SELECT'||e.target.dataset.f==='jumlah'&&e.target.dataset.r)r1()});
 document.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)return;
+if(t.dataset.di!==undefined){const im=t.closest('.im'),id=im.dataset.s,i=+im.dataset.i,q=S.soal[id][i];q.imgs.splice(+t.dataset.di,1);save();im.innerHTML=imHtml(q);return}
 if(t.dataset.kc){const c=t.closest('.kc'),id=c.dataset.s,i=+c.dataset.i,r=S.rows.find(x=>x.id===id),a=S.soal[id]=S.soal[id]||[],q=a[i]=a[i]||{},L=t.dataset.kc;let cur=kset(q.key);
 if(r.bentuk==='Pilihan Ganda Kompleks'){cur=cur.includes(L)?cur.filter(x=>x!==L):[...cur,L].sort();q.key=cur.join(', ')}else q.key=cur.length===1&&cur[0]===L?'':L;
 c.querySelector('input').value=q.key;chipSync(c);upd2();save();return}
